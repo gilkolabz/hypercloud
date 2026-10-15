@@ -1,0 +1,13 @@
+{
+  "contract": "scranton_avatar_v1",
+  "host": "https://foobarch.net",
+  "schema_ib": "scranton/avatar/schema",
+  "schema_addr": "scranton/avatar/schema^48EDC058964FCC6F7DACF77CEF4FA97A9B2E9ED666DEB1ED9DEA1BAEDC1EB62D",
+  "policy_ib": "scranton/avatar/policy",
+  "policy_addr": "scranton/avatar/policy^50ECFF67E9299A2280D1646CBEB3EBE617022BC2137F2E6DD72D4437521A02EB",
+  "mod_ib": "scranton_avatar",
+  "mod_addr": "scranton_avatar^F9590CDA99B395A57FD3C0A9AFD4B89203E7E77103F62D582654C3562C9CD73C",
+  "governor_ib": "scranton/avatar",
+  "governor_addr": "scranton/avatar^9A2A005495C101993298B1379F925DE3B9A604051F7A2888ACA0A395E7AB9B2A",
+  "published_at": "2026-10-10T21:00:56.259Z"
+}

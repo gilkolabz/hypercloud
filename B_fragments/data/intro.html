@@ -1,0 +1,163 @@
+<div name="intro" data-path="hypertext/intro" data-part="htmf">
+<script>(function(){var path="/hypertext/intro";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+    <h1><i>Intro to Foobarch</i></h1>
+    <hr>
+    <p>not written yet.</p>
+    <p>Hello world, it appears the introduction to Foobarch has not been found.</p>
+    <p></p>
+    <p>
+      <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">documentation</a>
+    </p>
+    <div data-part="token-request">
+      <h3 style="margin:0 0 0.4rem;">Request Foobarch Hostparking Tokens</h3>
+      <p style="margin:0 0 0.5rem;color:#444;">
+        Send a request to the Approver; once approved,
+        tokens are claimed into your navi tokens stash.
+      </p>
+      <label style="display:block;margin-bottom:0.25rem;">Note for the approver (who you are / why)</label>
+      <input data-part="token-note" type="text" maxlength="280" style="width:100%;box-sizing:border-box;margin-bottom:0.5rem;">
+      <button type="button" data-act="token-check">Check status</button>
+      <button type="button" data-act="token-primary">Request tokens</button>
+      <p data-part="token-status" style="margin:0.5rem 0 0;color:#555;"></p>
+    </div>
+    <a href="/hypertext/welcome" hx-get="/hypertext/welcome" hx-swap="outerHTML" hx-target="div[name='intro']" hx-push-url="true">Back to Welcome</a>
+    <script>
+    (function () {
+      const root =
+        (document.currentScript && document.currentScript.closest('div[name="intro"]')) ||
+        document.querySelector('div[name="intro"]');
+      if (!root || root.dataset.introBound === "1") return;
+      root.dataset.introBound = "1";
+      const box = root.querySelector('[data-part="token-request"]');
+      const statusEl = box.querySelector('[data-part="token-status"]');
+      const noteEl = box.querySelector('[data-part="token-note"]');
+      const primary = box.querySelector('[data-act="token-primary"]');
+      const POLL_MS = 15000;
+      let mode = "request";
+      let pollTimer = null;
+      let busy = false;
+
+      const set = (msg, isErr) => {
+        statusEl.style.color = isErr ? "#a30" : "#555";
+        statusEl.textContent = msg ? String(msg) : "";
+      };
+      const setMode = (m) => {
+        mode = m;
+        primary.textContent =
+          m === "watching" ? "Watching… (waiting for approval)" : m === "claim" ? "Claim tokens" : "Request tokens";
+        primary.disabled = m === "watching";
+        noteEl.disabled = m !== "request";
+      };
+      const stopPoll = () => {
+        if (pollTimer) clearTimeout(pollTimer);
+        pollTimer = null;
+      };
+
+      /** Mount park mod; if a stale localparked copy lacks `fresh(mod)`, re-pin it from the host. */
+      const ensureParkMod = async (park, fresh) => {
+        const ok = () => navi.mod && navi.mod[park] && (!fresh || fresh(navi.mod[park]));
+        if (ok()) return navi.mod[park];
+        const stale = !!(navi.mod && navi.mod[park]);
+        if (stale) await navi("unmount " + park);
+        await navi.callin({
+          path: park,
+          method: "GET",
+          headers: stale ? { "X-Navi-Park-Bypass": "1" } : {},
+        });
+        if (!ok() && !stale && navi.mod && navi.mod[park]) {
+          await navi("unmount " + park);
+          await navi.callin({ path: park, method: "GET", headers: { "X-Navi-Park-Bypass": "1" } });
+        }
+        if (!ok()) throw new Error(park + " did not mount (or is outdated)");
+        return navi.mod[park];
+      };
+      const distro = async () => {
+        if (typeof navi === "undefined" || !navi || typeof navi.callin !== "function") {
+          throw new Error("navi unavailable");
+        }
+        await ensureParkMod("keychain", (m) => typeof m.derive === "function" && typeof m.signMessage === "function");
+        const m = await ensureParkMod("token_distro_endpoint", (m) => !!m.distro);
+        return m.distro;
+      };
+
+      const claim = async (d) => {
+        set("approved — claiming tokens…");
+        const r = await d.claimTokens();
+        setMode("request");
+        set("+" + r.received + " tokens added to your navi tokens stash (" + r.stash + " unused)");
+      };
+
+      /** One status round: pending → keep watching; approved → claim once (auto) or offer claim. */
+      const refresh = async (autoClaim) => {
+        const d = await distro();
+        const st = await d.status();
+        if (st.allowed) {
+          stopPoll();
+          if (autoClaim) return claim(d);
+          setMode("claim");
+          set("approved — tokens ready to claim");
+          return;
+        }
+        if (st.pending) {
+          setMode("watching");
+          set("pending approval (request " + st.pending + ") — checking every " + POLL_MS / 1000 + "s");
+          stopPoll();
+          pollTimer = setTimeout(tick, POLL_MS);
+          return;
+        }
+        stopPoll();
+        setMode("request");
+        set("no request on file yet");
+      };
+      const tick = async () => {
+        pollTimer = null;
+        if (!root.isConnected) return;
+        try {
+          await refresh(true);
+        } catch (err) {
+          set((err && err.message) || String(err), true);
+          pollTimer = setTimeout(tick, POLL_MS);
+        }
+      };
+
+      const run = async (fn) => {
+        if (busy) return;
+        busy = true;
+        try {
+          await fn();
+        } catch (err) {
+          console.error("[intro] token request", err);
+          set((err && err.message) || String(err), true);
+        } finally {
+          busy = false;
+        }
+      };
+
+      primary.addEventListener("click", () =>
+        run(async () => {
+          if (mode === "claim") return claim(await distro());
+          const note = noteEl.value.trim();
+          if (!note) {
+            set("add a note so the approver knows who is asking", true);
+            noteEl.focus();
+            return;
+          }
+          set("mounting keychain + token_distro_endpoint…");
+          const d = await distro();
+          set("sending request…");
+          const r = await d.requestAccess(note);
+          if (r.allowed) return refresh(true);
+          set("requested (" + r.pending + ")" + (r.notified ? " — approver notified" : " — approver offline, queued"));
+          await refresh(true);
+        })
+      );
+      box.querySelector('[data-act="token-check"]').addEventListener("click", () =>
+        run(async () => {
+          set("checking…");
+          await refresh(false);
+        })
+      );
+    })();
+    </script>
+  </div>
+  

@@ -1,0 +1,79 @@
+<div
+  name="flow-model-program-manifest"
+  data-path="torus/devops/flow-model/program-manifest"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">program-manifest</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Program manifest</h1>
+    <p>A <strong>program manifest</strong> is the shopping label for a runnable variant: which flow boots, which modules mount, which <strong>feature tokens</strong> it implements, and (optionally) which features it explicitly does <strong>not</strong> include.</p>
+    <p>Canonical JSON Schema: <code>C_devops/flow-model-docs/schema/program_manifest.schema.json</code> (hostpark mirror: publish via identity when pinned).</p>
+
+    <h2>Why manifests exist</h2>
+    <ul>
+      <li>Viewport / <code>launch_index</code> can show what a program imps without opening every flow.</li>
+      <li>Baseline flows stay thin — excluded features live in <code>feature_excludes</code> on <em>other</em> manifests.</li>
+      <li><code>artifact_contracts</code> document standard I/O so variants test in isolation and compose later.</li>
+    </ul>
+
+    <h2>Required fields</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>Stable program id (<code>tipunch:program:pm_field_v2</code>)</td></tr>
+        <tr><td><code>label</code></td><td>Human name — name the sandwich, not the missing ingredient</td></tr>
+        <tr><td><code>why</code></td><td>Who + journey + wedge</td></tr>
+        <tr><td><code>flow</code></td><td>Logical route to flow JSON</td></tr>
+        <tr><td><code>launch</code></td><td>Logical route to launch fragment</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Feature shopping</h2>
+    <ul>
+      <li><code>feature_imps</code> — capability tokens this program implements</li>
+      <li><code>feature_excludes</code> — optional explicit non-goals</li>
+    </ul>
+    <p>Same token across manifests = same capability for merge / compose-all. A future <strong>suite</strong> program uses <code>compose_from</code> to union member manifests after contracts validate — not by bloating the PM wedge flow.</p>
+
+    <h2>Layers</h2>
+    <p><code>layers</code> maps UX spectrum (L0–Ln) to artifact routes. Swap L2 (photo bin module) without renaming L4 flow when registry API stays stable. See <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>.</p>
+
+    <h2>Artifact contracts</h2>
+    <pre><code>{
+  "artifact": "modules/tipunch_registry.js",
+  "kind": "module",
+  "provides": ["registry.getJob", "registry.jobStats"],
+  "requires": ["navi.storage.tip", "navi.storage.bin"],
+  "consumes": ["schema/punch_item"],
+  "emits": ["tipunch:job:*"]
+}</code></pre>
+    <p>Alternate apps (sub portal vs PM walk) use different flows + manifests but <code>require</code> the same registry <code>provides</code> tokens.</p>
+
+    <h2>Project convention</h2>
+    <pre><code>&lt;project&gt;/
+  programs/*.json
+  data/launch_index.json
+  flow/*.json
+  launch/*.html            # bootstrap bookmarks (not flow screens)
+  ui/*.html                # flow route screens only</code></pre>
+    <p>Example: <code>opry/devops/ti_punch/programs/</code> on hostpark.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a></li>
+      <li><a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a></li>
+      <li><a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a></li>
+    </ul>
+  </article>
+</div>

@@ -1,0 +1,10 @@
+{
+  "nickname": "foobarch",
+  "purpose": "Write-gate publisher for foobarch_host root shell tips",
+  "identity": "foobarch",
+  "policy_ib": "policies/foobarch-shell",
+  "schema_ib": "foobarch.schema.keys.v1",
+  "public_key": "U6uHXy9kN5_S5L8gbvxXc-zP5ORMlewPr591R-2fD80",
+  "public_key_hash": "a2fc2f1f88208674",
+  "created_at": "2026-08-07T15:24:54.236Z"
+}

@@ -1,0 +1,639 @@
+<div
+  name="keychain_panel"
+  data-path="hypercloud/testkit/htmf/keychain"
+  data-part="htmf"
+  data-mounted="0"
+  style="font:11px/1.3 ui-monospace,Consolas,monospace;padding:0.6rem;max-width:36rem;border:double 4px #000;box-sizing:border-box;background:#fff;color:#111;"
+>
+  <style>
+    div[name="keychain_panel"] * { box-sizing: border-box; }
+    div[name="keychain_panel"][data-mounted="1"] [data-part="mount"] {
+      display: none !important;
+    }
+    div[name="keychain_panel"] .kc-out {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 10px;
+      line-height: 1.25;
+      border: 1px solid #000;
+      padding: 0.35rem;
+      margin: 0 0 0.45rem;
+      max-height: 10rem;
+      overflow: auto;
+      background: #fafafa;
+    }
+    div[name="keychain_panel"] .kc-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      margin: 0 0 0.4rem;
+    }
+    div[name="keychain_panel"] .kc-tabs button {
+      font: inherit;
+      padding: 0.15rem 0.4rem;
+      cursor: pointer;
+      border: 1px solid #000;
+      background: #fff;
+    }
+    div[name="keychain_panel"] .kc-tabs button[aria-selected="true"] {
+      background: #000;
+      color: #fff;
+    }
+    div[name="keychain_panel"] .kc-pane[hidden] { display: none !important; }
+    div[name="keychain_panel"] label.fg {
+      display: block;
+      margin: 0 0 0.3rem;
+    }
+    div[name="keychain_panel"] label.fg > span {
+      display: block;
+      opacity: 0.7;
+      font-size: 10px;
+      margin: 0 0 0.1rem;
+    }
+    div[name="keychain_panel"] input,
+    div[name="keychain_panel"] textarea,
+    div[name="keychain_panel"] select {
+      font: inherit;
+      width: 100%;
+      border: 1px solid #000;
+      padding: 0.2rem 0.3rem;
+      background: #fff;
+    }
+    div[name="keychain_panel"] textarea {
+      min-height: 3rem;
+      resize: vertical;
+    }
+    div[name="keychain_panel"] .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      align-items: center;
+      margin: 0 0 0.35rem;
+    }
+    div[name="keychain_panel"] .toolbar button,
+    div[name="keychain_panel"] .keys button,
+    div[name="keychain_panel"] .kc-pane > button {
+      font: inherit;
+      padding: 0.15rem 0.4rem;
+      cursor: pointer;
+      border: 1px solid #000;
+      background: #fff;
+    }
+    div[name="keychain_panel"] .keys {
+      list-style: none;
+      margin: 0 0 0.35rem;
+      padding: 0;
+      border: 1px solid #000;
+      max-height: 10rem;
+      overflow: auto;
+    }
+    div[name="keychain_panel"] .keys li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      align-items: center;
+      padding: 0.25rem 0.3rem;
+      border-bottom: 1px solid #ccc;
+    }
+    div[name="keychain_panel"] .keys li:last-child { border-bottom: 0; }
+    div[name="keychain_panel"] .keys .name { font-weight: 700; min-width: 4rem; }
+    div[name="keychain_panel"] .keys .hash {
+      opacity: 0.7;
+      font-size: 10px;
+      flex: 1;
+      word-break: break-all;
+    }
+    div[name="keychain_panel"] .keys li.relay-key {
+      border-left: 4px double #000;
+      background: #f3f3f3;
+    }
+    div[name="keychain_panel"] .key-kind {
+      border: 1px solid #000;
+      padding: 0.05rem 0.25rem;
+      font-size: 9px;
+      white-space: nowrap;
+    }
+    div[name="keychain_panel"] button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+    div[name="keychain_panel"] .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.3rem;
+    }
+  </style>
+
+  <div style="font-weight:700;margin:0 0 0.25rem;">keychain</div>
+  <div data-part="meta" style="word-break:break-all;margin:0 0 0.35rem;opacity:0.8;font-size:10px;">keychain not mounted</div>
+  <div data-part="note" style="margin:0 0 0.35rem;opacity:0.75;font-size:10px;"></div>
+
+  <pre class="kc-out" data-part="out">(idle)</pre>
+
+  <div class="kc-tabs" role="tablist">
+    <button type="button" role="tab" data-tab="keys" aria-selected="true">keys</button>
+    <button type="button" role="tab" data-tab="relay" aria-selected="false">relay</button>
+    <button type="button" role="tab" data-tab="import" aria-selected="false">import</button>
+    <button type="button" role="tab" data-tab="sign" aria-selected="false">sign</button>
+  </div>
+
+  <div class="kc-pane" data-pane="keys">
+    <div class="toolbar">
+      <button type="button" data-part="mount" title="Fetch and mount keychain if missing">mount mod</button>
+    </div>
+    <ul class="keys" data-part="key-list"></ul>
+    <div class="toolbar">
+      <input type="text" data-part="create-name" placeholder="name (default)" style="flex:1;min-width:6rem" />
+      <button type="button" data-part="create" title="Generate a new Ed25519 pair">create</button>
+    </div>
+  </div>
+
+  <div class="kc-pane" data-pane="relay" hidden>
+    <p style="margin:0 0 0.35rem;opacity:0.75;font-size:10px;">
+      Sign via exe navi on relay — private key stays on the peer. Needs that peer to have keychain mounted.
+    </p>
+    <label class="fg"><span>relay host</span><input type="text" data-part="relay-host" spellcheck="false" placeholder="http://localhost:3030" /></label>
+    <div class="row2">
+      <label class="fg"><span>alias</span><input type="text" data-part="relay-alias" spellcheck="false" value="exe" /></label>
+      <label class="fg"><span>key name</span><input type="text" data-part="relay-key" spellcheck="false" placeholder="default" /></label>
+    </div>
+    <label class="fg"><span>token (blank keeps current)</span><input type="text" data-part="relay-token" autocomplete="off" autocapitalize="off" spellcheck="false" data-1p-ignore="true" data-lpignore="true" /></label>
+    <div class="toolbar">
+      <button type="button" data-part="relay-set" title="Save host/token plus alias+key for signWrite/signRead">set relay</button>
+      <button type="button" data-part="relay-ping" title="Ping alias live + has keychain + has key">ping</button>
+      <button type="button" data-part="relay-off" title="Clear relay; use local keys">off</button>
+    </div>
+  </div>
+
+  <div class="kc-pane" data-pane="import" hidden>
+    <label class="fg"><span>name</span><input type="text" data-part="import-name" placeholder="default" /></label>
+    <label class="fg"><span>public (x)</span><input type="text" data-part="import-pub" spellcheck="false" /></label>
+    <label class="fg"><span>private (d)</span><input type="text" data-part="import-priv" spellcheck="false" /></label>
+    <button type="button" data-part="import" title="Import --pub / --priv JWK x and d">import</button>
+  </div>
+
+  <div class="kc-pane" data-pane="sign" hidden>
+    <div class="row2">
+      <label class="fg"><span>key</span><select data-part="sign-key"></select></label>
+      <label class="fg"><span>content-type</span><input type="text" data-part="sign-type" value="text/plain" /></label>
+    </div>
+    <label class="fg"><span>ib</span><input type="text" data-part="sign-ib" spellcheck="false" placeholder="path/ib" /></label>
+    <label class="fg"><span>parent addr</span><input type="text" data-part="sign-parent" spellcheck="false" placeholder="optional" /></label>
+    <label class="fg"><span>body</span><textarea data-part="sign-body"></textarea></label>
+    <div class="toolbar">
+      <button type="button" data-part="sign-write" title="Sign write (local or relay)">sign write</button>
+      <button type="button" data-part="sign-read" title="Sign read (local or relay)">sign read</button>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const root = document.currentScript.closest('div[name="keychain_panel"]');
+  if (!root || root.dataset.kcWired === "1") return;
+  root.dataset.kcWired = "1";
+
+  const MOD_ROUTE = "flowerpot/hypercloud/testkit/mods/legacy/keychain.js";
+  const part = (n) => root.querySelector(`[data-part="${n}"]`);
+
+  function api() {
+    return navi?.mod?.keychain || null;
+  }
+
+  function setMounted(on) {
+    root.setAttribute("data-mounted", on ? "1" : "0");
+  }
+
+  function setNote(msg) {
+    const el = part("note");
+    if (el) el.textContent = msg || "";
+  }
+
+  function setOut(msg) {
+    const el = part("out");
+    if (el) el.textContent = msg == null ? "" : String(msg);
+  }
+
+  function setTab(name) {
+    const want = String(name || "keys");
+    for (const btn of root.querySelectorAll(".kc-tabs [data-tab]")) {
+      btn.setAttribute("aria-selected", btn.getAttribute("data-tab") === want ? "true" : "false");
+    }
+    for (const pane of root.querySelectorAll(".kc-pane[data-pane]")) {
+      pane.hidden = pane.getAttribute("data-pane") !== want;
+    }
+  }
+
+  root.querySelector(".kc-tabs")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-tab]");
+    if (!btn) return;
+    setTab(btn.getAttribute("data-tab"));
+  });
+
+  function resolveFetchUrl(route) {
+    const p = String(route || "").replace(/^\/+/, "");
+    if (typeof navi?.resolveUrl === "function") return navi.resolveUrl("/" + p);
+    return "/" + p;
+  }
+
+  async function ensureMod() {
+    if (api()) {
+      setMounted(true);
+      return { ok: true, already: true };
+    }
+    if (typeof navi?.mount !== "function") {
+      throw new Error("navi.mount unavailable");
+    }
+    const res = await fetch(resolveFetchUrl(MOD_ROUTE), {
+      headers: {
+        Accept: "application/javascript, application/navi-module, text/plain, */*",
+      },
+      cache: "no-store",
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error("fetch " + MOD_ROUTE + " → " + res.status + ": " + text.slice(0, 160));
+    }
+    await navi.mount(text);
+    if (!api()) throw new Error("mounted but navi.mod.keychain missing");
+    setMounted(true);
+    return { ok: true, already: false };
+  }
+
+  async function paintRelayFields() {
+    const mod = api();
+    if (!mod?.getRelay) return;
+    const r = await mod.getRelay();
+    const transport = await navi?.storage?.item?.get?.("relay");
+    const h = part("relay-host");
+    const a = part("relay-alias");
+    const k = part("relay-key");
+    if (h && !h.value.trim()) h.value = String(transport?.host || navi?.origin || "");
+    if (a && !a.value.trim() && r.alias) a.value = r.alias;
+    if (k && !k.value.trim()) k.value = r.key || "default";
+  }
+
+  async function paintMeta() {
+    const mod = api();
+    const meta = part("meta");
+    if (!mod) {
+      setMounted(false);
+      if (meta) meta.textContent = "keychain not mounted — use mount mod";
+      return;
+    }
+    setMounted(true);
+    const names = await mod.list();
+    const r = mod.getRelay ? await mod.getRelay() : { enabled: false };
+    if (meta) {
+      meta.textContent =
+        "mod ok · " +
+        names.length +
+        " local key(s)" +
+        (r.enabled ? " · relay " + r.alias + " key=" + r.key : " · local sign") +
+        " · " +
+        (mod.schemaIb || "flowerpot.schema.keys.v1");
+    }
+    await paintRelayFields();
+  }
+
+  async function fillKeySelect(selected, relay, relayInfo) {
+    const sel = part("sign-key");
+    if (!sel) return;
+    const mod = api();
+    const relayPrefs = relay || (mod?.getRelay ? await mod.getRelay() : { enabled: false });
+    if (relayPrefs.enabled) {
+      const option = document.createElement("option");
+      option.value = relayPrefs.key || "default";
+      option.textContent =
+        (relayPrefs.key || "default") +
+        " · relay:" +
+        relayPrefs.alias +
+        (relayInfo?.hasKey ? "" : " (unavailable)");
+      sel.replaceChildren(option);
+      return;
+    }
+    const names = mod ? await mod.list() : [];
+    const cur = selected || sel.value || "default";
+    sel.innerHTML = names.length
+      ? names.map((n) => '<option value="' + n + '">' + n + "</option>").join("")
+      : '<option value="default">default</option>';
+    if ([...sel.options].some((o) => o.value === cur)) sel.value = cur;
+  }
+
+  function appendRelayKey(list, relay, info) {
+    const li = document.createElement("li");
+    li.className = "relay-key";
+
+    const nm = document.createElement("span");
+    nm.className = "name";
+    nm.textContent = relay.key || "default";
+
+    const kind = document.createElement("span");
+    kind.className = "key-kind";
+    kind.textContent = "relay:" + relay.alias;
+
+    const hash = document.createElement("span");
+    hash.className = "hash";
+    hash.textContent = info?.hasKey
+      ? info.hash || "(public key available)"
+      : info?.error || "(relay key unavailable)";
+
+    const pubBtn = document.createElement("button");
+    pubBtn.type = "button";
+    pubBtn.textContent = "pub";
+    pubBtn.disabled = !info?.publicKey;
+    pubBtn.addEventListener("click", () => {
+      setOut(
+        [
+          "name: " + (relay.key || "default"),
+          "kind: relay",
+          "alias: " + relay.alias,
+          "hash: " + (info?.hash || "?"),
+          "publicKey: " + (info?.publicKey || "?"),
+          "privateKey: unavailable (stays on relay)",
+        ].join("\n")
+      );
+    });
+
+    const privBtn = document.createElement("button");
+    privBtn.type = "button";
+    privBtn.textContent = "no priv";
+    privBtn.disabled = true;
+    privBtn.title = "The private key stays on the relay peer";
+
+    const useBtn = document.createElement("button");
+    useBtn.type = "button";
+    useBtn.textContent = "use";
+    useBtn.disabled = !info?.hasKey;
+    useBtn.addEventListener("click", () => {
+      const sel = part("sign-key");
+      if (sel) sel.value = relay.key || "default";
+      setTab("sign");
+      setNote("using relay key '" + (relay.key || "default") + "' on " + relay.alias);
+    });
+
+    li.append(nm, kind, hash, pubBtn, privBtn, useBtn);
+    list.appendChild(li);
+  }
+
+  async function refresh() {
+    const list = part("key-list");
+    if (list) list.replaceChildren();
+    const mod = api();
+    if (!mod) {
+      setMounted(false);
+      await paintMeta();
+      await fillKeySelect();
+      return;
+    }
+    setMounted(true);
+    const [names, relay] = await Promise.all([
+      mod.list(),
+      mod.getRelay ? mod.getRelay() : { enabled: false },
+    ]);
+    let relayInfo = null;
+    if (relay.enabled && mod.pingRelay) {
+      try {
+        relayInfo = await mod.pingRelay(relay.alias, relay.key);
+      } catch (e) {
+        relayInfo = { hasKey: false, error: String(e.message || e) };
+      }
+    }
+    await fillKeySelect(undefined, relay, relayInfo);
+    await paintMeta();
+    if (!list) return;
+    if (relay.enabled) appendRelayKey(list, relay, relayInfo);
+    if (!names.length && !relay.enabled) {
+      const li = document.createElement("li");
+      li.style.opacity = "0.7";
+      li.textContent = "(no local keys — create or import)";
+      list.appendChild(li);
+      return;
+    }
+    for (const name of names) {
+      const entry = await mod.get(name);
+      const li = document.createElement("li");
+      const nm = document.createElement("span");
+      nm.className = "name";
+      nm.textContent = name;
+      const kind = document.createElement("span");
+      kind.className = "key-kind";
+      kind.textContent = "local";
+      const hash = document.createElement("span");
+      hash.className = "hash";
+      hash.textContent = entry?.hash || "?";
+      const showBtn = document.createElement("button");
+      showBtn.type = "button";
+      showBtn.textContent = "show";
+      showBtn.addEventListener("click", () => void showKey(name, false));
+      const privBtn = document.createElement("button");
+      privBtn.type = "button";
+      privBtn.textContent = "priv";
+      privBtn.addEventListener("click", () => void showKey(name, true));
+      const useBtn = document.createElement("button");
+      useBtn.type = "button";
+      useBtn.textContent = "use";
+      useBtn.disabled = relay.enabled;
+      useBtn.title = relay.enabled
+        ? "Turn relay off before signing with a local key"
+        : "Use this local key for signing";
+      useBtn.addEventListener("click", () => {
+        const sel = part("sign-key");
+        if (sel) sel.value = name;
+        setTab("sign");
+        setNote("using key '" + name + "'");
+      });
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.textContent = "del";
+      delBtn.addEventListener("click", () => void delKey(name));
+      li.append(nm, kind, hash, showBtn, privBtn, useBtn, delBtn);
+      list.appendChild(li);
+    }
+  }
+
+  async function showKey(name, showPriv) {
+    const mod = api();
+    if (!mod) throw new Error("keychain not mounted");
+    const entry = await mod.get(name);
+    if (!entry) {
+      setOut("no key '" + name + "'");
+      return;
+    }
+    const lines = [
+      "name: " + entry.name,
+      "hash: " + entry.hash,
+      "schema: " + (entry.schemaIb || mod.schemaIb),
+      "publicKey: " + entry.publicKey,
+      "createdAt: " + (entry.createdAt || "?"),
+    ];
+    if (showPriv) lines.push("privateKey: " + entry.privateKey);
+    setOut(lines.join("\n"));
+  }
+
+  async function delKey(name) {
+    if (!confirm("Delete key '" + name + "'?")) return;
+    const mod = api();
+    if (!mod) throw new Error("keychain not mounted");
+    const ok = await mod.del(name);
+    setNote(ok ? "deleted '" + name + "'" : "no key '" + name + "'");
+    await refresh();
+  }
+
+  part("mount")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        setNote("mounting…");
+        const r = await ensureMod();
+        setNote(r.already ? "already mounted" : "mounted " + MOD_ROUTE);
+        await refresh();
+      } catch (e) {
+        setNote(String(e.message || e));
+        setMounted(false);
+      }
+    })();
+  });
+
+  part("relay-set")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod?.setRelay) throw new Error("keychain not mounted — use mount mod");
+        const host = String(part("relay-host")?.value || "").trim();
+        const token = String(part("relay-token")?.value || "").trim();
+        const alias = String(part("relay-alias")?.value || "").trim();
+        const key = String(part("relay-key")?.value || "").trim() || "default";
+        if (host) await navi("relay host " + host);
+        if (token) await navi("relay token " + token);
+        const prefs = await mod.setRelay(alias, key);
+        setNote(
+          "relay " +
+            prefs.relayAlias +
+            " key=" +
+            prefs.relayKey +
+            (host ? " @ " + host : "")
+        );
+        setOut(JSON.stringify(await mod.getRelay(), null, 2));
+        await refresh();
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  part("relay-ping")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod?.pingRelay) throw new Error("keychain not mounted — use mount mod");
+        const alias = String(part("relay-alias")?.value || "").trim();
+        const key = String(part("relay-key")?.value || "").trim() || undefined;
+        setNote("pinging…");
+        const out = await mod.pingRelay(alias || undefined, key);
+        setOut(JSON.stringify(out, null, 2));
+        setNote(
+          out.live && out.hasKey
+            ? "ok — " + out.alias + " has key '" + out.key + "'"
+            : out.error || "ping incomplete"
+        );
+        await refresh();
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  part("relay-off")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod?.clearRelay) throw new Error("keychain not mounted — use mount mod");
+        await mod.clearRelay();
+        setNote("relay off — local keys");
+        setOut(JSON.stringify(await mod.getRelay(), null, 2));
+        await refresh();
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  part("create")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod) throw new Error("keychain not mounted — use mount mod");
+        const name = String(part("create-name")?.value || "").trim() || "default";
+        const created = await mod.create(name);
+        setNote("created '" + created.name + "'");
+        setOut("name: " + created.name + "\nhash: " + created.hash + "\npub: " + created.publicKey);
+        await refresh();
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  part("import")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod) throw new Error("keychain not mounted — use mount mod");
+        const name = String(part("import-name")?.value || "").trim() || "default";
+        const pub = String(part("import-pub")?.value || "").trim();
+        const priv = String(part("import-priv")?.value || "").trim();
+        if (!pub || !priv) throw new Error("pub and priv required");
+        const imported = await mod.importKey(name, pub, priv);
+        setNote("imported '" + imported.name + "'");
+        setOut("name: " + imported.name + "\nhash: " + imported.hash);
+        await refresh();
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  part("sign-write")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod) throw new Error("keychain not mounted — use mount mod");
+        const signed = await mod.signWrite({
+          ib: String(part("sign-ib")?.value || "").trim(),
+          parentAddr: String(part("sign-parent")?.value || "").trim(),
+          body: String(part("sign-body")?.value ?? ""),
+          contentType: String(part("sign-type")?.value || "text/plain").trim(),
+          key: String(part("sign-key")?.value || "default").trim(),
+        });
+        setOut(JSON.stringify(signed, null, 2));
+        setNote("signed write" + (signed.via ? " · " + signed.via : ""));
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  part("sign-read")?.addEventListener("click", () => {
+    void (async () => {
+      try {
+        const mod = api();
+        if (!mod) throw new Error("keychain not mounted — use mount mod");
+        const signed = await mod.signRead({
+          ib: String(part("sign-ib")?.value || "").trim(),
+          key: String(part("sign-key")?.value || "default").trim(),
+        });
+        setOut(JSON.stringify(signed, null, 2));
+        setNote("signed read" + (signed.via ? " · " + signed.via : ""));
+      } catch (e) {
+        setNote(String(e.message || e));
+      }
+    })();
+  });
+
+  void (async () => {
+    if (api()) setMounted(true);
+    else setMounted(false);
+    await refresh();
+  })();
+})();
+  </script>
+</div>

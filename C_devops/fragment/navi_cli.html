@@ -1,0 +1,67 @@
+<div
+  name="navi_cli"
+  data-path="torus/testkit/scripter"
+  data-part="htmf"
+>
+  <label>
+    navi calls
+    <br />
+    <textarea
+      name="cli_body"
+      data-part="body"
+      spellcheck="false"
+      rows="12"
+      cols="48"
+      placeholder="one navi callin per line&#10;e.g. mount flowerpot/…"
+    ></textarea>
+  </label>
+  <br /><br />
+
+  <div data-part="actions">
+    <button type="button" data-part="callin">callin</button>
+    <span data-part="status"></span>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.currentScript.closest('div[name="navi_cli"]');
+      if (!root) return;
+
+      const part = (name) => root.querySelector(`[data-part="${name}"]`);
+      const bodyEl = part("body");
+      const statusEl = part("status");
+      const callinBtn = part("callin");
+
+      const setStatus = (text) => {
+        statusEl.textContent = text || "";
+      };
+
+      callinBtn.addEventListener("click", async () => {
+        try {
+          const navi = globalThis.navi;
+          if (!navi || typeof navi.script !== "function") {
+            throw new Error("navi.script unavailable");
+          }
+          const lines = String(bodyEl.value || "")
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
+          if (!lines.length) {
+            setStatus("empty");
+            return;
+          }
+          // Each line is a callin string → JS for navi.script / executeCommand.
+          const commands = lines.map(
+            (line) => `await navi(${JSON.stringify(line)})`
+          );
+          setStatus(`running ${commands.length}…`);
+          await navi.script(commands);
+          bodyEl.value = "";
+          setStatus(`done ${commands.length}`);
+        } catch (err) {
+          setStatus(String(err?.message || err));
+        }
+      });
+    })();
+  </script>
+</div>

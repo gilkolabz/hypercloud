@@ -1,0 +1,139 @@
+<div
+  name="flow-model-flow-artifacts"
+  data-path="torus/devops/flow-model/flow-artifacts"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Flow artifacts</h1>
+    <p>A flow artifact is a versioned JSON document (<strong>hostpark</strong> by default) that records one journey design: where to start, which HTML each step uses, how named outcomes map to next steps, and optional soft capability flags.</p>
+    <p>It is a variance record, not executable UI. Prefer also <strong>planting</strong> it as a local tip (+ bin) so localpark wins — see <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>.</p>
+    <h2>Minimal shape</h2>
+    <pre><code class="json">
+    {
+      "id": "notes_list_direct",
+      "description": "Open on list; create and edit are separate screens.",
+      "entry": "list",
+      "meta": {},
+      "routes": {
+        "list": "/torus/example/notes/ui/list.html",
+        "edit": "/torus/example/notes/ui/edit.html",
+        "create": "/torus/example/notes/ui/create.html"
+      },
+      "policy": {
+        "list": {
+          "create": "create",
+          "open": "edit"
+        },
+        "create": {
+          "success": "edit",
+          "cancel": "list"
+        },
+        "edit": {
+          "save": "list",
+          "cancel": "list"
+        }
+      }
+    }
+    </code></pre>
+    <p>Fields:</p>
+    <ul>
+    <li><code>id</code> — Stable name for this journey design</li>
+    <li><code>description</code> — Human why / what differs</li>
+    <li><code>entry</code> — Route key Manager opens after bootstrap</li>
+    <li><code>routes</code> — Route key → surfable HTML URL (<code>/</code> + hostpark logical path; <strong>not</strong> <code>/flowerpot/…</code>)</li>
+    <li><code>policy</code> — Named transitions from a screen/context to a route key</li>
+    <li><code>meta</code> — Soft flags the Manager or pages may consult (not hard navigation)</li>
+    </ul>
+    <h2>Route keys</h2>
+    <p>A route key is a short name (<code>list</code>, <code>folder</code>, <code>capture</code>, <code>settings</code>). It is the Manager’s vocabulary.</p>
+    <p><code>Manager.go("edit")</code> looks up <code>routes.edit</code> and surfs that URL. The same key can point at different HTML files in different flow artifacts — that is how screen variants work without changing call sites in pages.</p>
+    <p>Prefer stable keys across a product family. Swap URLs and meta; keep keys when the role of the screen is the same.</p>
+    <h2>Policy</h2>
+    <p>Policy answers: given an event or user choice, which route key next?</p>
+    <p>Examples of policy shapes (not mandated keys):</p>
+    <ul>
+    <li>Lookup / resolve: <code>found</code> / <code>missing</code></li>
+    <li>Form outcomes: <code>success</code> / <code>cancel</code></li>
+    <li>Sheet hosts: <code>back</code> / <code>save</code> / <code>delete</code></li>
+    <li>Optional forks: <code>parse</code> / <code>skip</code></li>
+    </ul>
+    <p>Policy is navigation wiring. It does not implement application rules. Facts come from resting modules (registry lookup returned miss); the Manager uses policy to choose the next screen.</p>
+    <p>Do not auto-fire side effects from policy alone. Prefer: page offers choices → user acts → Manager navigates per policy.</p>
+    <h2>Meta</h2>
+    <p><code>meta</code> is for optional behavior on a shared screen role without forking HTML:</p>
+    <ul>
+    <li>which settings sections to show</li>
+    <li>which presentation mode a host supports (<code>sheet</code> vs <code>overlay</code>)</li>
+    <li>which actions are advertised (<code>edit</code>, <code>delete</code>, …)</li>
+    <li>layout hints a page may read</li>
+    </ul>
+    <p>Manager helpers often expose <code>meta</code> as typed getters. Pages and resting modules remain free of hard-coded product defaults when the flow can declare them.</p>
+    <p>If the whole layout of a screen changes, prefer a new HTML file + route URL change (or a composed instance), not an ever-growing meta bag.</p>
+    <h2>Active flow (pointer tip + body tip)</h2>
+    <p>“Which journey am I on?” is tip data — usually a pointer tip (launch sets it; else config tip default). Mid-session override is the same: mut8 that tip.</p>
+    <p>One active flow per navi session. Many published flows on hostpark. (Units out of scope.)</p>
+    <p>Loading the JSON is <strong>not</strong> a separate storage mode. <strong>Local-first</strong> path (UX may refresh):</p>
+    <ol>
+    <li>Read pointer tip → logical route (e.g. <code>torus/…/flow/notes_list_direct.json</code>).</li>
+    <li>Resolve body at tip ib <strong>equal to that logical route</strong> (bare park ib). Plant/cache there so park-check / surf / fetch passthrough work.</li>
+    <li>On miss (or when Manager wants fresh for UX): <code>fetch(navi.resolveUrl(logical))</code> / origin <code>GET /{logical}</code>, then plant/mut8 that tip (optional hostpark addr for later refresh).</li>
+    </ol>
+    <p><strong>Anti-pattern:</strong> concatenating <code>/flowerpot/</code> onto the logical route in Manager code. That fetches a different park (often 404) while hostpark already holds the bytes.</p>
+    <p>Manager owns when to skip or hit the network. Same layer for pointer, config, and artifact bodies.</p>
+    <h2>Multiple artifacts as design archaeology</h2>
+    <p>Publish alternatives even when divergence is small (splash entry vs direct entry; list-first vs editor-first).</p>
+    <p>Why:</p>
+    <ul>
+    <li>Diff two JSON files → see exactly where journeys diverged</li>
+    <li>Alternatives stay switchable without rewriting modules</li>
+    <li>Ship one active path; keep the rest as usable options</li>
+    </ul>
+    <p>Do not invent a generic rules interpreter early. When a new journey is worth recording, add another concrete JSON file.</p>
+    <h2>Flow authoring modes (when composition grows)</h2>
+    <p>Inheritance is optional convenience:</p>
+    <ul>
+    <li>Full authorship — Genuinely different journey. Hand-write the full flow file; instance/program points at it.</li>
+    <li>Family base + patch — Same app family; few facts differ. Merge a patch onto a shared base (<code>routes</code> / <code>meta</code> / <code>policy</code> defaults).</li>
+    <li>Variant inherit — Same policy; only one screen URL / labels change. Copy parent flow; patch <code>id</code>, description, the differing route(s).</li>
+    </ul>
+    <p>Resolution order when using a builder/registry: full <code>flow</code> path → <code>flow_patch</code> + base → <code>variant_of</code> inherit.</p>
+    <p>Future (pencilled): split shared policy/routes/meta into composable flow fragments — only when fan-out pain justifies it.</p>
+    <h2>Config sketch</h2>
+    <pre><code class="json">
+    {
+      "project": "notes",
+      "flowerpot": {
+        "registry_module": "torus/example/notes/modules/notes_registry.js",
+        "manager_module": "torus/example/notes/modules/notes_manager.js",
+        "flow_artifact": "torus/example/notes/flow/notes_list_direct.json",
+        "launch_fragment": "torus/example/notes/ui/launch.html"
+      }
+    }
+    </code></pre>
+    <p>Publish config on hostpark; mirror into a config tip at bootstrap — same tip layer as session and flow bodies. Launches set the active-flow pointer tip (and optionally program). Cache artifact bodies under the <strong>same bare ib</strong> as the hostpark route.</p>
+    <p>Module fields are logical routes for <code>mount {logical}</code> — after mount, parks live at <code>navi:<register.name></code>. The config key name <code>flowerpot</code> is historical; values are bare hostpark paths.</p>
+    <h2>Related</h2>
+    <ul>
+    <li><a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a> — who loads and applies the artifact</li>
+    <li><a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a> — how many flows coexist and get shopped</li>
+    <li><a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a> — ids, pot addrs, tips</li>
+    </ul>
+  </article>
+</div>

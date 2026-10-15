@@ -1,0 +1,359 @@
+<div
+  name="media-explorer"
+  data-path="testkit/media-explorer"
+  data-part="htmf"
+  style="display:block;box-sizing:border-box;max-width:820px;max-height:min(92vh,1200px);overflow:auto;padding:0.4rem;font:13px/1.4 system-ui,sans-serif;border:1px solid #c9a227;"
+>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <b>media explorer</b>
+    <input
+      type="text"
+      data-part="search"
+      placeholder="filter addresses (substring)"
+      autocomplete="off"
+      spellcheck="false"
+      style="flex:1 1 14rem;min-width:8rem;box-sizing:border-box;font:12px ui-monospace,monospace;padding:2px 4px;"
+    />
+    <button type="button" data-part="refresh">refresh</button>
+    <span data-part="status" style="color:#666;font-size:12px;"></span>
+  </div>
+
+  <div data-part="types" style="margin:0.35rem 0 0.1rem;font-size:12px;display:flex;gap:10px;flex-wrap:wrap;">
+    <label><input type="checkbox" data-type="text" checked /> text</label>
+    <label><input type="checkbox" data-type="image" checked /> image</label>
+    <label><input type="checkbox" data-type="audio" checked /> audio</label>
+    <label><input type="checkbox" data-type="video" checked /> video</label>
+    <label><input type="checkbox" data-type="html" checked /> html</label>
+    <label><input type="checkbox" data-type="json" checked /> json</label>
+    <label><input type="checkbox" data-type="other" checked /> other files</label>
+  </div>
+  <div data-part="extras" style="margin:0 0 0.35rem;font-size:12px;display:flex;gap:10px;flex-wrap:wrap;color:#777;">
+    <span>also show:</span>
+    <label><input type="checkbox" data-cat="setting" /> settings</label>
+    <label><input type="checkbox" data-cat="frame" /> other frames</label>
+    <label><input type="checkbox" data-cat="mod" /> mods</label>
+    <label><input type="checkbox" data-cat="kernel" /> kernel / surface</label>
+  </div>
+
+  <div
+    data-part="list"
+    style="max-height:22rem;overflow:auto;border:1px solid #ddd;font:12px/1.5 ui-monospace,monospace;"
+  ></div>
+  <div data-part="preview" style="margin-top:0.4rem;"></div>
+
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="media-explorer"]')) ||
+        document.querySelector('div[name="media-explorer"]');
+      if (!root || root.dataset.bound === "1") return;
+      root.dataset.bound = "1";
+
+      const $ = (sel) => root.querySelector(sel);
+      const listEl = $('[data-part="list"]');
+      const previewEl = $('[data-part="preview"]');
+      const statusEl = $('[data-part="status"]');
+      const searchEl = $('[data-part="search"]');
+
+      /** navi_shell seed tips (C_devops/navi_redux/seed/index.json). */
+      const KERNEL_IBS = new Set([
+        "navi", "navi:mod", "navi:init_script", "relay", "relay:log", "surf", "mount",
+        "browse", "unmount", "surfrefresh", "storage", "stamp", "origin", "park", "pwa",
+        "sw", "fetch", "unit", "plug", "reseed", "factoryreset", "alias", "prune",
+        "resolve", "heartbeat", "reindex", "tokens",
+      ]);
+      const KERNEL_KINDS = new Set(["surface", "relay", "navi_root"]);
+      const TYPE_COLORS = {
+        text: "#2d6a4f", image: "#9d4edd", audio: "#e76f51", video: "#d62828",
+        html: "#1d4ed8", json: "#b8860b", other: "#555",
+        setting: "#888", frame: "#888", mod: "#888", kernel: "#888",
+      };
+
+      /** @type {Array<{ib:string,addr:string,frame:any,cat:string,type:string,ct:string,sha:string}>} */
+      let rows = [];
+      let selected = "";
+
+      const esc = (s) =>
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      const setStatus = (msg, isErr) => {
+        statusEl.style.color = isErr ? "#a30" : "#666";
+        statusEl.textContent = msg || "";
+      };
+
+      const storage = () => {
+        const s = typeof navi !== "undefined" && navi && navi.storage;
+        if (!s || !s.tip || !s.bin) throw new Error("navi.storage unavailable");
+        return s;
+      };
+
+      const binSha = (frame) =>
+        (String(frame?.rel8ns?.bin?.[0] || "").match(/^bin\s+([0-9a-fA-F]+)$/) || [])[1]?.toLowerCase() || "";
+
+      const methodKinds = (frame) =>
+        Object.values(frame?.data?.method || {}).map((m) => String(m?.kind || "").toLowerCase());
+
+      const categoryOf = (ib, frame) => {
+        const d = frame?.data || {};
+        const parts = Array.isArray(d.parts) ? d.parts : [];
+        const kinds = methodKinds(frame);
+        const ct = String(d.content_type || "").toLowerCase();
+        if (kinds.includes("mod") || ct.includes("navi-module")) return "mod";
+        if (
+          KERNEL_IBS.has(ib) ||
+          /^unit:\d+/.test(ib) ||
+          ib.startsWith("navi:ibgib:") ||
+          parts.includes("navi_park") ||
+          kinds.some((k) => KERNEL_KINDS.has(k))
+        ) {
+          return "kernel";
+        }
+        if (binSha(frame)) return "media";
+        if (d.shim === "item" || parts.includes("storage_item")) return "setting";
+        return "frame";
+      };
+
+      const typeFromMime = (mime) => {
+        const m = String(mime || "").toLowerCase().split(";")[0].trim();
+        if (!m || m === "application/octet-stream") return "";
+        if (m.startsWith("image/")) return "image";
+        if (m.startsWith("audio/")) return "audio";
+        if (m.startsWith("video/")) return "video";
+        if (m === "text/html" || m === "application/xhtml+xml") return "html";
+        if (m.includes("json")) return "json";
+        if (m.startsWith("text/") || /javascript|xml|yaml|toml|csv/.test(m)) return "text";
+        return "other";
+      };
+
+      /** No usable mime: look at the bytes. */
+      const sniffType = (media) => {
+        const s = String(media || "");
+        const dataUrl = s.match(/^data:([^;,]+)[;,]/);
+        if (dataUrl) return typeFromMime(dataUrl[1]) || "other";
+        const head = s.slice(0, 2000).trimStart();
+        if (/^<(!doctype html|html|div|p|span|section|article|img|table|h[1-6]|ul|svg)\b/i.test(head)) {
+          return head.toLowerCase().startsWith("<svg") ? "image" : "html";
+        }
+        if (/^[{[]/.test(head)) {
+          try {
+            JSON.parse(s);
+            return "json";
+          } catch {
+            /* not json */
+          }
+        }
+        // eslint-disable-next-line no-control-regex
+        const binaryish = (head.match(/[\x00-\x08\x0e-\x1f]/g) || []).length;
+        return binaryish > 4 ? "other" : "text";
+      };
+
+      const loadBin = async (sha) => (sha ? await storage().bin.get(sha) : null);
+
+      const classify = async (ib) => {
+        const frame = await storage().tip.get(ib);
+        const addr = frame?.gib ? `${frame.ib || ib}^${frame.gib}` : ib;
+        const cat = categoryOf(ib, frame);
+        const sha = binSha(frame);
+        let ct = String(frame?.data?.content_type || "");
+        let type = cat === "media" ? typeFromMime(ct) : cat;
+        if (cat === "media" && !type) {
+          const bin = await loadBin(sha).catch(() => null);
+          ct = ct || String(bin?.mime || "");
+          type = typeFromMime(bin?.mime) || sniffType(bin?.media);
+        }
+        return { ib, addr, frame, cat, type, ct, sha };
+      };
+
+      const visible = () => {
+        const q = searchEl.value.trim().toLowerCase();
+        const types = new Set(
+          [...root.querySelectorAll("[data-type]")].filter((c) => c.checked).map((c) => c.dataset.type)
+        );
+        const cats = new Set(
+          [...root.querySelectorAll("[data-cat]")].filter((c) => c.checked).map((c) => c.dataset.cat)
+        );
+        return rows.filter((r) => {
+          if (q && !r.addr.toLowerCase().includes(q)) return false;
+          return r.cat === "media" ? types.has(r.type) : cats.has(r.cat);
+        });
+      };
+
+      const paint = () => {
+        const shown = visible();
+        const media = rows.filter((r) => r.cat === "media").length;
+        setStatus(`${shown.length} shown · ${media} media of ${rows.length} tips`);
+        if (!shown.length) {
+          listEl.innerHTML = '<div style="padding:4px;color:#888;">nothing matches</div>';
+          return;
+        }
+        listEl.innerHTML = shown
+          .map((r) => {
+            const [ib, gib = ""] = r.addr.split("^");
+            const on = r.ib === selected;
+            return (
+              '<div data-ib="' + esc(r.ib) + '" style="display:flex;gap:6px;padding:1px 4px;cursor:pointer;' +
+              (on ? "background:#fff3c4;" : "") + '">' +
+              '<span style="flex:0 0 3.6rem;color:' + (TYPE_COLORS[r.type] || "#555") + ';">' + esc(r.type) + "</span>" +
+              '<span style="flex:1 1 auto;word-break:break-all;">' + esc(ib) +
+              (gib ? '<span style="color:#aaa;">^' + esc(gib.slice(0, 10)) + "…</span>" : "") +
+              "</span>" +
+              '<a href="#" data-copy="' + esc(r.addr) + '" title="copy ib^gib" style="flex:0 0 auto;color:#888;">copy</a>' +
+              "</div>"
+            );
+          })
+          .join("");
+      };
+
+      const sizeOf = (media) => {
+        const s = String(media || "");
+        const comma = s.startsWith("data:") ? s.indexOf(",") : -1;
+        const n = comma >= 0 && /;base64,/.test(s.slice(0, comma + 1))
+          ? Math.floor(((s.length - comma - 1) * 3) / 4)
+          : new TextEncoder().encode(s).length;
+        return n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(1) + " KB" : (n / 1048576).toFixed(1) + " MB";
+      };
+
+      const asSrc = (media, mime) => {
+        const s = String(media || "");
+        if (s.startsWith("data:") || s.startsWith("blob:") || /^https?:\/\//.test(s)) return s;
+        return "data:" + (mime || "application/octet-stream") + ";charset=utf-8," + encodeURIComponent(s);
+      };
+
+      const textOf = (media) => {
+        const s = String(media || "");
+        if (!s.startsWith("data:")) return s;
+        const comma = s.indexOf(",");
+        const body = s.slice(comma + 1);
+        if (/;base64$/.test(s.slice(0, comma))) {
+          try {
+            return new TextDecoder().decode(Uint8Array.from(atob(body), (c) => c.charCodeAt(0)));
+          } catch {
+            return s;
+          }
+        }
+        return decodeURIComponent(body);
+      };
+
+      const PRE = "max-height:24rem;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:0;padding:6px;background:#f6f6f6;border:1px solid #ddd;font:12px/1.4 ui-monospace,monospace;";
+
+      const showPreview = async (r) => {
+        const head =
+          '<div style="font:12px ui-monospace,monospace;margin-bottom:4px;word-break:break-all;">' +
+          "<b>" + esc(r.addr) + "</b>" +
+          '<span data-part="meta" style="color:#777;"> · ' + esc(r.ct || r.type) + "</span></div>";
+        if (r.cat !== "media") {
+          previewEl.innerHTML = head + '<pre style="' + PRE + '">' + esc(JSON.stringify(r.frame, null, 2)) + "</pre>";
+          return;
+        }
+        previewEl.innerHTML = head + '<div style="color:#888;">loading…</div>';
+        const bin = await loadBin(r.sha);
+        if (selected !== r.ib) return;
+        if (!bin) {
+          previewEl.innerHTML = head + '<div style="color:#a30;">bin ' + esc(r.sha.slice(0, 12)) + "… is not in local storage</div>";
+          return;
+        }
+        const mime = r.ct || bin.mime || "";
+        let body;
+        if (r.type === "image") {
+          body = '<img data-path="' + esc(r.ib) + '" alt="' + esc(r.ib) + '" style="max-width:100%;max-height:24rem;display:block;" />';
+        } else if (r.type === "audio") {
+          body = '<audio data-path="' + esc(r.ib) + '" controls style="width:100%;"></audio>';
+        } else if (r.type === "video") {
+          body = '<video data-path="' + esc(r.ib) + '" controls style="max-width:100%;max-height:24rem;"></video>';
+        } else if (r.type === "html") {
+          body =
+            '<div style="margin-bottom:4px;"><a href="#" data-act="render-html">render (sandboxed, no scripts)</a></div>' +
+            '<pre style="' + PRE + '">' + esc(textOf(bin.media).slice(0, 200000)) + "</pre>";
+        } else if (r.type === "json") {
+          let txt = textOf(bin.media);
+          try {
+            txt = JSON.stringify(JSON.parse(txt), null, 2);
+          } catch {
+            /* show as stored */
+          }
+          body = '<pre style="' + PRE + '">' + esc(txt.slice(0, 200000)) + "</pre>";
+        } else if (r.type === "text") {
+          body = '<pre style="' + PRE + '">' + esc(textOf(bin.media).slice(0, 200000)) + "</pre>";
+        } else {
+          body = '<a data-act="download" href="#">download</a>';
+        }
+        previewEl.innerHTML = head + body;
+        previewEl.querySelector('[data-part="meta"]').textContent = " · " + (mime || r.type) + " · " + sizeOf(bin.media);
+        const mediaEl = previewEl.querySelector("img,audio,video");
+        if (mediaEl) mediaEl.src = asSrc(bin.media, mime);
+        previewEl._bin = { media: bin.media, mime, ib: r.ib };
+      };
+
+      const refresh = async () => {
+        try {
+          setStatus("loading…");
+          const ibs = ((await storage().tip.list()) || []).map(String).sort((a, b) => a.localeCompare(b));
+          const out = [];
+          for (let i = 0; i < ibs.length; i += 25) {
+            const batch = await Promise.all(ibs.slice(i, i + 25).map((ib) => classify(ib).catch(() => null)));
+            out.push(...batch.filter(Boolean));
+            setStatus(`reading ${Math.min(i + 25, ibs.length)} / ${ibs.length}…`);
+          }
+          rows = out;
+          paint();
+        } catch (err) {
+          setStatus(err?.message || String(err), true);
+        }
+      };
+
+      root.addEventListener("click", (e) => {
+        const copy = e.target.closest("a[data-copy]");
+        if (copy && root.contains(copy)) {
+          e.preventDefault();
+          e.stopPropagation();
+          void navigator.clipboard?.writeText(copy.dataset.copy).then(
+            () => setStatus("copied " + copy.dataset.copy),
+            () => setStatus("copy failed", true)
+          );
+          return;
+        }
+        const act = e.target.closest("[data-act]");
+        if (act && root.contains(act)) {
+          e.preventDefault();
+          e.stopPropagation();
+          const bin = previewEl._bin;
+          if (!bin) return;
+          if (act.dataset.act === "render-html") {
+            const frame = document.createElement("iframe");
+            frame.setAttribute("sandbox", "");
+            frame.style.cssText = "width:100%;height:24rem;border:1px solid #ddd;background:#fff;";
+            frame.srcdoc = textOf(bin.media);
+            act.parentElement.replaceWith(frame);
+          } else if (act.dataset.act === "download") {
+            const a = document.createElement("a");
+            a.href = asSrc(bin.media, bin.mime);
+            a.download = bin.ib.replace(/^navi:/, "").split("/").pop() || "download";
+            a.click();
+          }
+          return;
+        }
+        const row = e.target.closest("[data-ib]");
+        if (row && listEl.contains(row)) {
+          e.stopPropagation();
+          selected = row.dataset.ib;
+          paint();
+          const r = rows.find((x) => x.ib === selected);
+          if (r) void showPreview(r).catch((err) => setStatus(err?.message || String(err), true));
+        }
+      });
+
+      root.addEventListener("change", (e) => {
+        if (e.target.matches("[data-type],[data-cat]")) paint();
+      });
+      searchEl.addEventListener("input", paint);
+      $('[data-part="refresh"]').addEventListener("click", () => void refresh());
+
+      void refresh();
+    })();
+  </script>
+</div>

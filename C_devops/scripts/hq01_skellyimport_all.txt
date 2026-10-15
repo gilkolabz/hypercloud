@@ -1,0 +1,25 @@
+# hq01/skellyimport-all — one import per snippet
+
+await navi("mount flowerpot/hypercloud/testkit/mods/legacy/skelly.js")
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01.json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (1).json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (2).json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (3).json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (4).json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (5).json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01(1).json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_2/skelly-export-chromium.json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_2/skelly-export-incog-chromium.json")))
+
+navi.callout(JSON.stringify(await navi.mod.skelly.import("user_files/skelly_set_2/skelly-export-incog-firefox.json")))
+
+navi.callout("[skellyimport-all] done")

@@ -1,0 +1,129 @@
+<div
+  name="flow-model-composition"
+  data-path="torus/devops/flow-model/composition"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Composition hierarchy</h1>
+    <p>Vocabulary for building runnable products from published pieces without silent forks.</p>
+    <pre><code class="text">
+    feature  →  owns artifacts (multi-kind)
+    artifact →  a revisable published unit (HTML fragment, module, flow meta, …)
+    instance →  family-local prebake (one screen role assembled)
+    program  →  cross-family composition (what you actually run)
+    launch   →  bootstrap bookmark for a program / flow
+    </code></pre>
+    <p>This hierarchy is devops structure. Runtime still boils down to: launch sets session tip → Manager surfs routes → modules do work on parks.</p>
+    <h2>Features and artifacts</h2>
+    <p>A feature is a stable idea/namespace (e.g. <code>add_affordance</code>, <code>list_toolbar</code>, <code>editor_chrome</code>).</p>
+    <p>An artifact is a concrete revision of that feature — often multi-kind:</p>
+    <ul>
+    <li>HTML fragment — Named slot in a host template</li>
+    <li>JS behavior — Manager registration / resting module</li>
+    <li>Flow meta / route — Merged into the active flow map</li>
+    <li>CSS — Scoped under the artifact’s marker</li>
+    <li>Assets — Static images/fonts/audio under <code>assets/</code> (<code>artifact_type: assets</code>); referenced by UI, not screen roles themselves</li>
+    <li>Schema / data — flowerpot data routes (and/or planted tips)</li>
+    </ul>
+    <p>Features translate ideas into placeable units. Individual artifacts may be parochial to a family; they need not be universally portable.</p>
+    <h2>Addressing tokens</h2>
+    <p>Keep three concepts separate:</p>
+    <ul>
+    <li>Reference token — e.g. <code>add_affordance@topright_r1</code> — What instance records compose</li>
+    <li>Catalog nesting — e.g. <code>add_affordance.topright_r1</code> — Registry tree</li>
+    <li>Flowerpot path — e.g. <code>fragments/…/add_affordance@topright_r1.html</code> — Published storage (<strong>pot addr</strong> history)</li>
+    </ul>
+    <p>Revision (<code>_r1</code>, <code>_r2</code>) = parallel branchable path (pin forever). <strong>Pot addr</strong> = micro-history within one revision path on flowerpot. <strong>Tip frame</strong> = local navi generation when you plant a copy — different word, see <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>.</p>
+    <p>See <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a> for typed ids and derived routes.</p>
+    <h2>Instances (family-local)</h2>
+    <p>An instance is one family’s contribution — e.g. a particular list layout, a particular editor chrome, a particular entry splash.</p>
+    <ul>
+    <li>Hand-authored instances: declared in a registry with a <code>why</code>; source HTML is authority until a builder replaces it.</li>
+    <li>Builder-generated instances: composed from a host + slot fragments + optional delta; emit UI (+ often flow + launch) as build products.</li>
+    </ul>
+    <p>Fork rule: hand-editing a generated <code>ui/*.html</code> is a fork. Allowed only if promoted to a declared instance in the registry — never silent drift.</p>
+    <h2>Families</h2>
+    <p>A family groups instances that share a screen role or spine (e.g. <code>journey</code>, <code>entry</code>, <code>folder</code>, <code>notes_list</code>). Programs compose across families.</p>
+    <p>Shared policy/routes for a family may live in a flow base document; instances patch what differs.</p>
+    <h2>Programs</h2>
+    <p>A program is the layer above instances: the full runnable path.</p>
+    <pre><code class="json">
+    {
+      "id": "example:program:notes_list_first",
+      "why": "List entry with compact editor instance.",
+      "compose": {
+        "journey": {
+          "spine_flow": "example:flow:notes:list_direct",
+          "list_instance": "example:instance:notes:list_compact"
+        },
+        "entry": "example:instance:entry:splash"
+      },
+      "launch_id": "example:launch:notes:list_first",
+      "flow_id": "example:flow:notes:list_direct",
+      "entry": "list"
+    }
+    </code></pre>
+    <p><code>compose</code> keys name family axes and hold typed ids. Devops indexes (linker, graph) may point launches at <code>program_id</code> without embedding program logic in the Manager.</p>
+    <p>Program manifests document each runnable variant: <code>feature_imps</code>, optional <code>feature_excludes</code>, <code>layers</code>, and <code>artifact_contracts</code>. See <a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">program-manifest</a>.</p>
+    <h2>Program networks</h2>
+    <p>A <strong>program network</strong> is a declared set of related programs that share fact schemas (and usually a project root) but <strong>do not</strong> share one journey or one launch.</p>
+    <pre><code class="text">
+network (canvas / family runtime graph)
+  ├─ program A — field walk (role: pm)
+  ├─ program B — inbox (role: sub)
+  ├─ program C — status / checklist (same facts, different entry)
+  └─ program D — portfolio / map canvas (optional later leaf)
+    </code></pre>
+    <p>Why: reiteration often wants breadth without stuffing every surface into the primary field launch. Role-split launches already prove features need not cross; a network is the same idea one level up.</p>
+    <p>Convention: <code>kind: "network"</code> + <code>compose_from</code> members; leaves set <code>network</code> → parent id. Members stay independently launchable. Shared L0/L1; split L3/L4. See <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>.</p>
+    <h2>Launches</h2>
+    <p>A launch is a cold-start HTML fragment (or equivalent bookmark) that:</p>
+    <ol>
+    <li>Ensures navi + surf</li>
+    <li>Mounts init from its <strong>bare hostpark</strong> module route (plants park tip)</li>
+    <li>Sets which flow (and optionally program / manager module) via <strong>session tip</strong></li>
+    <li>Runs bootstrap command → Manager opens <code>entry</code></li>
+    </ol>
+    <p>Launches are how humans and PWAs pick a variant combination. They are not the same as flow <code>entry</code> (that is the first in-app route key).</p>
+    <p>Do not rely on URL query params for variant selection — hostpark serves static fragments. The launch script chooses the flow. Do not prefix mounts/fetches with <code>/flowerpot/</code>.</p>
+    <h2>Builder (flavor A)</h2>
+    <p>Build-time composition (deliberately dumb first):</p>
+    <ol>
+    <li>Read instance record → resolve <code>feature@rev</code> tokens</li>
+    <li>Load host template with slot markers (<code><!--slot:name--></code> or equivalent)</li>
+    <li>Inject fragment markup; concatenate scoped CSS; note Manager hooks</li>
+    <li>Apply variant delta (add/replace/remove)</li>
+    <li>Emit <code>ui/<instance>.html</code> with a provenance header, plus flow/launch from templates</li>
+    <li>Upload via hostpark push scripts (e.g. <code>_hostpark_*.mjs</code>); flowerpot pot is alternate only</li>
+    </ol>
+    <p>Flavor B (runtime slot-mount) reuses the same slot contracts later if needed.</p>
+    <p>Two artifacts claiming one slot → error loudly. No silent collision.</p>
+    <h2>Why this hierarchy exists</h2>
+    <p>Without it, variants become hand-maintained forks: shared chrome drifts, one route change fans out across many flow files, and “baseline” becomes an assistant default instead of an explicit merge target.</p>
+    <p>With it: features are resting units; variants are declared compositions with written rationale; programs are shoppable runtimes; launches are the human-facing selector.</p>
+    <h2>Related</h2>
+    <ul>
+    <li><a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a></li>
+    <li><a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a></li>
+    <li><a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a></li>
+    <li><a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a></li>
+    </ul>
+  </article>
+</div>

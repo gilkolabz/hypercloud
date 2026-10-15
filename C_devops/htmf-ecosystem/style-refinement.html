@@ -1,0 +1,299 @@
+﻿<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-style-refinement"
+  data-path="torus/docs/style-refinement"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Style Refinement Notes</h1>
+    <p>Accumulated clarifications from real project work. When the style page leaves room for interpretation, project questions surface concrete decisions here so the next project starts further along.</p>
+    <p>Parent: <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi style</a>.</p>
+    <h2>Process: uncertainty â†’ questions â†’ refinement</h2>
+    <p>The style page states principles. It cannot encode every domain. A productive scaffolding phase includes:</p>
+    <ol>
+    <li>Propose a default architecture from style principles (modules, storage, no redundant servers).</li>
+    <li>Ask domain-specific questions where assumptions affect schema or UX.</li>
+    <li>Record answers in the project <code>devguide.md</code> decisions log.</li>
+    <li>Extract generalizable conclusions into this file when they apply beyond one project.</li>
+    </ol>
+    <p>First extraction (2026-07-01).</p>
+    <h2>Navi runtime semantics</h2>
+    <h3>callin, not stdin</h3>
+    <p>The programmatic text-stream interface is <code>callin</code>, not <code>stdin</code>.</p>
+    <ul>
+    <li>Modules expose <code>commands</code>; the runtime wires callin listeners automatically (new <code>register</code> pattern).</li>
+    <li>Manual: <code>navi.on('callin', â€¦)</code> and <code>navi("command args")</code>.</li>
+    <li>Aligns with the shell runtime and <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi_modules_guide</a>.</li>
+    </ul>
+    <p>In devguides, say "callin/commands" or "programmatic API via commands". Avoid "stdin" in new docs.</p>
+    <h3>Namespaced callin commands</h3>
+    <p>Each project's callin surface should use one top-level command (project name), with operations as subcommands. Do not use bare verbs like <code>lookup</code> or <code>list</code> that collide across modules.</p>
+    <p>Example:</p>
+    <pre><code>
+    clinicnotes start
+    clinicnotes lookup 12345
+    </code></pre>
+    <ul>
+    <li>The callin module (e.g. <code>clinicnotes_init</code>) owns the namespaced <code>commands</code> object.</li>
+    <li>Logic modules (e.g. <code>clinicnotes_registry</code>) expose programmatic API only. No top-level commands unless the command name itself is namespaced.</li>
+    </ul>
+    <p>Other modules call logic via <code>navi.mod.*.registry</code> â€” not ambiguous callin strings.</p>
+    <h3>onUnmount vs runtime cleanup</h3>
+    <p><code>navi.unmount(module)</code> automatically removes callin listeners registered from <code>commands</code> and deletes <code>navi.mod[name]</code>. Modules must not manually detach callin in <code>onUnmount</code>.</p>
+    <p><code>onUnmount</code> is for module-owned resources the runtime does not know about: event listeners, DOM nodes, styles, observers, timers, and cascade unmounts (e.g. init unmounts registry it mounted).</p>
+    <p>A callout-only <code>onUnmount</code> is unnecessary for command-only modules.</p>
+    <h2>Composable screen capabilities (not folder variants)</h2>
+    <p>Small features on a <strong>shared screen role</strong> should not fork folder HTML or multiply layout variants. Use one host per screen role, optional flow meta, and a module or route for behavior.</p>
+    <p><strong>Decision tree</strong></p>
+    <table>
+    <thead><tr><th>Question</th><th>If yes</th><th>If no</th></tr></thead>
+    <tbody>
+    <tr><td>Does the <strong>whole screen layout</strong> change?</td><td>New <code>ui/*.html</code> + flow artifact + <code>launch_*.html</code> (e.g. pile vs page-turn folder)</td><td>Keep existing host</td></tr>
+    <tr><td>Optional behavior on a shared screen?</td><td>Flow <code>meta</code> flag + module and/or new route key (e.g. settings sections, virtual edit)</td><td>â€”</td></tr>
+    <tr><td>Swappable logic you may shop later?</td><td>Separate module artifact (OCR, parse, view template)</td><td>Inline in host</td></tr>
+    </tbody></table>
+    <p><strong>Example: virtual record Edit (clinicnotes)</strong></p>
+    <ul>
+    <li><strong>Wrong layer:</strong> <code>folder_virtual_records_with_edit_button.html</code> â€” edit is not on the folder list; all folder variants already call <code>mgr.openDoc()</code> â†’ <code>doc_sheet</code>.</li>
+    <li><strong>Right layer:</strong></li>
+    <p>- Read host: <code>doc_sheet.html</code> â€” Edit button in toolbar (top-right) - Write host: <code>doc_edit.html</code> â€” new flow route <code>doc_edit</code> - Registry: <code>updateVirtualDoc</code>, <code>deleteVirtualDoc</code>; prior snapshot kept on the owner record - Enablement: flow <code>meta.virtual_record_actions: ["edit","delete"]</code> + clinic pref <code>virtualEditEnabled</code> - Manager: <code>openDocEdit()</code>, <code>canEditVirtual()</code> â€” mirrors settings return pattern without duplicating folder UIs</p>
+    </ul>
+    <p><strong>Devops bookkeeping (minimum for any composable feature)</strong></p>
+    <ol>
+    <li>One sentence in project <code>devguide.md</code> glossary</li>
+    <li>One checklist line in <code>launch_linker.html</code></li>
+    <li>Flow artifact declares route + meta; <code>GOALS.md</code> notes phase scope</li>
+    <li>Optional stub flow only when a stakeholder needs the feature <strong>off</strong> (usually defer)</li>
+    </ol>
+    <p>Shop-for-final-version model: swap modules (parse, view, edit policy) while Manager + registry API stay stable. Folder layout variants stay about <strong>how you browse</strong>; doc sheet/edit stay about <strong>how you read/write one record</strong>.</p>
+    <h3>UX variant shopping (clinical products)</h3>
+    <p>For products where the <strong>doctor or operator</strong> chooses among presentation variants (folder layout, scan pile vs page-turn, entry splash, etc.):</p>
+    <ul>
+    <li>Ship **multiple <code>launch_*.html</code> bookmarks<strong> + flow artifacts; do </strong>not** force a default until the stakeholder picks.</li>
+    <li>Record in <code>GOALS.md</code> which phase closes the decision (e.g. Phase 8 for clinicnotes folder UX).</li>
+    <li>Design ethos: <strong>clinical, exact, purposeful</strong> â€” color where it aids recognition (digit codes), not blocky mobile-app chrome or wasted nav chrome. Example feedback: page-turn page-index dots work functionally but need a tighter visual treatment.</li>
+    <li>A launch index and a variant graph document the choices. Each path can carry an <code>artifact_type</code> (<code>launch</code>, <code>flow</code>, <code>ui</code>, <code>module</code>, <code>data</code>).</li>
+    </ul>
+    <p>See <code>clinicnotes GOALS</code> Phase 8 UX shopping.</p>
+    <h2>Artifact composition and variant management (clinicnotes retro, 2026-07-07)</h2>
+    <p>This section records a mid-Phase-6 reflection prompted by the project owner. It is the most important refinement so far and should shape future projects from day one.</p>
+    <h3>Why this conversation happened</h3>
+    <p>One clinic product had grown to 51 artifacts across 264 published generations. Snapshot:</p>
+    <table>
+    <thead><tr><th>Category</th><th>Artifacts</th><th>Frames</th><th>Notes</th></tr></thead>
+    <tbody>
+    <tr><td>ui screen</td><td>17</td><td>83</td><td>includes <strong>3 forked folder layouts</strong> (folder.html 12, folder_scan_pages.html 12, folder_scans_pile.html 9) + a likely-orphan <code>settings_pageturn.html</code> (1)</td></tr>
+    <tr><td>flow artifact</td><td>7</td><td>48</td><td>near-duplicate route+policy maps; adding one route = editing all 7</td></tr>
+    <tr><td>launch bootstrap</td><td>9</td><td>18</td><td>per entryÃ—layout combos; naming drift (<code>scanpages</code> vs flow <code>scan_pages</code>)</td></tr>
+    <tr><td>module</td><td>8</td><td>43</td><td><code>clinicnotes_manager.js</code> alone = 16 frames (churn magnet)</td></tr>
+    <tr><td>doc/config/schema/data</td><td>10</td><td>72</td><td>devguide 25, GOALS 18</td></tr>
+    </tbody></table>
+    <p>The owner noticed a real defect in how we got here: <strong>variants are forks, not compositions.</strong> The three folder screens share ~70% of their code (code row, pet sections, doc list, scan overlay, add chrome) but are hand-maintained monoliths. So a feature added to one (tab <code>+</code> popover, add-pet affordance) does <strong>not</strong> propagate to the others, and cross-cutting changes (adding <code>pet_add</code>/<code>doc_add</code> routes) fan out into 7 flow files by hand. This is the opposite of the navi_style ethos: resting, composable tools that Manager picks and chooses.</p>
+    <p>Honest root cause: the assistant introduced <strong>"baseline"</strong> as an implicit mainline and treated each folder layout as its own ongoing mini-app, folding decisions in prematurely instead of treating each feature as a distinct, composable, independently-versioned concept. The owner never actually chose to fold anything into baseline â€” it was invented for them.</p>
+    <h3>The owner's model (target pattern)</h3>
+    <p>Treat a <strong>variant as a composition of feature "concepts," not a fork.</strong></p>
+    <ul>
+    <li><strong>Concept artifact</strong> = one composable feature unit (e.g. <code>folder_owner_tab</code>, <code>add_popover</code>, <code>add_footers</code>, <code>tick_nav</code>, <code>code_row</code>, <code>pet_sections</code>, <code>scan_overlay</code>, <code>folder_settings</code>, <code>section_order</code>). "page_turn" is itself a concept (a nav treatment), not a whole app.</li>
+    <li><strong>Revisions</strong> use <code>_r1</code>, <code>_r2</code> suffixes. A concept can be revised independently: <code>tick_nav_r2</code>.</li>
+    <li><strong>Variant</strong> = a named composition of concepts at chosen revisions, plus rationale. Examples of the owner's naming intuition:</li>
+    <p>- <code>page_turn</code> â†’ next iteration promotes the underlying artifact to <code>page_turn_r1</code>; the old branch stays pinned. - A variant that drops one concept: <code>page_turn_nofoldersettings</code> (branched off the iteration it was made from). - Compose the new base with the tweak: <code>page_turn_r1_nofoldersettings</code>. - Iterate the tweak itself: <code>page_turn_r1_nofoldersettings_r1</code>. - Another dev revises just that concept: <code>nofoldersettings_r2</code> â†’ <code>page_turn_r1_nofoldersettings_r2</code>. - Variant-of-variant with a distinct handle: <code>nofoldersettings_r2_smileyface</code> â†’ <code>page_turn_nofoldersettings_r2_smileyface</code>.</p>
+    <li>Because listing every concept in the name gets verbose, prefer <strong>one of</strong>:</li>
+    <p>1. short concept IDs tacked onto the address (<code>_a3c_b8d_8rf</code>), or 2. (preferred) a <strong>variant descriptor data structure</strong> â€” each variant gets a wholly unique human name plus a record listing its concepts+revs, a <strong>plain-language "why this variant exists"</strong> field, base lineage, flow, launch, and status.</p>
+    <li><strong><code>baseline</code></strong> stays the merge-and-forget mainline: it may overwrite freely, but we must still keep a record of which concepts (and revisions) compose it. Folding into baseline is an explicit owner decision, never assumed by the assistant.</li>
+    </ul>
+    <h3>Two layers to build</h3>
+    <ol>
+    <li><strong>Record-keeping layer (do first, cheap):</strong> a variant/concept registry (extend <code>data/launch_index.json</code> or add <code>data/folder_variants.json</code> + <code>data/concepts.json</code>). Captures composition, revision lineage, rationale, and status. This alone restores coherence and lets us stop losing track â€” even while screens remain forked.</li>
+    <li><strong>Enforcement layer (bigger refactor):</strong> a shared <strong>folder builder</strong> that assembles a screen from a variant descriptor by mounting enabled concept components, instead of three hand-maintained HTML files. Same idea for flow: generate the 7 flow artifacts from one base + variant deltas rather than editing each. This is what actually stops forking and fan-out edits.</li>
+    </ol>
+    <h3>Decisions locked in this conversation</h3>
+    <ul>
+    <li><strong>Keep Settings in the folder</strong> for all variants. The owner used "remove folder settings" only as an example of an easy on-a-whim variant; the point is *we should not have to walk back* â€” distinct launches mean we never must decide. Do not fold decisions in heavily.</li>
+    <li><strong>Page-turn keeps the manilla folder styling</strong> (owner-name tab like baseline). The <code>+</code> living top-right (instead of beside the tab as in baseline) is a *good* deliberate shopping difference â€” keep both treatments as distinct concepts.</li>
+    <li>The tick strip nav is approved.</li>
+    <li><strong>parseLayout clarification:</strong> a generic record (notes) is intentionally *not* a <code>layout_v1</code> record; only OCR'd scans produce sections. The section editor appears for layout records in both parse review and doc edit â€” working as intended.</li>
+    </ul>
+    <h3>Lesson for future projects</h3>
+    <p>Start with the <strong>concept + variant-descriptor</strong> model on day one. Every presentational feature is a resting, revisable unit; variants are declared compositions with written rationale; a builder composes them; "baseline" is an explicit, recorded merge target â€” never an assistant default. This is the concrete expression of the separation-of-concerns / composable-tools ethos on the style page, applied to UI/flow artifacts, not just logic modules.</p>
+    <h3>Design convergence â€” registry + builder mechanics (2026-07-07, cont.)</h3>
+    <p>Vocabulary (owner's, adopted): <strong>features own artifacts â†’ artifacts compose into instances â†’ instances compose into programs â†’ launches bootstrap a program</strong>. Instance always means family-local (e.g. a prebaked folder layout). <strong>Program</strong> is the layer above instances â€” the full runnable clinic path (journey spine + folder instance, optionally entry). Some instances and programs are variants of others.</p>
+    <p><strong>Journey under the journey family.</strong> Numpad and the shared clinic spine live under the <code>journey</code> family axis; that is fine. A program's <code>compose.journey</code> references the journey flow (e.g. <code>clinicnotes:flow:journey:numpad_direct</code>) until/unless journey gets its own instance records.</p>
+    <p><strong>Artifacts are multi-kind.</strong> A feature is a bundle that can span HTML (slot markup), JS (a behavior module), flow meta (route reachability), CSS, schema, and data. The instance wires each kind to its place: HTML â†’ a named slot, JS â†’ Manager registration, flow meta â†’ merged into the route map. This is not new machinery â€” Manager already composes the *logic* artifacts at runtime (parse / virtual_view / edit-policy); the builder just extends "pick and place" to the *view* layer.</p>
+    <p><strong>Addressing â€” three distinct concepts, kept separate:</strong></p>
+    <ul>
+    <li>Reference token (canonical, in instance records): <code>feature@rev</code>, e.g. <code>add_affordance@topright_r1</code>.</li>
+    <li>Catalog nesting (registry tree): <code>add_affordance.topright_r1</code>.</li>
+    <li>Hostpark ib: the route readers fetch, e.g. <code>fragments/add_affordance/topright.html</code>. One generation of that route is <code>ib^gib</code>.</li>
+    </ul>
+    <p>Two version axes, meaning different things:</p>
+    <ul>
+    <li><strong>Revision</strong> (<code>_r1</code>, <code>_r2</code>) = a <strong>distinct hostpark path / parallel branch.</strong> Lets a variant *pin* <code>topright_r1</code> forever while <code>topright_r2</code> exists alongside. (Frames cannot do this â€” they are linear per path.)</li>
+    <li><strong>Frames</strong> = micro-history *within* one revision (typo fixes, tweaks).</li>
+    </ul>
+    <p>So: <strong>feature = stable namespace â†’ artifact-revision = distinct branchable path â†’ frames = that path's edit history.</strong> The registry is itself a framed artifact, so a third party can reconstruct the composition graph by querying paths (same principle as <code>launch_linker</code> / <code>launch_graph</code>).</p>
+    <p><strong>Slot contract (composition mechanism).</strong> Prior art: named slots / content projection (Web Components <code><slot name></code>, Vue slots, transclusion, static-site partials). Our version does it <strong>without a framework</strong>, over plain surfed fragments:</p>
+    <ul>
+    <li>Host template exposes named slots. Day-one form: string markers <code><!--slot:folder_top_lip--></code> (trivial, inspectable â€” this is <code>#include</code>, not a slot engine; DOM slotting via jsdom is a later nicety).</li>
+    <li>Fragment declares its target: <code>data-slot="folder_top_lip"</code> + <code>data-artifact="add_affordance@topright_r1"</code>. Prefer <code>data-*</code> over <code>name=</code> (collision-safe; <code>name</code> has form semantics).</li>
+    <li>Builder matches by <strong>stable slot id only.</strong> Two artifacts claiming one slot â†’ builder <strong>errors loudly</strong> (explicit, never silent collision).</li>
+    <li>Scope each feature's CSS under its <code>data-artifact</code> selector to prevent layout bleed.</li>
+    <li><strong>Machine contract vs authorial color:</strong> the stable slot id + token is what the builder keys on; verbose/human names, authorship (<code>..._dropdown_by_mr_boaz</code>), and descriptions live in <code>description</code>/<code>author</code> fields. Corollary (owner's): the <strong>feature (idea) is the translator</strong>; individual artifacts may be parochial to the instance context and need not be universally portable. This collapses the combinatorial-collision worry â€” the builder only reconciles stable ids within a family.</li>
+    </ul>
+    <p><strong>Builder â€” flavor A (build-time generate), deliberately dumb first:</strong></p>
+    <ol>
+    <li>Read instance record â†’ resolve each <code>feature@rev</code> token to its fragment.</li>
+    <li>Load host template with string slot markers.</li>
+    <li>Inject each fragment's markup at its slot; concatenate its scoped CSS; note the Manager method its JS needs.</li>
+    <li>Apply the variant <code>delta</code> (remove / replace / add).</li>
+    <li>Emit <code>ui/<instance>.html</code> with a <strong>provenance header</strong> comment (<code><!-- built: folder_page_turn = layout_pageturn@r1 + owner_tab@r1 + ... @DATE --></code>), plus its flow JSON and launch from templates; upload via existing script.</li>
+    </ol>
+    <p>Doing A first also de-risks B (run-time slot-mount): A forces us to define the slot contracts, which B reuses. B has little added value for clinicnotes specifically, so it's deferred but not foreclosed.</p>
+    <p><strong>Fork rule (resolves the "generated output" question).</strong> A generated <code>ui/*.html</code> is a *build product*. Hand-editing it silently forks it from its recipe â€” the exact drift disease. Forks are allowed, but a hand-edited output must be <strong>promoted to a declared instance/artifact in the registry</strong>, never left as silent drift. Forks can exist; they cannot steer the ethos or hide.</p>
+    <p><strong>Safety strategy â€” do not lose progress.</strong> The builder proves itself by producing the <strong>next needed change</strong> (reintroduce the owner-name tab on page-turn), *not* by dismantling the three working forks. The existing forks stay declared in the registry as hand-authored instances until builder-generated equivalents are validated, then we cut over deliberately.</p>
+    <p><strong>Drift evidence (why this was worth stopping for).</strong> Reading the three folder files back-to-back, the divergence is accumulated drift, not considered variation:</p>
+    <ul>
+    <li><code>folder.html</code> (baseline): <code>code-row</code> digit chips, fused <code>+</code> dropdown (Add pet / Add document), pet management (add pet, per-pet "Add details"), section-order pref (<code>docs_first</code>).</li>
+    <li><code>folder_scans_pile.html</code>: no code-row, no pet management, no section-order.</li>
+    <li><code>folder_scan_pages.html</code>: no owner tab, no code-row.</li>
+    <p>Two of the three are simply older/less complete; good features never propagated. A feature matrix would surface these gaps instantly; a builder restores parity near-free instead of hand-porting.</p>
+    </ul>
+    <h3>First cut shipped (2026-07-07)</h3>
+    <ul>
+    <li>The three folder layouts are peers: <code>overview</code>, <code>pile</code>, <code>page_turn</code>. <strong>Mainline</strong> is a role (which launch a clinic bookmarks), not a layout name. Any instance can hold it.</li>
+    <li><strong>Table-of-contents (pencilled).</strong> <code>overview</code>'s doc/pet rows could cross-link into the <code>page_turn</code> pager ("open this record as a page"), reusing the same doc artifacts. Opt-in feature, deferred.</li>
+    <li><strong>Artifacts created:</strong> <code>data/folder_concepts.json</code> (folder feature catalog), <code>data/folder_instances.json</code> (the 3 forks declared as hand-authored + the first builder-generated instance), <code>fragments/folder/*</code> (chrome slot fragments + <code>_host.pageturn.r1.html</code>),.</li>
+    <li><strong>First composition proven:</strong> <code>folder_page_turn_owntab</code> = page-turn host + <code>folder_owner_tab@r1</code> (restores the owner tab) while keeping <code>add_affordance@topright_r1</code>. Built to <code>ui/folder_page_turn_owntab.html</code> with a provenance header; the three working forks were untouched (builder skips hand-authored instances). Flow + launch generation added 2026-07-08 (see below).</li>
+    </ul>
+    <h3>Flow authoring modes (2026-07-08)</h3>
+    <p>Inheritance is <strong>optional convenience</strong>, not a requirement. Three modes, same registry:</p>
+    <table>
+    <thead><tr><th>Mode</th><th>When</th><th>Instance record</th></tr></thead>
+    <tbody>
+    <tr><td><strong>Full authorship</strong></td><td>Genuinely different journey (different <code>entry</code>, <code>policy</code>, routes)</td><td><code>flow: "flow/my_flow.json"</code> â€” no <code>variant_of</code>, no generation; hand-authored artifact is authority</td></tr>
+    <tr><td><strong>Family base + patch</strong></td><td>Same clinic app, a few flow facts differ (<code>scan_presentation</code>, <code>settings_sections</code>, folder route)</td><td><code>flow_patch: { meta, routes, policy? }</code> merged onto <code>data/folder_flow_base.json</code></td></tr>
+    <tr><td><strong>Variant inherit</strong></td><td>Same flow as parent; only folder screen + labels change</td><td><code>variant_of: "folder_page_turn"</code> â€” builder deep-copies parent flow, patches <code>id</code>, <code>description</code>, <code>meta.variant</code>, <code>routes.folder</code></td></tr>
+    </tbody></table>
+    <p>Builder resolution order: <code>flow</code> (use as-is, skip gen) â†’ <code>flow_patch</code> + base â†’ <code>variant_of</code> inherit. A completely different flow is <strong>mode 1</strong> â€” write a dedicated flow artifact, point the instance at it, pair with launch. The registry records it; the builder does not synthesize policy you did not declare.</p>
+    <p><strong>Fork rule (flows):</strong> hand-authored flow outside the registry does not exist in the model. Allowed, but must be a declared instance with a <code>why</code>.</p>
+    <p><strong>PENCILLED â€” flow fragments:</strong> if several flows share ~70% policy within a family, split into <code>flow_policy@r1</code>, <code>flow_routes@r1</code>, <code>flow_meta@pageturn_r1</code> composable artifacts (same pattern as HTML slots). Deferred until fan-out pain justifies it.</p>
+    <p><strong>Shipped:</strong> <code>data/folder_flow_base.json</code> (shared policy + non-folder routes), <code>fragments/folder/_launch.template.html</code>, builder extended to emit flow + launch for <code>folder_page_turn_owntab</code>.</p>
+    <h3>Canonical addressing doctrine (2026-07-08, strict turn)</h3>
+    <p>The stronger model is:</p>
+    <ul>
+    <li><strong>Integral typed id</strong> is canonical and authored. <code>clinicnotes</code> is the product namespace; <code>folder</code> is the explicit subfamily axis for this registry:</li>
+    <p>- <code>clinicnotes:fragment:folder:add_affordance@topright_r1</code> - <code>clinicnotes:host:folder:layout_pageturn@r1</code> - <code>clinicnotes:instance:folder:page_turn_owntab</code> - <code>clinicnotes:flow:folder:page_turn_owntab</code> - <code>clinicnotes:launch:folder:page_turn_owntab</code> - <code>clinicnotes:program:folder_page_turn_owntab</code></p>
+    <li><strong>Derived branch route</strong> is mechanical, never separately authored except as a rare escape hatch. Examples under the current physical root:</li>
+    <p>- <code>clinicnotes:fragment:folder:add_affordance@topright_r1</code> -> <code>opry/devops/clinicnotes/fragments/folder/add_affordance@topright_r1.html</code> - <code>clinicnotes:host:folder:layout_pageturn@r1</code> -> <code>opry/devops/clinicnotes/fragments/folder/layout_pageturn@r1.html</code> - <code>clinicnotes:instance:folder:page_turn_owntab</code> -> <code>opry/devops/clinicnotes/ui/folder_page_turn_owntab.html</code> - <code>clinicnotes:flow:folder:page_turn_owntab</code> -> <code>opry/devops/clinicnotes/flow/flow_folder_page_turn_owntab.json</code> - <code>clinicnotes:launch:folder:page_turn_owntab</code> -> <code>opry/devops/clinicnotes/ui/launch_folder_page_turn_owntab.html</code></p>
+    <li><strong>Generation address</strong> is <code>ib^gib</code>: the branch route plus the content hash of that generation.</li>
+    <li><strong>Surf URL</strong> is <code>/{ib}</code> on the current host. The ib is the route. There is no extra prefix.</li>
+    </ul>
+    <p>This resolves the earlier route confusion cleanly:</p>
+    <ul>
+    <li>Session and config store the ib, such as <code>opry/devops/clinicnotes/ui/numpad.html</code>.</li>
+    <li>Flow <code>routes</code> store the surf URL for that ib: <code>/opry/devops/clinicnotes/ui/numpad.html</code>.</li>
+    </ul>
+    <p>So there are still two forms, but they are now understood as <strong>integral/logical</strong> vs <strong>transport/surf</strong>, not as accidental inconsistency.</p>
+    <p>Strict policy adopted:</p>
+    <ol>
+    <li>Do <strong>not</strong> author separate storage-route fields when the route can be derived from the typed id.</li>
+    <li>Publish <strong>everything</strong> as first-class routes eventually: fragments, hosts, instances, flows, launches. This preserves lossless devops history and enables future flavor-B runtime composition.</li>
+    <li>Generated outputs are build products, but their ids are still first-class (<code>instance</code>, <code>flow</code>, <code>launch</code>) and can themselves accumulate hostpark frames.</li>
+    <li><strong><code>variant_of</code> uses typed instance ids</strong>, not registry map keys. Example: <code>clinicnotes:instance:folder:page_turn</code>, not <code>folder_page_turn</code>.</li>
+    <li><strong>Product-level map:</strong> <code>data/artifacts.json</code> is the canonical catalog for the entire clinicnotes project (all families). <code>data/programs.json</code> records programs (compose journey/entry/folder). <code>data/launch_index.json</code> points clinic launches at <code>program_id</code>. Folder composition detail remains in <code>folder_concepts.json</code> + <code>folder_instances.json</code> + <code>folder_flow_base.json</code>.</li>
+    </ol>
+    <h3>Programs layer (2026-07-08)</h3>
+    <p>Almost every clinic launch composes <strong>journey</strong> (numpad spine) + <strong>folder</strong> (+ sometimes <strong>entry</strong> splash). That composition is explicit now:</p>
+    <ul>
+    <li><strong>Instance</strong> = one family's prebaked contribution (<code>clinicnotes:instance:folder:page_turn</code>).</li>
+    <li><strong>Program</strong> = composed runtime across families (<code>clinicnotes:program:folder_page_turn_owntab</code>).</li>
+    <li><strong>Launch</strong> = bootstrap bookmark for a program (<code>clinicnotes:launch:folder:page_turn_owntab</code>).</li>
+    </ul>
+    <p><code>programs.json</code> <code>compose</code> keys name the family axis (<code>journey</code>, <code>entry</code>, <code>folder</code>) and hold typed ids (flow for journey spine, instance for folder/entry screens). Devops surfaces (linker, graph) have no program.</p>
+    <h2>UX spectrum tree (per-project, in devguide)</h2>
+    <p>Presentation extends from programmatic soundness and should be modularly divided. Each project <code>devguide.md</code> should name levels (L0 data, L1 logic, L2 devices, L3 pages, L4 manager, etc.), sibling branches, and prune points so features have a clear home.</p>
+    <p>See <code>clinicnotes devguide</code>.</p>
+    <h2>Flow: browser shell, surf, flow artifacts, Manager</h2>
+    <p>Flow is how the user moves through a product â€” which screen comes next and what context carries forward. On foobarch this is expressed through the navi shell plus navi.storage, not a bloated flow.js UI module.</p>
+    <p>See <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi shell</a>.</p>
+    <h3>Browser shell and in-app navigation</h3>
+    <ul>
+    <li>The top shell loads <code>navi_shell.js</code> once. <code>navi.storage</code>, <code>init_script</code>, and mounted modules persist while body content changes.</li>
+    <li>Direct entry to a path: foobarch SSR may still bootstrap the first screen with an HTMX <code>hx-get</code> element in the shell body.</li>
+    <li>Entry at <code>/</code>: empty body; init_script may seed an HTMX element to a default route and call <code>htmx.process</code>.</li>
+    <li>Step-to-step movement inside a project uses surf, not HTMX. <code>navi.mod.surf.surf(url)</code> fetches the route, parses HTML into a template, and <code>replaceChildren</code> on <code>document.body</code>. No hx-get flicker.</li>
+    <li>Hostparked HTML fragments are the payload surf loads. Navi stays in the shell window.</li>
+    <li>Prefer fragments without <code>id</code>. Use <code>data-part</code> and <code>name</code> (and <code>hx-target</code> on that name). Ids are document-global and collide when a swap duplicates a stage.</li>
+    <li>A bookmark or a direct route is the entry. Inside the runtime, body content swaps while the navi session persists.</li>
+    </ul>
+    <h3>What to build (not a fat flow module)</h3>
+    <p>Flow artifact â€” versioned JSON on hostpark. Route map (HTML paths), entry route, and movement policy (e.g. on miss, offer choices; do not auto-create).</p>
+    <p>HTML pages â€” one document per screen in <code>ui/</code> on hostpark.</p>
+    <p>Manager â€” thin navi helper. Loads the active flow artifact from config, navigates via <code>navi.mod.surf.surf(url)</code> (fetch + replaceChildren), calls registry and resting modules. Example: <code>go("folder")</code> surfs to the folder route from the artifact. Pages use <code>navi</code> in the shell (same window after swap).</p>
+    <p>Resting modules â€” capability only. Folder, create, capture, numpad helpers. Invoked when needed; they do not orchestrate the journey.</p>
+    <p>Bootstrap â€” <code>init_script</code> or a small mod ensures registry, Manager, and deps are mounted after reload.</p>
+    <p>Example artifact sketch (not final):</p>
+    <pre><code class="json">
+    {
+      "id": "clinic_numpad_direct",
+      "entry": "numpad",
+      "routes": {
+        "splash": "/opry/devops/clinicnotes/ui/splash.html",
+        "numpad": "/opry/devops/clinicnotes/ui/numpad.html",
+        "result": "/opry/devops/clinicnotes/ui/result.html",
+        "folder": "/opry/devops/clinicnotes/ui/folder.html",
+        "create": "/opry/devops/clinicnotes/ui/create.html"
+      }
+    }
+    </code></pre>
+    <p>State can live on navi between pages when a specific implementation needs it. That is a per-project choice, not a required framework. Owner data stays in registry keys.</p>
+    <h3>Ethos</h3>
+    <ol>
+    <li>Modules do not orchestrate UX. Resting modules provide capability. The Manager (driven by flow artifact policy) decides what happens next.</li>
+    <li>Lower layers keep a voice. Registry lookup/create; pages render; none auto-open because of events alone.</li>
+    <li>No presumptive auto-reaction. Result page offers Try again / Create / Cancel. Create runs only when the user chooses.</li>
+    <li>Tools rest. Manager moves. Logic stays dumb about the journey.</li>
+    </ol>
+    <p>Anti-patterns: fat <code>clinicnotes_flow.js</code> with all HTML in JS; event spaghetti where folder listens for <code>owner_found</code> and create listens for <code>owner_missing</code>.</p>
+    <h3>Multiple flow artifacts as variance records</h3>
+    <p>Use separate flow artifact files to record alternative journey designs, even when divergence is small (e.g. splash entry vs direct numpad entry).</p>
+    <p>Rationale:</p>
+    <ul>
+    <li>Each artifact is a named, versioned document of how movement was decided at a point in time.</li>
+    <li>Comparing two artifacts (e.g. <code>clinic_numpad_direct.json</code> vs <code>clinic_numpad_splash.json</code>) shows exactly where responsibility diverged â€” usually entry and one transition, sometimes more later.</li>
+    <li>Alternatives stay published on hostpark and remain switchable without rewriting code.</li>
+    <li>You ship one active flow per deployment; the others are preserved design options, not dead code.</li>
+    </ul>
+    <p>Project <code>config.json</code> (or equivalent) declares which flow artifact is active:</p>
+    <pre><code class="json">
+    {
+      "flow_artifact": "opry/devops/clinicnotes/flow/clinic_numpad_direct.json"
+    }
+    </code></pre>
+    <p>Manager loads whatever config points at. Changing the shipped experience is a config change (and maybe init_script default route), not a fork of registry or resting modules.</p>
+    <p>Longer term: maintain a catalog of alternatives at each decision level (flow, schema shape, module split). Only one is active per environment; the rest document variance and stay usable if priorities change.</p>
+    <p>This is intentional design archaeology â€” not duplication for its own sake, and not a reason to build a generic flow engine early. Each artifact stays concrete and readable.</p>
+    <p>"Defer a generic flow engine" still applies: no abstract rules interpreter on day one. Add another JSON file when a new journey or entry variant is worth recording.</p>
+    <p>A hostpark route can be the entry URL while config selects the flow artifact.</p>
+    <h3>Fragment page pattern</h3>
+    <p>HTML fragments are what surf loads into the shell. Navi is in the same window â€” pages call <code>navi</code> directly. Inline script may invoke Manager or a resting module. init_script re-mounts deps after reload.</p>
+    <p>Fragments or heavier SPA patterns are fine at higher UX spectrum levels when needed. surf is the default in-app navigation tool; HTMX may still bootstrap first paint on entry.</p>
+    <h2>Domain modeling: derived vs stored fields</h2>
+    <p>When a UI artifact encodes information already in another field, derive it. Do not store redundantly.</p>
+    <p>Example (clinicnotes): each numpad digit has a fixed color. Store <code>code</code> only; map digits via <code>digit_colors.json</code>.</p>
+    <h2>Create-record flows</h2>
+    <p>When lookup can miss, the Manager introduces create as an option â€” not an automatic next step. Prefill code when user chooses create. Collect owner name and pets. Seed dummy defaults for demo usability.</p>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

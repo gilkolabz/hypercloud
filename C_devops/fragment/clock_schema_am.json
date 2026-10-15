@@ -1,0 +1,26 @@
+{
+  "kind": "navi.clock.schema",
+  "id": "am",
+  "label": "AM",
+  "degrees": 360,
+  "period": {
+    "hours": 12,
+    "startHour": 0,
+    "endHour": 12,
+    "label": "AM"
+  },
+  "zeroAt": "top",
+  "clockwise": true,
+  "ticks": {
+    "majorEveryHours": 1,
+    "minorEveryMinutes": 5,
+    "labels": true
+  },
+  "event": {
+    "from": ["data.timestamp", "data.time", "data.events"],
+    "ibAsEvent": true
+  },
+  "about": {
+    "description": "12-hour morning face — wall hours 00:00–11:59 map across 360°."
+  }
+}

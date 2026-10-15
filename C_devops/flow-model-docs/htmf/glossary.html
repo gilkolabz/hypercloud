@@ -1,0 +1,95 @@
+<div
+  name="flow-model-glossary"
+  data-path="torus/devops/flow-model/glossary"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Glossary</h1>
+    <p>Shared vocabulary for the flow model on foobarch / navi. Prefer these words in paradigm docs and cross-project talk.</p>
+    <p><strong>Rule:</strong> when a term also exists in navi_shell, this glossary must match navi_shell. Flow-model-only names must not collide (see <strong>pot addr</strong> vs <strong>tip frame</strong>).</p>
+    <h2>Runtime (navi_shell)</h2>
+    <p>foobarch — Dispatch origin that hosts the browser shell and proposals (including flowerpot).</p>
+    <p>navi / navi_shell — Persistent JS runtime in the shell: tip+bin storage, mount, callin, modules.</p>
+    <p>surf — In-app navigation: fetch HTML, replace <code>document.body</code> children; navi survives.</p>
+    <p>flowerpot — Alternate versioned artifact host (legacy transport <code>/flowerpot/…</code>). Flow-model <strong>push and fetch</strong> default to hostpark bare paths; do not client-prefix <code>/flowerpot/</code> onto logical routes.</p>
+    <p><strong>hostpark</strong> — Server: origin holds park tips and serves logical routes from tip+bin. Default push target (<code>navi.origin</code>). Client localpark + mirror align dev with the same paths.</p>
+    <p><strong>tip</strong> — Pointer to the latest tip frame for an ib (e.g. <code>navi:surf</code>, <code>notes:session:flow_artifact</code>).</p>
+    <p><strong>tip frame</strong> — One generation of a tip lineage (<code>ib^gib</code>). Authoritative local record. Do <strong>not</strong> call flowerpot history a “frame.”</p>
+    <p><strong>bin</strong> — Content-addressed bytes; tips often <code>rel8ns.bin</code> → <code>bin <sha></code>.</p>
+    <p><strong>park tip</strong> — A tip whose <code>http</code> controls make a path dispatchable (module, surface, bin GET, …). Module parks are flat <code>navi:<name></code> (e.g. <code>navi:surf</code>). Ledger tip <code>navi:mod</code> lists planted module parks — it is not itself a module park. Session/config/artifact tips are still tips in the same space; give them GET bin/frame when you want park-check to serve them by path.</p>
+    <p><strong>localpark</strong> — Client: <code>navi.park.check</code> (and surf/fetch that use it) resolve a planted tip before the network. For hostpark products, plant/cache at the <strong>same bare ib</strong> as the route. Only use tip ib <code>flowerpot/…</code> when the transport URL is intentionally <code>/flowerpot/…</code>.</p>
+    <p><strong>product skin</strong> — Shared L3 CSS for a flow product’s screens and launches (<code>{root}/ui/{product}_skin.css</code>). Hostparked + plantable like any other byte. Loaded once into <code>document.head</code> via <code>navi.resolveUrl</code>. Not a flow route; not a Manager concern. See <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>.</p>
+    <p><strong>hostpark</strong> — Server: foobarch holds a park tip and serves the route from tip+bin (<strong>default push</strong> for flow-model product artifacts). Same tip idea; client localpark still applies.</p>
+    <p><strong>hostpark addr</strong> — One pushed generation on a logical route (<code>route</code> + <code>x-foobarch-ib^gib</code>). Flow-model name for immutable history on that path. Not a tip frame.</p>
+    <p><strong>pot addr</strong> — Legacy flowerpot generation name (same role as hostpark addr on the flowerpot surface).</p>
+    <p>callin — <code>navi("…")</code> → hard park dispatch: first token → tip <code>navi:<token></code>, usually <code>http.POST</code>, then <code>commands.<verb></code>. Mount/install is via surf: <code>navi("mount …")</code>.</p>
+    <p>bootstrap — Mount registry + Manager (and deps), seed if needed, surf to flow <code>entry</code>. Usually a <strong>command</strong> on the init module’s park (e.g. <code>navi("notes bootstrap")</code> after <code>notes_init</code> is mounted as <code>navi:notes</code> or similar).</p>
+    <p>init module — Project navi module that owns bootstrap commands and mounts the stack.</p>
+    <p>init_script — Shell tip <code>navi:init_script</code>: JS lines on every boot (often includes <code>navi.remount()</code>).</p>
+    <p>remount — <code>navi.remount()</code> mounts every park listed on ledger <code>navi:mod</code> from each tip’s bin.</p>
+    <p>entry-plug / unit — Multi-instance tip-space scaffolding in navi_shell. Flow products assume <strong>one active session per navi window</strong> and do not design against units; ignore unless you need advanced multi-tab bookkeeping. See <code>A_document/navi_units.html</code>.</p>
+    <h2>Flow model</h2>
+    <p>flow model — Paradigm: journey as published flow artifacts + thin Manager + resting modules + surf; local-first via tip/park.</p>
+    <p>flow artifact — Journey JSON (<code>id</code>, <code>entry</code>, <code>routes</code>, <code>policy</code>, <code>meta</code>). Published on <strong>hostpark</strong> by default (bare logical route); <strong>also plantable</strong> as a local tip (+ bin) at that same ib so park-check wins offline / local-first.</p>
+    <p>route key — Named step in a flow (<code>list</code>, <code>edit</code>, …). Manager.go language.</p>
+    <p>policy — Map of named outcomes → next route keys.</p>
+    <p>meta — Soft capability / presentation flags on a flow (not hard navigation).</p>
+    <p>Manager — Thin navi module: load flow, go/surf, tip-backed journey context, lazy-mount, policy helpers; <strong>local-first by default</strong>, owns cache/request policy so UX stays good. Park tip e.g. <code>navi:notes_manager</code> with commands as needed.</p>
+    <p>resting module — Capability module that does not own the journey. Park tip <code>navi:<name></code>.</p>
+    <p>registry — L1 application data API (facts); no DOM. Prefer tip+bin (or tip <code>data</code>) over ad-hoc bags; <code>storage.item</code> / <code>file</code> are sugar only.</p>
+    <p>launch / launch fragment — Cold-start bookmark HTML that selects flow/program and bootstraps.</p>
+    <p>entry — Flow field: first route key after bootstrap. Not the same as a launch.</p>
+    <p>active flow — The journey Manager is driving: pointer tip (which flow) + body tip (the JSON). Same tip layer as config and UI caches.</p>
+    <p>config — Project defaults (module routes, default flow). A tip (often seeded/mirrored from flowerpot). Same layer as session and artifacts.</p>
+    <p>session tip — Journey context that must survive surf (active-flow pointer, pending ids, return-to). Still a tip — not “unparked storage.” Project-prefixed ibs are a naming habit, not a second system.</p>
+    <h2>Composition</h2>
+    <p>feature — Stable idea/namespace that owns artifacts.</p>
+    <p>artifact — Revisable published unit (any kind: ui, module, flow, …).</p>
+    <p>revision — Parallel branch of a feature (<code>@r1</code>); distinct path.</p>
+    <p>instance — Family-local prebaked contribution (one assembled screen role).</p>
+    <p>family — Axis grouping instances (journey, entry, list, …).</p>
+    <p>program — Cross-family composed runnable runtime.</p>
+    <p>program network — Declared set of related programs sharing schemas/project root but not one journey; members stay independently launchable.</p>
+    <p>reiteration — Devops stage after shopping/spine: client survey → brief → sorted features.</p>
+    <p>brief — Project doc that turns a survey/transcript into prioritized features. Plan until human says go.</p>
+    <p>client survey — Raw prospect/operator input used to drive reiteration.</p>
+    <p>launch index / linker / graph — Devops surfaces for finding and shopping launches.</p>
+    <p>builder — Build-time composer of hosts + slot fragments → instance UI (+ flow/launch).</p>
+    <p>slot — Named insertion point in a host; collisions must error.</p>
+    <p>provenance header — Comment on generated UI listing what composed it.</p>
+    <p>variant — Declared alternative (flow and/or UI and/or modules) with a written why.</p>
+    <p>variant_of — Typed-id link to a parent instance/program for inherit/patch.</p>
+    <p>flow base / flow patch — Shared family journey defaults + per-instance deltas.</p>
+    <p>fork rule — Generated outputs may be forked only as declared registry instances.</p>
+    <p>mainline — Role: the launch people actually use; not a magic filename.</p>
+    <h2>Addressing</h2>
+    <p>typed id — Canonical id (<code>product:kind:family:leaf[@rev]</code>).</p>
+    <p>logical route — Bare park ib / path string (e.g. <code>torus/…/flow/….json</code> or <code>opry/devops/ti_punch/…</code>). No <code>/flowerpot</code> prefix.</p>
+    <p>transport URL — Surfable / fetchable URL on <code>navi.origin</code>: <code>/{logical-route}</code> via <code>navi.resolveUrl(logical)</code>. Flowerpot transport (<code>/flowerpot/{logical-route}</code>) is legacy / alternate only.</p>
+    <p>artifact_type — Optional manifest / devops label for a published unit. Common values: <code>launch</code>, <code>flow</code>, <code>ui</code>, <code>module</code>, <code>data</code>, <code>doc</code>, <code>schema</code>, <code>config</code>, <code>assets</code> (static images/fonts/audio under <code>assets/</code> — not screen-role HTML), <code>skin</code> (shared L3 product CSS; often also listed under <code>ui/</code>), <code>goals</code> / <code>ops</code> (project devops ledgers under <code>devops/</code>), <code>qa_index</code>, <code>graph</code>, ….</p>
+    <h2>Devops provenance</h2>
+    <p><strong>goal=</strong> — Required why-string on every fsdevops <code>put</code> / <code>append</code> / <code>mut8</code> / <code>hostpark-push</code>. Intent, not “refresh tip from disk.” See <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>.</p>
+    <p><strong>goals ledger</strong> — <code>devops/goals.json</code> → tip <code>{project}:devops:goals</code>. Planned / layer goals (<code>id</code>, <code>text</code>, <code>layer</code>, <code>status</code>).</p>
+    <p><strong>ops ledger</strong> — tip <code>{project}:devops:ops</code> (+ export <code>devops/ops.json</code>). What was written: each op carries its <code>goal</code> string (and optional <code>goal_id</code>).</p>
+    <h2>Spectrum</h2>
+    <p>UX spectrum — Placement of concerns from data/logic out to rich presentation (L0–Ln).</p>
+    <p>shop-for-final-version — Ship multiple implementations/launches; keep Manager/registry stable; choose later.</p>
+  </article>
+</div>

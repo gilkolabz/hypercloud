@@ -1,0 +1,236 @@
+<div
+  name="warezashyperlinks"
+  data-path="torus/testkit/warezashyperlinks"
+  data-part="htmf"
+  style="overflow:auto;max-height:100vh;box-sizing:border-box;padding:0.35rem;font:13px/1.4 system-ui,sans-serif;"
+>
+  <div data-part="list" style="color:#555;">loading warez…</div>
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest(
+            'div[name="warezashyperlinks"]'
+          )) ||
+        document.querySelector('div[name="warezashyperlinks"]');
+      if (!root || root.dataset.bound === "1") return;
+      root.dataset.bound = "1";
+
+      const listEl = root.querySelector('[data-part="list"]');
+      const WAREZ_TIP = "hypernetizen/warez";
+      /** @type {Array<{parkIb:string,name:string,naviName:string,ok:boolean,error?:string}>} */
+      let rows = [];
+
+      const esc = (s) =>
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      const splitAddr = (addr) => {
+        const a = String(addr || "");
+        const i = a.indexOf("^");
+        if (i <= 0) return { ib: a, gib: "" };
+        return { ib: a.slice(0, i), gib: a.slice(i + 1) };
+      };
+
+      const getJson = async (url, headers) => {
+        const res = await fetch(url, {
+          headers: headers || {},
+          cache: "no-store",
+        });
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(res.status + ": " + text.slice(0, 120));
+        }
+        return JSON.parse(text);
+      };
+
+      const callout = (msg) => {
+        if (
+          typeof navi !== "undefined" &&
+          navi &&
+          typeof navi.callout === "function"
+        ) {
+          navi.callout("<testkit/warezashyperlinks> " + String(msg ?? ""));
+        }
+      };
+
+      const mountedKey = (r) => {
+        if (typeof navi === "undefined" || !navi || !navi.mod) return "";
+        const keys = [r.naviName, r.name, r.parkIb]
+          .map((k) => (k != null ? String(k).trim() : ""))
+          .filter(Boolean);
+        for (const key of keys) {
+          if (navi.mod[key]) return key;
+        }
+        return "";
+      };
+
+      const doMount = async (parkIb) => {
+        const park = String(parkIb || "").trim();
+        if (!park) throw new Error("no park");
+        if (typeof navi !== "undefined" && navi) {
+          if (typeof navi.callin === "function") {
+            await navi.callin({ path: park, method: "GET" });
+            return "[warezashyperlinks] callin " + park;
+          }
+          if (typeof navi === "function") {
+            return await navi(park);
+          }
+        }
+        throw new Error("navi unavailable");
+      };
+
+      const doUnmount = async (key) => {
+        const name = String(key || "").trim();
+        if (!name) throw new Error("no mod name");
+        if (
+          typeof navi !== "undefined" &&
+          navi &&
+          navi.mod &&
+          navi.mod.surf &&
+          typeof navi.mod.surf.unmount === "function"
+        ) {
+          return navi.mod.surf.unmount(name);
+        }
+        if (typeof navi === "function") {
+          return navi("unmount " + name);
+        }
+        throw new Error("navi/surf not available");
+      };
+
+      const rowHtml = (r, i) => {
+        if (!r.ok) {
+          return (
+            '<span title="' +
+            esc(r.error || "failed") +
+            '" style="color:#a30;">' +
+            esc(r.parkIb || r.name) +
+            "</span><br>"
+          );
+        }
+        const parkIb = r.parkIb;
+        const key = mountedKey(r);
+        const unmount =
+          key
+            ? ' <a href="/' +
+              esc(key) +
+              '" data-unmount="' +
+              esc(key) +
+              '" style="color:#c00;">unmount</a>'
+            : "";
+        // Link text === path (park ib).
+        return (
+          '<span data-row="' +
+          i +
+          '"><a href="/' +
+          esc(parkIb) +
+          '" data-park="' +
+          esc(parkIb) +
+          '">' +
+          esc(parkIb) +
+          "</a>" +
+          unmount +
+          "</span><br>"
+        );
+      };
+
+      const paint = () => {
+        listEl.innerHTML = rows.map(rowHtml).join("");
+      };
+
+      root.addEventListener("click", (e) => {
+        const un = e.target.closest("a[data-unmount]");
+        if (un && root.contains(un)) {
+          e.preventDefault();
+          e.stopPropagation();
+          const key = un.getAttribute("data-unmount") || "";
+          void doUnmount(key)
+            .then(() => paint())
+            .catch((err) => {
+              callout(err && err.message ? err.message : String(err));
+              paint();
+            });
+          return;
+        }
+        const a = e.target.closest("a[data-park]");
+        if (!a || !root.contains(a)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const parkIb = a.getAttribute("data-park") || "";
+        void doMount(parkIb)
+          .then(() => paint())
+          .catch((err) => {
+            callout(err && err.message ? err.message : String(err));
+            paint();
+          });
+      });
+
+      const render = async () => {
+        try {
+          const tip = await getJson(FP + "/" + WAREZ_TIP);
+          const frames = Array.isArray(tip?.frames)
+            ? tip.frames.map(String)
+            : [];
+          if (!frames.length) {
+            listEl.textContent = "warez index empty";
+            rows = [];
+            return;
+          }
+          rows = await Promise.all(
+            frames.map(async (frame) => {
+              const { ib } = splitAddr(frame);
+              try {
+                const tipFrame = await getJson(
+                  "/" + encodeURIComponent(ib),
+                  {
+                    Accept: "application/eframe",
+                    // Mounted parks answer park.check with callin text (not
+                    // eframe JSON) — bypass so we always read the host tip.
+                    "X-Navi-Park-Bypass": "1",
+                  }
+                );
+                const data =
+                  tipFrame.data && typeof tipFrame.data === "object"
+                    ? tipFrame.data
+                    : tipFrame;
+                const about =
+                  data.about && typeof data.about === "object"
+                    ? data.about
+                    : {};
+                return {
+                  parkIb: ib,
+                  name:
+                    about.name != null ? String(about.name) : ib,
+                  naviName:
+                    about.navi_name != null
+                      ? String(about.navi_name)
+                      : String(data.module?.name || ib),
+                  ok: true,
+                };
+              } catch (err) {
+                return {
+                  parkIb: ib,
+                  name: ib,
+                  naviName: "",
+                  ok: false,
+                  error: err && err.message ? err.message : String(err),
+                };
+              }
+            })
+          );
+          paint();
+        } catch (err) {
+          listEl.innerHTML =
+            '<span style="color:#a30;">' +
+            esc(err && err.message ? err.message : String(err)) +
+            "</span>";
+        }
+      };
+
+      void render();
+    })();
+  </script>
+</div>

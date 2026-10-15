@@ -1,0 +1,26 @@
+{
+  "kind": "navi.clock.schema",
+  "id": "24h",
+  "label": "24h",
+  "degrees": 360,
+  "period": {
+    "hours": 24,
+    "startHour": 0,
+    "endHour": 24,
+    "label": "24h"
+  },
+  "zeroAt": "top",
+  "clockwise": true,
+  "ticks": {
+    "majorEveryHours": 1,
+    "minorEveryMinutes": 30,
+    "labels": true
+  },
+  "event": {
+    "from": ["data.timestamp", "data.time", "data.events"],
+    "ibAsEvent": true
+  },
+  "about": {
+    "description": "Full-day face — wall hours 00:00–23:59 map across 360°."
+  }
+}

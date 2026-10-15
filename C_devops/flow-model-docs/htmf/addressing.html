@@ -1,0 +1,130 @@
+<div
+  name="flow-model-addressing"
+  data-path="torus/devops/flow-model/addressing"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Addressing and publishing</h1>
+    <p>How artifacts are named, stored, and fetched. <strong>navi_shell terms win</strong> on collision — see <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>.</p>
+    <h2>Two worlds, one product</h2>
+    <table>
+    <thead><tr><th>Concern</th><th>navi_shell</th><th>Flow-model default</th></tr></thead>
+    <tbody>
+    <tr><td>Live / local truth</td><td>tip + tip frame (<code>ib^gib</code>) + bin</td><td>Session, config, planted flow JSON, module parks</td></tr>
+    <tr><td>Published product bytes</td><td><strong>hostpark</strong> on <code>navi.origin</code></td><td>Same logical route; signed tip commits</td></tr>
+    <tr><td>In-app navigation</td><td>surf / park.check</td><td>Flow <code>routes</code> → HTML URLs; Manager.go</td></tr>
+    </tbody></table>
+    <p>Do not call a hostpark generation a “frame.” That word means <strong>tip frame</strong> in navi_shell. Remote history is a <strong>hostpark addr</strong> (<code>x-foobarch-ib^gib</code>).</p>
+    <h2>Three layers of identity (authoring)</h2>
+    <ul>
+    <li>Integral typed id — Canonical authored id — e.g. <code>notes:flow:journey:list_direct</code></li>
+    <li>Branch / logical route — Path used by fetch & config — e.g. <code>torus/example/notes/flow/notes_list_direct.json</code></li>
+    <li>Hostpark addr — Immutable generation on a logical route — <code>route^…</code> (response <code>x-foobarch-ib^gib</code>)</li>
+    </ul>
+    <p>Prefer: author the typed id; derive the logical route when the mapping is mechanical. Do not invent parallel hand-authored storage fields that drift from the id.</p>
+    <h2>Typed id shape (recommended)</h2>
+    <pre><code class="text">
+    {product}:{kind}:{family}:{leaf}[@rev]
+    </code></pre>
+    <p>Examples:</p>
+    <ul>
+    <li><code>notes:fragment:list:toolbar@r1</code></li>
+    <li><code>notes:host:list:layout_compact@r1</code></li>
+    <li><code>notes:instance:list:compact</code></li>
+    <li><code>notes:flow:journey:list_direct</code></li>
+    <li><code>notes:launch:journey:list_direct</code></li>
+    <li><code>notes:program:list_first</code></li>
+    <li><code>notes:module:core:manager</code></li>
+    </ul>
+    <p><code>variant_of</code> and <code>compose</code> fields should reference typed ids, not ephemeral map keys.</p>
+    <h2>Logical route vs transport URL</h2>
+    <ul>
+    <li>config, session tip values, logical routes — e.g. <code>opry/…/flow/….json</code> (bare park ib; <strong>no</strong> <code>/flowerpot</code> in the stored string)</li>
+    <li>flow <code>routes.*</code>, <code>surf(url)</code> — transport URL on <code>navi.origin</code>, e.g. <code>/opry/…/ui/….html</code></li>
+    </ul>
+    <p>Same hostpark artifact; two presentations. Document both; do not treat them as unrelated naming schemes.</p>
+    <p><strong>Do not</strong> client-prefix <code>/flowerpot/</code> onto logical routes. <code>navi.resolveUrl(logical)</code> is the mechanical resolve. Flowerpot transport is alternate only.</p>
+    <h2>One tip layer (local-first; UX guides how)</h2>
+    <p>Session pointers, config, flow JSON, UI bytes, and module parks are <strong>the same tip space</strong>. There is no “Manager-private bag” vs “park world.” Roles differ; the store does not.</p>
+    <p><strong>Local-first is the dominant design pattern:</strong> plant what you run; park-check before network; warm tips are the default path. <strong>UX is the guide for how that happens</strong> — when to fetch, when to plant, when to refresh, what to keep hot — so the journey feels instant and coherent. Manager (and init) own that policy; they do not invent a second architecture.</p>
+    <h3>Same-ib cache → natural park passthru</h3>
+    <p><code>pathToParkIb("/opry/…/ui/list.html")</code> → tip ib <code>opry/…/ui/list.html</code>.</p>
+    <p>Plant cached bytes at <strong>that</strong> ib (<code>kind</code> bin/frame + bin). Then surf / <code>navi.fetch</code> / SW park-check hit local first and fall through to hostpark on miss — same path, no special case.</p>
+    <p>Logical route in a pointer tip is <em>which artifact</em>; the <strong>body cache</strong> belongs under the <strong>same bare ib</strong> as hostpark. Only if you intentionally use <code>/flowerpot/…</code> transport should the tip ib be <code>flowerpot/…</code>.</p>
+    <p>Hostpark on the origin for the logical route is the default push <strong>and</strong> fetch path for flow-model products. Client localpark at <code>navi/…</code> (mirror) or planted tips keeps relay/dev aligned with the same route shape.</p>
+    <h3>Manager cache policy (on top of local-first)</h3>
+    <p>Manager may:</p>
+    <ul>
+    <li>prefer warm tips (local-first default)</li>
+    <li>request via park/surf/fetch (localpark then host) when UX needs bytes or freshness</li>
+    <li>plant or mut8 a tip after a successful fetch</li>
+    <li>keep pot addr / hash and refresh when UX wants an update</li>
+    <li>skip network when a warm tip is good enough</li>
+    </ul>
+    <p>That policy serves local-first *and* UX. It does not invent another storage layer.</p>
+    <p>Module remount stays tip-native: mount plants <code>navi:<name></code> + bin; <code>navi.remount()</code> restores from <code>navi:mod</code>.</p>
+    <h2>Publish everything that matters</h2>
+    <p>Eventually first-class routes for:</p>
+    <ul>
+    <li>fragments, hosts, instances</li>
+    <li>flows, launches</li>
+    <li>modules, schemas, data indexes</li>
+    <li>programs / catalogs</li>
+    <li>paradigm docs — <code>torus/devops/flow-model/*</code> (hostpark HTMF)</li>
+    </ul>
+    <p>That preserves lossless devops history and enables future composition. Generated outputs are still first-class ids that accumulate pot addrs.</p>
+    <h2>Manifest / catalog</h2>
+    <p>Flowerpot cannot always list “all paths.” Projects maintain an index:</p>
+    <ul>
+    <li>local sync manifest (tokens, paths, latest pot addrs)</li>
+    <li>optional <code>artifact_type</code> on entries: <code>launch</code>, <code>flow</code>, <code>ui</code>, <code>module</code>, <code>data</code>, <code>doc</code>, <code>schema</code>, <code>config</code>, <code>assets</code>, <code>skin</code>, <code>qa_index</code>, <code>graph</code>, …</li>
+    </ul>
+    <h3><code>assets</code> (not <code>ui</code>)</h3>
+    <p>Static visual / audio / font bytes that <strong>support</strong> a screen or launch — banners, icons, product art — are <strong><code>assets</code></strong>, not screen-role HTML.</p>
+    <ul>
+    <li>Folder: prefer <code>assets/</code> under the product root (aliases <code>art/</code>, <code>media/</code> also classify as <code>assets</code>)</li>
+    <li>Publish like any other product byte: hostpark at <code>{route_prefix}/assets/…</code></li>
+    <li>Reference from UI/launch via hostpark (or planted) URL — do <strong>not</strong> put banner images under <code>ui/</code> or invent a flow route for them</li>
+    <li>fsdevopstracker indexes these as <code>artifact_type: assets</code> (also common image/font/audio extensions outside those folders)</li>
+    </ul>
+    <h3>Product skin (L3 CSS — not <code>assets</code>, not a flow route)</h3>
+    <p>Shared look for all screens/launches is a <strong>product skin</strong>: hostparked CSS, usually <code>{route_prefix}/ui/{product}_skin.css</code>.</p>
+    <ul>
+    <li>Classify as <code>artifact_type: skin</code> (or <code>ui</code> if your indexer only knows folder shapes)</li>
+    <li>List in program <code>layers.L3</code> and config <code>flowerpot.skin_css</code></li>
+    <li>Fragments load via <code>navi.resolveUrl</code> into <code>document.head</code> (<code>data-flow-skin</code>)</li>
+    <li>Do <strong>not</strong> invent a flow <code>routes</code> key for CSS; do <strong>not</strong> treat skin as decorative <code>assets/</code></li>
+    </ul>
+    <p>Product-level catalogs (<code>artifacts.json</code>, <code>programs.json</code>, family instance files) are the canonical composition graph. Launch indexes point at programs/flows for QA and PWA start URLs.</p>
+    <h2>Write gates and tokens</h2>
+    <p>Publishing uses hostpark usage tokens / policies (project-specific). Store tokens in a stash tip, never passwords in chat. Minting is external (faucet / devops scripts). Identity publish: <code>C_devops/identity/_publish.mjs</code>.</p>
+    <h2>Legacy names</h2>
+    <p>Old published history may keep naming drift (“frame” for pot history, mixed roots). New work: <strong>tip frame</strong> vs <strong>pot addr</strong>; typed-id → derived logical route; plant session/config/flow as tips. Repot when it clarifies; do not rewrite history casually.</p>
+    <p>Pre-adapt flowerpot snapshot: <code>flowerpot/devops/flow-model/*</code>. Current: hostpark <code>torus/devops/flow-model/*</code> via <code>_hostpark.mjs</code>.</p>
+    <h2>Related</h2>
+    <ul>
+    <li><a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a></li>
+    <li><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a></li>
+    <li><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a></li>
+    <li><code>navi_shell/README.md</code></li>
+    <li><code>A_document/hostparking.md</code> — optional origin park publishes</li>
+    </ul>
+  </article>
+</div>

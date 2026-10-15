@@ -1,0 +1,345 @@
+<div data-part="htmf" name="caniuseflowerpothere.html" data-path="hypertext/flowerpot_faq/pages/caniuseflowerpothere.html">
+<script>(function(){var path="/hypertext/flowerpot_faq/pages/caniuseflowerpothere.html";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+    <style>
+        div[name="caniuseflowerpothere.html"] {
+            font: 14px/1.45 system-ui, sans-serif;
+        }
+        div[name="caniuseflowerpothere.html"] .muted { color: #555; }
+        div[name="caniuseflowerpothere.html"] .row { margin: 0.6rem 0; }
+        div[name="caniuseflowerpothere.html"] button {
+            margin: 0.15rem 0.25rem 0.15rem 0;
+            cursor: pointer;
+        }
+        div[name="caniuseflowerpothere.html"] input[type="text"] {
+            width: min(100%, 28rem);
+            font: inherit;
+            box-sizing: border-box;
+        }
+        div[name="caniuseflowerpothere.html"] textarea[data-part="pot-string-text"] {
+            width: 28rem;
+            max-width: none;
+            min-width: 12rem;
+            min-height: 5rem;
+            font: inherit;
+            box-sizing: border-box;
+            display: block;
+            resize: both;
+            margin-top: 0.25rem;
+        }
+        div[name="caniuseflowerpothere.html"] .found { color: #0a6; font-weight: 600; }
+        div[name="caniuseflowerpothere.html"] .err { color: #a30; }
+        div[name="caniuseflowerpothere.html"] table[data-part="get-string-table"] {
+            border: 2px solid #000;
+            border-collapse: collapse;
+            max-width: 400px;
+            margin-top: 0.5rem;
+            font: 12px/1.35 ui-monospace, monospace;
+        }
+        div[name="caniuseflowerpothere.html"] table[data-part="get-string-table"] th,
+        div[name="caniuseflowerpothere.html"] table[data-part="get-string-table"] td {
+            border: 1px solid #000;
+            padding: 0.35rem 0.5rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        div[name="caniuseflowerpothere.html"] table[data-part="get-string-table"] th {
+            max-width: 400px;
+            min-width: 50px;
+            background: #eee;
+        }
+    </style>
+
+    <div data-part="no-potter" hidden>
+        <p><strong>nah sorry</strong></p>
+        <p class="muted">Mount <code>potter.js</code> first (e.g. from Gadgets).</p>
+    </div>
+
+    <div data-part="yes-potter" hidden>
+        <p data-part="stash-line">…</p>
+        <p class="row" data-part="faucet-row">
+            <button type="button" data-part="btn-faucet">check a faucet</button>
+            <span data-part="faucet-msg" class="muted"></span>
+        </p>
+        <small class="muted">testkit potter mod ui: write a string to flowerpot</small>
+        <div class="row">
+            <label><i>pot path</i> <small>where do u want to put a string?</small><input type="text" name="pot_ib_path" data-part="pot-ib-path"></label>
+        </div>
+        <div class="row">
+            <label><i>pot text</i> <small>put the string u want to pot here</small>
+                <textarea name="pot_string_text" data-part="pot-string-text"></textarea>
+            </label>
+        </div>
+        <div class="row">
+            <label><i>prefix/alias</i> <small>this is optional</small><input type="text" name="pot_aside_prefix" data-part="pot-aside-prefix" placeholder="u/alice"></label>
+        </div>
+        <div class="row" data-part="pot-row">
+            <button type="button" data-part="btn-pot-string">pot string</button>
+            <span data-part="pot-msg" class="muted"></span>
+        </div>
+
+        <hr>
+        <div class="row">
+            <label><i>path</i> <small>where a string could be</small><input type="text" name="get_string_path" data-part="get-string-path"></label>
+            <button type="button" data-part="btn-get-string">get string</button>
+        </div>
+        <div data-part="get-string-result"></div>
+    </div>
+
+    <script>
+        (function () {
+            const root =
+                (document.currentScript &&
+                    document.currentScript.closest(
+                        'div[name="caniuseflowerpothere.html"]'
+                    )) ||
+                document.querySelector('div[name="caniuseflowerpothere.html"]');
+            if (!root) return;
+
+            const part = (name) => root.querySelector(`[data-part="${name}"]`);
+
+            /** Proprietary tip body for strings potted from this page. */
+            const POTTER_STRING_PART = "potter_string";
+            const POTTER_STRING_FOR = "caniuseflowerpothere";
+
+            const noEl = part("no-potter");
+            const yesEl = part("yes-potter");
+            const stashLine = part("stash-line");
+            const faucetBtn = part("btn-faucet");
+            const faucetMsg = part("faucet-msg");
+            const faucetRow = part("faucet-row");
+            const potRow = part("pot-row");
+            const potMsg = part("pot-msg");
+            const getResult = part("get-string-result");
+
+            function hasPotter() {
+                return !!(
+                    typeof navi === "function" &&
+                    navi.mod &&
+                    navi.mod.potter &&
+                    navi.mod.potter.potter
+                );
+            }
+
+            async function tokenCount() {
+                const p = navi.mod.potter.potter;
+                const t = await p.getTokens();
+                return t.length;
+            }
+
+            async function refreshStashLine() {
+                const n = await tokenCount();
+                stashLine.textContent =
+                    n > 0
+                        ? "yeah and u got " + n + " token(s) in ur stash"
+                        : "yeah but u got zero tokens";
+            }
+
+            function looksLikeUsageToken(raw) {
+                const t = String(raw || "").trim();
+                if (!t || t.length < 32) return false;
+                if (/^Error fetching/i.test(t)) return false;
+                if (/^</.test(t) || /^\{/.test(t)) return false;
+                return /^[0-9a-f]+$/i.test(t);
+            }
+
+            async function saveTokenToPotter(token) {
+                const p = navi.mod.potter.potter;
+                const existing = await p.getTokens();
+                await p.setTokens(existing.concat(String(token).trim()));
+            }
+
+            function buildPotterStringBody(text) {
+                return JSON.stringify({
+                    parts: [POTTER_STRING_PART, "manifest", "json"],
+                    data: {
+                        for: POTTER_STRING_FOR,
+                        kind: POTTER_STRING_PART,
+                        text: String(text ?? ""),
+                    },
+                });
+            }
+
+            function parsePotterString(payload) {
+                const json = payload && payload.json;
+                if (!json || typeof json !== "object") {
+                    return {
+                        ok: false,
+                        reason:
+                            "not a potter_string tip (expected JSON with parts including potter_string)",
+                    };
+                }
+                const parts = Array.isArray(json.parts) ? json.parts.map(String) : [];
+                if (!parts.includes(POTTER_STRING_PART)) {
+                    return {
+                        ok: false,
+                        reason:
+                            "JSON tip, but parts has no potter_string — not potted by this UI",
+                    };
+                }
+                const data =
+                    json.data && typeof json.data === "object" ? json.data : {};
+                return {
+                    ok: true,
+                    for: data.for != null ? String(data.for) : "",
+                    kind: data.kind != null ? String(data.kind) : POTTER_STRING_PART,
+                    text: data.text != null ? String(data.text) : "",
+                    parts,
+                    addr: payload.addr || "",
+                    contentType: payload.contentType || "",
+                };
+            }
+
+            function renderGetTable(rows) {
+                const esc = (s) =>
+                    String(s ?? "")
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;");
+                const body = rows
+                    .map(
+                        ([k, v]) =>
+                            "<tr><th>" +
+                            esc(k) +
+                            "</th><td>" +
+                            esc(v) +
+                            "</td></tr>"
+                    )
+                    .join("");
+                getResult.innerHTML =
+                    '<table data-part="get-string-table"><tbody>' +
+                    body +
+                    "</tbody></table>";
+            }
+
+            async function checkFaucet() {
+                faucetBtn.disabled = true;
+                faucetMsg.textContent = "…";
+                try {
+                    let body;
+                    if (navi.mod.surf && typeof navi.mod.surf.browse === "function") {
+                        body = await navi.mod.surf.browse(
+                            "torus_faucet/token/flowerpot"
+                        );
+                    } else {
+                        body = await navi("browse torus_faucet/token/flowerpot");
+                    }
+                    if (!looksLikeUsageToken(body)) {
+                        faucetMsg.textContent = "no token (empty or error)";
+                        faucetBtn.disabled = false;
+                        return;
+                    }
+                    await saveTokenToPotter(body);
+                    faucetRow.innerHTML =
+                        '<span class="found">you found a token!</span>';
+                    await refreshStashLine();
+                } catch (e) {
+                    faucetMsg.textContent = "failed";
+                    faucetBtn.disabled = false;
+                }
+            }
+
+            async function potString() {
+                const btn = part("btn-pot-string");
+                const ib = 'flowerpot_faq_demo/' + part("pot-ib-path").value.trim();
+                const text = part("pot-string-text").value;
+                const aside = part("pot-aside-prefix").value.trim();
+                if (!ib || !String(text || "").trim()) {
+                    potMsg.textContent = "need pot path and text";
+                    potMsg.className = "err";
+                    return;
+                }
+                if (btn) btn.disabled = true;
+                potMsg.textContent = "…";
+                potMsg.className = "muted";
+                const potterApi = navi.mod.potter.potter;
+                try {
+                    const r = await potterApi.potString(buildPotterStringBody(text), {
+                        ib,
+                        noSign: true,
+                        asidePrefix: aside || null,
+                        contentType: "application/json",
+                    });
+                    await refreshStashLine();
+                    const addr = r.addr || (r.result && r.result.addr) || "";
+                    potRow.textContent = "";
+                    const ok = document.createElement("span");
+                    ok.className = "found";
+                    ok.textContent = "you potted a string!";
+                    potRow.appendChild(ok);
+                    if (addr) {
+                        potRow.appendChild(document.createTextNode(" "));
+                        const meta = document.createElement("small");
+                        meta.className = "muted";
+                        meta.textContent = addr.length > 50 ? addr.slice(0, 50) + "..." : addr;
+                   
+                        potRow.appendChild(meta);
+                    }
+                } catch (e) {
+                    potMsg.textContent =
+                        "failed: " + (e && e.message ? e.message : e);
+                    potMsg.className = "err";
+                    if (btn) btn.disabled = false;
+                    await refreshStashLine();
+                }
+            }
+
+            async function getString() {
+                const path = 'flowerpot_faq_demo/' + part("get-string-path").value.trim();
+                if (!path) {
+                    renderGetTable([["error", "need a path"]]);
+                    return;
+                }
+                getResult.innerHTML = '<span class="muted">…</span>';
+                try {
+                    const payload = await navi.mod.potter.potter.getPayload(path);
+                    const parsed = parsePotterString(payload);
+                    if (!parsed.ok) {
+                        renderGetTable([
+                            ["reason", parsed.reason],
+                            ["addr", payload.addr || ""],
+                            [
+                                "body preview",
+                                String(payload.body || "").slice(0, 240),
+                            ],
+                        ]);
+                        return;
+                    }
+                    renderGetTable([
+                        ["text", parsed.text],
+                        ["addr", parsed.addr],
+                        ["parts", parsed.parts.join(", ")],
+                    ]);
+                } catch (e) {
+                    renderGetTable([
+                        [
+                            "error",
+                            e && e.message ? e.message : String(e),
+                        ],
+                    ]);
+                }
+            }
+
+            async function init() {
+                if (!hasPotter()) {
+                    noEl.hidden = false;
+                    yesEl.hidden = true;
+                    return;
+                }
+                noEl.hidden = true;
+                yesEl.hidden = false;
+                await refreshStashLine();
+
+                faucetBtn.addEventListener("click", () => void checkFaucet());
+                part("btn-pot-string").addEventListener("click", () => {
+                    void potString();
+                });
+                part("btn-get-string").addEventListener("click", () => {
+                    void getString();
+                });
+            }
+
+            void init();
+        })();
+    </script>
+</div>

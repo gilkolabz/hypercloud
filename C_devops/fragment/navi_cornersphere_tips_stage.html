@@ -1,0 +1,290 @@
+<div
+  name="cornersphere_stage"
+  data-path="torus/testkit/cornersphere/tips-stage"
+  data-part="htmf"
+  style="margin:0;padding:0;border:0;display:block;box-sizing:border-box"
+>
+  <canvas data-part="view" style="display:block;width:100%;height:100%"></canvas>
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="cornersphere_stage"]')) ||
+        document.querySelector('div[name="cornersphere_stage"]');
+      if (!root || root.dataset.cornersphereStageBound === "1") return;
+      root.dataset.cornersphereStageBound = "1";
+
+      const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+      const canvas = () => root.querySelector('[data-part="view"]');
+
+      let corners = 0;
+      let verts = [];
+      let edges = [];
+      let rot = { x: 0, y: 0, z: 0 };
+      let rotSpeed = { x: 0, y: 0, z: 0 };
+      let raf = 0;
+      let lastTick = 0;
+      let frameInterval = 1000;
+      let tipHooked = false;
+
+      function norm(v) {
+        const l = Math.hypot(v[0], v[1], v[2]) || 1;
+        return [v[0] / l, v[1] / l, v[2] / l];
+      }
+
+      function fibonacciSphere(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+          const y = 1 - (2 * i) / Math.max(1, n - 1);
+          const r = Math.sqrt(Math.max(0, 1 - y * y));
+          const t = GOLDEN * i;
+          pts.push(norm([Math.cos(t) * r, y, Math.sin(t) * r]));
+        }
+        return pts;
+      }
+
+      function verticesFor(n) {
+        if (n <= 0) return [];
+        if (n === 1) return [[0, 0, 1]];
+        if (n === 2) return [[0, 0, 1], [0, 0, -1]];
+        if (n === 3) {
+          const r3 = Math.sqrt(3) / 2;
+          return [
+            [1, 0, 0],
+            [-0.5, 0, r3],
+            [-0.5, 0, -r3],
+          ].map(norm);
+        }
+        if (n === 4) {
+          return [
+            [1, 1, 1],
+            [1, -1, -1],
+            [-1, 1, -1],
+            [-1, -1, 1],
+          ].map(norm);
+        }
+        return fibonacciSphere(n);
+      }
+
+      function edgeKey(a, b) {
+        return a < b ? a + "," + b : b + "," + a;
+      }
+
+      function buildTopology(points) {
+        const n = points.length;
+        const edgeSet = new Set();
+
+        if (n === 2) {
+          return { edges: [[0, 1]] };
+        }
+        if (n === 3) {
+          return { edges: [[0, 1], [1, 2], [2, 0]] };
+        }
+        if (n === 4) {
+          return {
+            edges: [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+              [1, 2],
+              [1, 3],
+              [2, 3],
+            ],
+          };
+        }
+
+        const k = Math.min(6, n - 1);
+        points.forEach((_, i) => {
+          const list = [];
+          for (let j = 0; j < n; j++) {
+            if (i === j) continue;
+            const dx = points[i][0] - points[j][0];
+            const dy = points[i][1] - points[j][1];
+            const dz = points[i][2] - points[j][2];
+            list.push({ j, d: dx * dx + dy * dy + dz * dz });
+          }
+          list.sort((a, b) => a.d - b.d);
+          list.slice(0, k).forEach(({ j }) => edgeSet.add(edgeKey(i, j)));
+        });
+
+        return {
+          edges: [...edgeSet].map((s) => s.split(",").map(Number)),
+        };
+      }
+
+      function randomRotationSpeed() {
+        const base = 0.004 + Math.random() * 0.028;
+        const sign = () => (Math.random() < 0.5 ? -1 : 1);
+        return {
+          x: sign() * base * (0.6 + Math.random()),
+          y: sign() * base * (0.6 + Math.random()),
+          z: sign() * base * (0.6 + Math.random()),
+        };
+      }
+
+      function setCorners(n, force) {
+        const next = Math.max(0, n | 0);
+        if (!force && next === corners && (corners === 0 || verts.length)) return;
+        corners = next;
+        verts = verticesFor(corners);
+        edges = buildTopology(verts).edges;
+        rotSpeed = randomRotationSpeed();
+        frameInterval = corners > 0 ? 1000 / corners : 1000;
+        draw();
+      }
+
+      function rotatePoint(p) {
+        let [x, y, z] = p;
+        let c;
+        let s;
+
+        c = Math.cos(rot.x);
+        s = Math.sin(rot.x);
+        let y1 = y * c - z * s;
+        let z1 = y * s + z * c;
+        y = y1;
+        z = z1;
+
+        c = Math.cos(rot.y);
+        s = Math.sin(rot.y);
+        let x1 = x * c + z * s;
+        z1 = -x * s + z * c;
+        x = x1;
+        z = z1;
+
+        c = Math.cos(rot.z);
+        s = Math.sin(rot.z);
+        x1 = x * c - y * s;
+        y1 = x * s + y * c;
+        return [x1, y1, z];
+      }
+
+      function project(p, w, h) {
+        const cam = 2.5;
+        const z = p[2] + cam;
+        const scale = (Math.min(w, h) * 0.52) / Math.max(0.15, z);
+        return {
+          x: p[0] * scale + w / 2,
+          y: -p[1] * scale + h / 2,
+          z,
+        };
+      }
+
+      function stageHost() {
+        return document.getElementById("DSC") || root.parentElement;
+      }
+
+      function fitCanvas() {
+        const c = canvas();
+        if (!c) return;
+        const slot = stageHost();
+        const band = document.getElementById("DS");
+        let slotW = slot && slot.clientWidth > 0 ? slot.clientWidth : 0;
+        let bandH = band && band.clientHeight > 0 ? band.clientHeight : 0;
+        if (slotW < 1) slotW = Math.floor(window.innerWidth / 3);
+        if (bandH < 1) bandH = Math.floor(window.innerHeight / 3);
+        const side = Math.max(72, Math.min(slotW, bandH));
+        root.style.width = side + "px";
+        root.style.height = side + "px";
+        if (c.width !== side || c.height !== side) {
+          c.width = side;
+          c.height = side;
+          draw();
+        }
+      }
+
+      function draw() {
+        const c = canvas();
+        if (!c) return;
+        const ctx = c.getContext("2d");
+        const w = c.width;
+        const h = c.height;
+        if (w < 1 || h < 1) return;
+        ctx.clearRect(0, 0, w, h);
+
+        const projected = verts.map((v) => project(rotatePoint(v), w, h));
+
+        if (edges.length) {
+          ctx.strokeStyle = "rgba(0,0,255,0.3)";
+          ctx.lineWidth = corners <= 12 ? 1.4 : 0.8;
+          edges.forEach(([a, b]) => {
+            const pa = projected[a];
+            const pb = projected[b];
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          });
+        }
+
+        const r =
+          corners === 1 ? 5 : corners <= 4 ? 4 : Math.max(1.2, 3.5 - corners * 0.004);
+        ctx.fillStyle = "rgba(255,0,0,0.6)";
+        projected.forEach((p) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function tick(now) {
+        raf = requestAnimationFrame(tick);
+        if (!lastTick) lastTick = now;
+        if (now - lastTick < frameInterval) return;
+        lastTick = now;
+        rot.x += rotSpeed.x;
+        rot.y += rotSpeed.y;
+        rot.z += rotSpeed.z;
+        draw();
+      }
+
+      async function syncCornersFromTips() {
+        const shell = typeof navi !== "undefined" ? navi : null;
+        const tipApi = shell && shell.storage && shell.storage.tip;
+        if (!tipApi || typeof tipApi.list !== "function") return;
+        const ibs = await tipApi.list();
+        const tips = (ibs || []).length;
+        setCorners(tips);
+      }
+
+      function hookTipCount() {
+        if (tipHooked) return true;
+        const shell = typeof navi !== "undefined" ? navi : null;
+        if (!shell || typeof shell.on !== "function") return false;
+        if (!shell.storage || !shell.storage.tip || typeof shell.storage.tip.list !== "function") {
+          return false;
+        }
+        tipHooked = true;
+        const sync = () => {
+          syncCornersFromTips().catch(() => {});
+        };
+        shell.on("ready", sync);
+        shell.on("mounted", sync);
+        shell.on("callin", sync);
+        sync();
+        return true;
+      }
+
+      function boot() {
+        setCorners(0, true);
+        fitCanvas();
+        const resizeTargets = [document.getElementById("DS"), stageHost()].filter(Boolean);
+        if (typeof ResizeObserver !== "undefined") {
+          const ro = new ResizeObserver(() => fitCanvas());
+          resizeTargets.forEach((el) => ro.observe(el));
+        }
+        window.addEventListener("resize", fitCanvas);
+        if (!hookTipCount()) {
+          const wait = setInterval(() => {
+            if (hookTipCount()) clearInterval(wait);
+          }, 50);
+        }
+        cancelAnimationFrame(raf);
+        lastTick = 0;
+        raf = requestAnimationFrame(tick);
+      }
+
+      boot();
+    })();
+  </script>
+</div>

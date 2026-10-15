@@ -1,0 +1,11 @@
+{
+  "contract": "scranton_lobby_v1",
+  "host": "https://foobarch.net",
+  "schema_ib": "scranton/lobby/v1/schema",
+  "schema_addr": "scranton/lobby/v1/schema^79A9B3E9C4AB9550E3FC05D006B58E741A474888A79FF1FB54A253E557A7987F",
+  "policy_ib": "scranton/lobby/v1/policy",
+  "policy_addr": "scranton/lobby/v1/policy^FE11F0E2D7DA0FF3A07C6D211E3463D029DD289A7701A18F6CA9E0A7BCB01E18",
+  "governor_ib": "scranton/lobby/v1",
+  "governor_addr": "scranton/lobby/v1^13EEBC7C55F418B49EE8EBFC030554C7F683CD286C223C1B73CB13C12DC3C813",
+  "published_at": "2026-10-07T15:58:01.616Z"
+}

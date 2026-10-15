@@ -1,0 +1,303 @@
+<div
+  data-part="htmf"
+  data-path="hypercloud/testkit/htmf/youtube_search"
+  name="youtube_search"
+  style="font:13px/1.35 ui-monospace,Consolas,monospace;padding:0.75rem;max-width:40rem;border:double 4px #000;box-sizing:border-box;background:#fff;color:#111;"
+>
+  <div style="font-weight:700;margin:0 0 0.35rem;">youtube search</div>
+
+  <details data-yt="keybox" style="margin:0 0 0.5rem;font-size:12px;">
+    <summary style="cursor:pointer;" data-yt="keystate">api key</summary>
+    <div style="opacity:0.7;font-size:11px;margin:0.25rem 0;">
+      YouTube Data API v3 key. Kept in this browser only (navi.storage.item), never in this frame.
+      Restrict it to your site's referrer in the Google Cloud console.
+    </div>
+    <div style="display:flex;gap:0.35rem;">
+      <input data-yt="key" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" style="flex:1;min-width:0;font:inherit;" />
+      <button type="button" data-yt="savekey">save</button>
+      <button type="button" data-yt="forgetkey">forget</button>
+    </div>
+  </details>
+
+  <div style="display:flex;gap:0.35rem;margin:0 0 0.5rem;">
+    <input data-yt="q" type="search" spellcheck="false" placeholder="search youtube" style="flex:1;min-width:0;font:inherit;" />
+    <button type="button" data-yt="go">search</button>
+  </div>
+  <div data-yt="results" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.4rem;"></div>
+  <div data-yt="pager" style="margin:0.4rem 0 0;text-align:center;font-size:12px;"></div>
+
+  <div data-yt="picked" style="display:none;margin:0.6rem 0 0;">
+    <div data-yt="square"></div>
+    <details style="margin:0.4rem 0 0;font-size:12px;">
+      <summary style="cursor:pointer;">embed html <span style="opacity:0.65;font-size:11px;">(copied to clipboard)</span></summary>
+      <div style="display:flex;gap:0.35rem;align-items:flex-start;margin:0.25rem 0 0;">
+        <textarea data-yt="embed" readonly rows="3" style="flex:1;min-width:0;font:11px/1.3 ui-monospace,Consolas,monospace;resize:vertical;"></textarea>
+        <button type="button" data-yt="copy">copy</button>
+      </div>
+    </details>
+  </div>
+  <p data-yt="note" style="margin:0.35rem 0 0;opacity:0.75;"></p>
+
+  <script>
+(function () {
+  const root = document.currentScript.closest("[data-part]");
+  if (!root || root.dataset.ytWired === "1") return;
+  root.dataset.ytWired = "1";
+
+  const KEY_ITEM = "youtube_search.api_key";
+  const API = "https://www.googleapis.com/youtube/v3/search";
+  const $ = (k) => root.querySelector('[data-yt="' + k + '"]');
+  const keyEl = $("key");
+  const keyState = $("keystate");
+  const qEl = $("q");
+  const resultsEl = $("results");
+  const pickedEl = $("picked");
+  const embedEl = $("embed");
+  const squareEl = $("square");
+  const noteEl = $("note");
+  let apiKey = "";
+
+  const setNote = (m) => (noteEl.textContent = m || "");
+  const store = () => navi?.storage?.item || null;
+
+  async function loadKey() {
+    try {
+      apiKey = String((await store()?.get?.(KEY_ITEM)) || "").trim();
+    } catch {
+      apiKey = "";
+    }
+    keyState.textContent = apiKey ? "api key · saved (…" + apiKey.slice(-4) + ")" : "api key · not set";
+    if (!apiKey) $("keybox").open = true;
+  }
+
+  $("savekey").addEventListener("click", async () => {
+    const v = keyEl.value.trim();
+    if (!v) return setNote("paste a key first");
+    await store()?.set?.(KEY_ITEM, v);
+    keyEl.value = "";
+    await loadKey();
+    $("keybox").open = false;
+    setNote("key saved in this browser");
+  });
+  $("forgetkey").addEventListener("click", async () => {
+    await store()?.set?.(KEY_ITEM, "");
+    keyEl.value = "";
+    await loadKey();
+    setNote("key forgotten");
+  });
+
+  /** The same markup YouTube's Share → Embed gives you. */
+  function embedHtml(id, title) {
+    return (
+      '<iframe width="560" height="315" src="https://www.youtube.com/embed/' + id + '" title="' +
+      String(title || "YouTube video player").replace(/[&"<>]/g, (c) => ({ "&": "&amp;", '"': "&quot;", "<": "&lt;", ">": "&gt;" })[c]) +
+      '" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
+    );
+  }
+
+  async function copy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      embedEl.focus();
+      embedEl.select();
+      try {
+        return document.execCommand("copy");
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  const PLAYER_PARK = "ytplayer";
+  const PLAYER_MIN = [0, 3, 0];
+
+  const olderThan = (v, min) => {
+    const p = String(v || "0").split(".").map((n) => Number(n) || 0);
+    for (let i = 0; i < min.length; i++) if ((p[i] || 0) !== min[i]) return (p[i] || 0) < min[i];
+    return false;
+  };
+
+  /** Mount the hostparked ytplayer mod (old-school player); swap out an outdated one. */
+  async function ensurePlayer() {
+    const cur = navi?.mod?.ytplayer;
+    if (cur && !olderThan(cur.version, PLAYER_MIN)) return true;
+    try {
+      if (cur && typeof navi?.unmount === "function") await navi.unmount(cur);
+      // parkBypass: a plain GET keeps reusing whatever ytplayer was planted locally first.
+      if (typeof navi?.callin === "function") await navi.callin({ path: PLAYER_PARK, method: "GET", parkBypass: true });
+    } catch {
+      /* falls back to YouTube's own player */
+    }
+    return !!navi?.mod?.ytplayer;
+  }
+
+  /** Staged payload: ytplayer's old-school player, else YouTube's own embed. */
+  function stagedHtml(id, title) {
+    const yt = navi?.mod?.ytplayer;
+    if (typeof yt?.playerHtml === "function") return yt.playerHtml(id, { width: 400, height: 300, title });
+    return embedHtml(id, title).replace('width="560" height="315"', 'width="400" height="225"');
+  }
+
+  /**
+   * Tabled icon: left-click → jockey_move 3×3 grid → the player lands on stage in a
+   * <span data-part="htmf">. The player waits in a <template>, so nothing plays here
+   * and the icon stays for another drop.
+   */
+  function buildSquare(id, title, thumb) {
+    const table = document.createElement("table");
+    table.setAttribute("data-stageable", "span");
+    table.setAttribute("data-stageable-style", "display:inline-block;line-height:normal;");
+    table.title = "click → pick a stage spot for " + title;
+    table.style.cssText =
+      "border-collapse:separate;border-spacing:3px;background:#111;border:2px solid #e62117;border-radius:6px;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.35);";
+    const grid = table.insertRow();
+    for (let i = 0; i < 3; i++) {
+      const cell = grid.insertCell();
+      cell.style.cssText = "width:2.6rem;height:1.5rem;padding:0;background:#333 center/cover no-repeat;border-radius:2px;";
+      if (thumb) {
+        cell.style.backgroundImage = 'url("' + thumb.replace(/"/g, "%22") + '")';
+        cell.style.backgroundPosition = ["left", "center", "right"][i] + " center";
+        cell.style.backgroundSize = "300% 100%";
+      }
+    }
+    const label = table.insertRow().insertCell();
+    label.colSpan = 3;
+    label.style.cssText = "padding:2px 3px;color:#eee;font:10px/1.25 ui-monospace,Consolas,monospace;max-width:8.2rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+    label.textContent = "▶ " + title;
+    const tpl = document.createElement("template");
+    tpl.setAttribute("data-stageable-content", "");
+    tpl.innerHTML = stagedHtml(id, title);
+    label.appendChild(tpl);
+    return table;
+  }
+
+  function pick(item) {
+    const id = item.id?.videoId;
+    const title = item.snippet?.title || "YouTube video";
+    if (!id) return;
+    const html = embedHtml(id, title);
+    embedEl.value = html;
+    pickedEl.style.display = "";
+    // Clipboard write first, while the click still counts as a user gesture.
+    void copy(html).then((ok) =>
+      setNote((ok ? "embed html copied" : "copy failed — open embed html below") + " · click the icon to put it on stage")
+    );
+    const th = item.snippet?.thumbnails || {};
+    squareEl.replaceChildren(buildSquare(id, title, th.medium?.url || th.default?.url || ""));
+  }
+
+  function decode(s) {
+    const t = document.createElement("textarea");
+    t.innerHTML = String(s || "");
+    return t.value;
+  }
+
+  const PER_PAGE = 9;
+  const pagerEl = $("pager");
+  /** Page tokens learned so far: tokens[i] fetches page i+1 ("" = first). */
+  let query = "";
+  let tokens = [""];
+  let page = 0;
+  let hasNext = false;
+
+  function renderPager() {
+    const links = [];
+    const link = (label, i, on) => {
+      if (!on) {
+        const s = document.createElement("span");
+        s.textContent = label;
+        s.style.opacity = i === page ? "1" : "0.35";
+        if (i === page) s.style.fontWeight = "700";
+        return s;
+      }
+      const a = document.createElement("a");
+      a.href = "#";
+      a.textContent = label;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        void search(i);
+      });
+      return a;
+    };
+    links.push(link("‹ prev", page - 1, page > 0));
+    for (let i = 0; i < tokens.length; i++) links.push(link(String(i + 1), i, i !== page));
+    links.push(link("next ›", page + 1, hasNext));
+    pagerEl.replaceChildren();
+    links.forEach((n, i) => {
+      if (i) pagerEl.append(" · ");
+      pagerEl.append(n);
+    });
+  }
+
+  async function search(toPage) {
+    if (toPage == null) {
+      query = qEl.value.trim();
+      tokens = [""];
+      toPage = 0;
+    }
+    const q = query;
+    if (!q) return setNote("type something to search");
+    if (!apiKey) {
+      $("keybox").open = true;
+      return setNote("set your api key first");
+    }
+    setNote("searching…");
+    const url =
+      API + "?part=snippet&type=video&maxResults=" + PER_PAGE + "&q=" + encodeURIComponent(q) +
+      (tokens[toPage] ? "&pageToken=" + encodeURIComponent(tokens[toPage]) : "") +
+      "&key=" + encodeURIComponent(apiKey);
+    let data;
+    try {
+      const res = await fetch(url);
+      data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || "HTTP " + res.status);
+    } catch (e) {
+      resultsEl.replaceChildren();
+      pagerEl.replaceChildren();
+      return setNote("search failed: " + (e?.message || e));
+    }
+    page = toPage;
+    hasNext = !!data.nextPageToken;
+    if (hasNext) tokens[page + 1] = data.nextPageToken;
+    renderPager();
+    const items = (data.items || []).filter((x) => x.id?.videoId);
+    resultsEl.replaceChildren(
+      ...items.map((x) => {
+        const s = x.snippet || {};
+        x.snippet = { ...s, title: decode(s.title), channelTitle: decode(s.channelTitle) };
+        const card = document.createElement("button");
+        card.type = "button";
+        card.title = x.snippet.title;
+        card.style.cssText = "all:unset;cursor:pointer;display:block;border:1px solid #ccc;background:#fafafa;";
+        const img = document.createElement("img");
+        img.src = s.thumbnails?.medium?.url || s.thumbnails?.default?.url || "";
+        img.alt = "";
+        img.style.cssText = "display:block;width:100%;aspect-ratio:1/1;object-fit:cover;";
+        const t = document.createElement("div");
+        t.style.cssText =
+          "padding:3px 4px;font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;";
+        t.textContent = x.snippet.title;
+        const c = document.createElement("div");
+        c.style.cssText = "padding:0 4px 4px;font-size:10px;opacity:0.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+        c.textContent = x.snippet.channelTitle;
+        card.append(img, t, c);
+        card.addEventListener("click", () => pick(x));
+        return card;
+      })
+    );
+    setNote(items.length ? "page " + (page + 1) + " · click one" : "no results");
+  }
+
+  $("go").addEventListener("click", () => void search());
+  qEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void search();
+  });
+  $("copy").addEventListener("click", async () => setNote((await copy(embedEl.value)) ? "copied" : "copy failed"));
+
+  void loadKey();
+  void ensurePlayer();
+})();
+  </script>
+</div>

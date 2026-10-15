@@ -1,0 +1,91 @@
+<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-navi-units"
+  data-path="torus/docs/navi-units"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>navi units</h1>
+
+<p>
+Design note for multi-instance tip space over one shared store.
+Runtime: <code>navi_shell</code>.
+</p>
+
+<p>
+<strong>Contract:</strong> URL park = <code>http.GET</code>; callin
+<code>navi('â€¦')</code> = <code>http.POST</code>. Same resolution pipe
+(delimiter race, unit prefix, capture). See
+<code>navi_shell/README.md</code> â€” Park frames GET vs POST.
+</p>
+
+<h2>1. Vocabulary</h2>
+
+<ul>
+<li><b>Space</b> — shared tip+bin store (IndexedDB / <code>~/.navi_shell</code>).</li>
+<li><b>Unit tip</b> â€” <code>navi:unit:NN</code> (or aliased <code>navi:&lt;name&gt;</code>). Carries <code>data.unit.mods</code>, online, hash.</li>
+<li><b>entry-plug</b> â€” live-only on the JS object (<code>navi.plug</code>). Not an ib. Bond = unitIb + hash (+ stamp / last_seen in RAM). Runtime Ed25519 private key never leaves memory (non-extractable); every plug response includes <code>publicKey</code> + detached <code>signature</code> over the shown fields (verify with publicKey; publicKey cannot produce the signature).</li>
+<li><b>Root <code>navi</code></b> â€” identity tip (uuid). Rel8ns to unit tips. Not the verb dump.</li>
+<li><b><code>navi:unit</code></b> â€” unit <i>system</i> tip: list, aliases, resolution, heartbeat.</li>
+<li><b><code>navi:plug</code></b> â€” surface for entry-plug. GET = signed presence; POST <code>ping|touch|ensure</code>. <code>touch</code> is memory-only (does not mut8 heartbeat).</li>
+<li><b><code>navi:mod</code></b> â€” registration ledger (<code>parks[]</code> with <code>ib^gib</code>). Not live mounts.</li>
+</ul>
+
+<h2>2. Flat tips</h2>
+
+<ul>
+<li>Flat tips: <code>navi:reseed</code>, <code>navi:factoryreset</code>, <code>navi:alias</code>, <code>navi:prune</code>, <code>navi:resolve</code>, <code>navi:heartbeat</code>, <code>navi:reindex</code>.</li>
+<li><code>navi.storage.kill(ib)</code> / callin <code>storage kill â€¦</code> â€” entry-plug + confirm; not GET.</li>
+<li>Flat module parks: <code>navi:surf</code>, â€¦ â€” not <code>navi:mod:â€¦</code>.</li>
+<li>Routing tips <code>navi:mount</code> / <code>browse</code> / <code>unmount</code> / <code>surfrefresh</code> â†’ surf commands.</li>
+</ul>
+
+<h2>3. Registration â‰  session</h2>
+
+<p>
+<code>navi:mod.parks[]</code> = registered at least once (ledger + addr).
+Live claim = <code>navi:unit:NN.data.unit.mods</code> + live <code>navi.mod.*</code> on that instance.
+</p>
+
+<h2>4. Birth</h2>
+
+<ol>
+<li>Plant seeds if missing.</li>
+<li>No entry-plug â†’ mut8 <code>navi:unit</code> bookkeeping â†’ plant <code>navi:unit:NN</code> (rel8 root + mint hash) â†’ set entry-plug.</li>
+<li>Entry-plug already set â†’ no second mint for this instance.</li>
+</ol>
+
+<h2>5. Callin / park</h2>
+
+<ul>
+<li>Explicit unit: <code>navi/unit/01/surf/â€¦</code> or <code>navi('unit/01/surf â€¦')</code>.</li>
+<li>Bare <code>navi/surf/â€¦</code> â†’ default unit from <code>navi:unit</code> resolution / last heartbeater / entry-plug.</li>
+<li>Capture: deepest dispatchable park prefix (<code>kind</code> mod|surface|relay); remainder = args. Saved deeper tips must not steal <code>navi:surf</code>.</li>
+<li>SW: <code>X-Navi-Unit</code>; <code>park.check</code> includes <code>unit</code>.</li>
+</ul>
+
+<h2>6. Heartbeat / alias / prune</h2>
+
+<ul>
+<li>Every <code>interval_sec</code> (default 180s): mut8 <code>navi:unit</code> â€” bonded entry-plug row gets <code>heartbeat_at</code> + <code>online: true</code>. Callin/relay do <b>not</b> pulse â€” they bind unit context from live entry-plug memory.</li>
+<li>Other list rows whose <code>heartbeat_at</code> is older than <code>stale_sec</code> (default 240s) â†’ <code>online: false</code>.</li>
+<li><code>plug touch</code> / bonded <code>plug ensure</code>: memory-only stamp/last_seen refresh + signed response. Does <b>not</b> mut8 <code>navi:unit</code>.</li>
+<li>When <code>navi:unit</code> <code>n</code> reaches <code>n_max</code> (default 20): compact lineage â€” <code>setTip</code> to <code>n=1</code> first, then drop older <code>ib^gib</code> frames; <code>pastâ†</code> rolled-off + <code>data.rollover</code>. Unit instances untouched (use <code>prune</code>).</li>
+<li><code>navi('prune offline')</code> drops tips (entry-plug gated).</li>
+<li><code>navi('alias 01 kitchen')</code> â†’ plant <code>navi:kitchen</code>, erase <code>navi:unit:01</code>, still bonded.</li>
+</ul>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

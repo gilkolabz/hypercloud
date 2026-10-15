@@ -1,0 +1,646 @@
+<div name="gadgets" data-path="hypertext/gadgets" data-part="htmf" style="overflow:auto;max-height:100vh;box-sizing:border-box;">
+<script>(function(){var path="/hypertext/gadgets";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+  <h1><i>Gadgets</i></h1>
+  <hr>
+  <p>
+    <a href="#" data-act="mount-all-warez">Don't click here</a>
+    <span data-part="mount-status" style="margin-left:0.5rem;color:#555;"></span>
+  </p>
+  <p style="margin:0.35rem 0 0.15rem;">
+    <a href="#" data-act="toggle-rewrite-init">navi toggles</a>
+  </p>
+  <div
+    data-part="rewrite-init"
+    hidden
+    style="
+      position:relative;
+      margin:0.35rem 0 0.75rem;
+      min-height:7.5rem;
+      padding:0.65rem 0.75rem;
+      overflow:hidden;
+      background:#0a1a6e;
+      border:1px solid #1e3a9a;
+      box-sizing:border-box;
+    "
+  >
+    <canvas
+      data-part="rewrite-starfield"
+      style="position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;"
+    ></canvas>
+    <div data-part="rewrite-links" style="position:relative;z-index:1;">
+      <a
+        href="#"
+        data-act="rewrite-no-remount"
+        class="rewrite-init-link"
+        style="
+          display:block;
+          margin:0.2rem 0;
+          color:#000;
+          text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff;
+          text-decoration:underline;
+          cursor:pointer;
+        "
+        >no remount trigger</a>
+      <a
+        href="#"
+        data-act="rewrite-readd-remount"
+        class="rewrite-init-link"
+        style="
+          display:block;
+          margin:0.2rem 0;
+          color:#000;
+          text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff;
+          text-decoration:underline;
+          cursor:pointer;
+        "
+        >readd remount trigger</a>
+      <a
+        href="#"
+        data-act="surfproscene-on"
+        class="rewrite-init-link"
+        style="
+          display:block;
+          margin:0.2rem 0;
+          color:#000;
+          text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff;
+          text-decoration:underline;
+          cursor:pointer;
+        "
+        >surfproscene on</a>
+      <a
+        href="#"
+        data-act="surfproscene-off"
+        class="rewrite-init-link"
+        style="
+          display:block;
+          margin:0.2rem 0;
+          color:#000;
+          text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff;
+          text-decoration:underline;
+          cursor:pointer;
+        "
+        >surfproscene off</a>
+    </div>
+  </div>
+  <p style="margin:0.35rem 0 0.15rem;">
+    <a href="#" data-act="toggle-mini-unmounter">mini mod unmounter</a>
+    <a
+      href="#"
+      data-act="stagemods"
+      style="margin-left:0.75rem;"
+      title="scripter run torus/scripts/stagemods"
+      >stagemods</a>
+    <span data-part="stagemods-status" style="margin-left:0.5rem;color:#555;"></span>
+  </p>
+  <p style="margin:0.35rem 0 0.15rem;">
+    <a
+      href="#"
+      data-act="request-tokens"
+      title="token_distro_endpoint via hostpark token_distro — request access, then claim tokens into your navi tokens stash"
+      >request tokens</a>
+    <span data-part="tokens-status" style="margin-left:0.5rem;color:#555;"></span>
+  </p>
+  <div
+    data-part="mini-unmounter"
+    hidden
+    style="
+      margin:0.15rem 0 0.75rem;
+      padding:0.35rem 0.45rem;
+      max-height:12rem;
+      overflow:auto;
+      background:#f7f7f7;
+      border:1px solid #ccc;
+      box-sizing:border-box;
+      font:12px/1.35 ui-monospace,monospace;
+      color:#111;
+    "
+  ></div>
+
+  <h3>Testkit</h3>
+  <div style="display:flex;flex-direction:column;gap:0.15rem;line-height:1.25;">
+    <a href="/testkit/notemaker" hx-get="/testkit/notemaker" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Notemaker</a>
+    <a href="/testkit/keychain" hx-get="/testkit/keychain" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Keychain</a>
+    <a href="/testkit/surfroster" hx-get="/testkit/surfroster" hx-swap="outerHTML" hx-target="this" hx-push-url="false">surfroster</a>
+    <a href="/testkit/tinyviewport" hx-get="/testkit/tinyviewport" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Tinyviewport</a>
+    <a href="/testkit/media-explorer" hx-get="/testkit/media-explorer" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Media explorer</a>
+    <a href="/testkit/relaytest" hx-get="/testkit/relaytest" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Relaytest</a>
+    <a href="/testkit/meshyrelay" hx-get="/testkit/meshyrelay" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Meshyrelay</a>
+    <a href="/testkit/storagetest" hx-get="/testkit/storagetest" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Storagetest</a>
+    <a href="/testkit/text_editor" hx-get="/testkit/text_editor" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Text editor</a>
+    <a href="/testkit/tablemaker" hx-get="/testkit/tablemaker" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Tablemaker</a>
+    <a href="/testkit/scripter" hx-get="/testkit/scripter" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Scripter</a>
+    <a href="/testkit/fofum" hx-get="/testkit/fofum" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Fofum</a>
+    <a href="/testkit/cornersphere" hx-get="/testkit/cornersphere" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Cornersphere</a>
+    <a href="/testkit/warezashyperlinks" hx-get="/testkit/warezashyperlinks" hx-swap="outerHTML" hx-target="this" hx-push-url="false">Warez as hyperlinks</a>
+  </div>
+
+  <hr>
+  <a href="/hypertext/welcome" hx-get="/hypertext/welcome" hx-swap="outerHTML" hx-target="closest div[name='gadgets']" hx-push-url="true">back to welcome</a>
+  <div>
+    <img src="https://www.fg-a.com/science/working-with-chemicals.gif" alt="working with chemicals">
+  </div>
+
+    <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="gadgets"]')) ||
+        document.querySelector('div[name="gadgets"]');
+      if (!root || root.dataset.gadgetsBound === "1") return;
+      root.dataset.gadgetsBound = "1";
+
+      const statusEl = () => root.querySelector('[data-part="mount-status"]');
+      const setStatus = (msg, isErr) => {
+        const el = statusEl();
+        if (!el) return;
+        el.style.color = isErr ? "#a30" : "#555";
+        el.textContent = msg ? String(msg) : "";
+      };
+
+      const rewritePanel = () => root.querySelector('[data-part="rewrite-init"]');
+
+      const LINK_IDLE =
+        "display:block;margin:0.2rem 0;color:#000;text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff;text-decoration:underline;cursor:pointer;";
+      const LINK_RUN =
+        "display:block;margin:0.2rem 0;color:#4af;text-shadow:0 0 4px #fd0,0 0 8px #fd0,0 0 14px #fa0;text-decoration:underline;cursor:wait;";
+      const LINK_OK =
+        "display:block;margin:0.2rem 0;color:#c00;text-shadow:0 0 4px #fff,0 0 8px #fff,0 0 12px #fff;text-decoration:underline;cursor:pointer;";
+      const LINK_FAIL =
+        "display:block;margin:0.2rem 0;color:#fff;text-shadow:0 0 3px #000,0 0 6px #000;text-decoration:underline;cursor:pointer;";
+
+      const styleRewriteLink = (a, state) => {
+        if (!a) return;
+        if (state === "run") a.setAttribute("style", LINK_RUN);
+        else if (state === "ok") a.setAttribute("style", LINK_OK);
+        else if (state === "fail") a.setAttribute("style", LINK_FAIL);
+        else a.setAttribute("style", LINK_IDLE);
+      };
+
+      let starfieldStop = null;
+      const stopStarfield = () => {
+        if (typeof starfieldStop === "function") {
+          try {
+            starfieldStop();
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        starfieldStop = null;
+      };
+
+      const startStarfield = () => {
+        stopStarfield();
+        const panel = rewritePanel();
+        const canvas = root.querySelector('[data-part="rewrite-starfield"]');
+        if (!panel || !canvas || !canvas.getContext) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        let raf = 0;
+        let alive = true;
+        const stars = [];
+
+        const resize = () => {
+          const w = Math.max(1, panel.clientWidth | 0);
+          const h = Math.max(1, panel.clientHeight | 0);
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+          }
+          const want = Math.max(28, Math.floor((w * h) / 1800));
+          while (stars.length < want) {
+            stars.push({
+              x: Math.random() * w,
+              y: Math.random() * h,
+              z: 0.35 + Math.random() * 2.4,
+              s: 1 + (Math.random() * 2) | 0,
+            });
+          }
+          while (stars.length > want) stars.pop();
+        };
+
+        const tick = () => {
+          if (!alive) return;
+          resize();
+          const w = canvas.width;
+          const h = canvas.height;
+          ctx.fillStyle = "#0a1a6e";
+          ctx.fillRect(0, 0, w, h);
+          for (const st of stars) {
+            st.x += st.z * 1.35;
+            st.y += st.z * 0.15;
+            if (st.x > w + 4 || st.y > h + 4) {
+              st.x = -4 - Math.random() * 20;
+              st.y = Math.random() * h;
+              st.z = 0.35 + Math.random() * 2.4;
+              st.s = 1 + (Math.random() * 2) | 0;
+            }
+            const bright = Math.min(255, 140 + st.z * 40);
+            ctx.fillStyle =
+              "rgb(" + bright + "," + bright + "," + Math.min(255, bright + 30) + ")";
+            ctx.fillRect(st.x | 0, st.y | 0, st.s, st.s);
+          }
+          raf = requestAnimationFrame(tick);
+        };
+
+        resize();
+        raf = requestAnimationFrame(tick);
+        starfieldStop = () => {
+          alive = false;
+          if (raf) cancelAnimationFrame(raf);
+          raf = 0;
+        };
+      };
+
+      const toggleRewriteInit = () => {
+        const panel = rewritePanel();
+        if (!panel) return;
+        const open = panel.hasAttribute("hidden");
+        if (open) {
+          panel.removeAttribute("hidden");
+          startStarfield();
+        } else {
+          panel.setAttribute("hidden", "");
+          stopStarfield();
+        }
+      };
+
+      const REMOUNT_RE = /\bnavi\s*\.\s*remount\s*\(/;
+      const REMOUNT_LINE = "await navi.remount()";
+
+      const requireInitApis = () => {
+        if (
+          typeof navi === "undefined" ||
+          !navi ||
+          typeof navi.getInitScript !== "function" ||
+          typeof navi.clearInitScript !== "function" ||
+          typeof navi.addToInitScript !== "function"
+        ) {
+          throw new Error("navi init_script APIs unavailable");
+        }
+      };
+
+      const rewriteNoRemount = async (a) => {
+        styleRewriteLink(a, "run");
+        try {
+          requireInitApis();
+          const lines = await navi.getInitScript();
+          const kept = [];
+          let removed = 0;
+          for (let i = 0; i < lines.length; i++) {
+            const line = String(lines[i] ?? "");
+            if (REMOUNT_RE.test(line)) removed++;
+            else kept.push(line);
+          }
+          if (!removed) {
+            throw new Error("no navi.remount() line in init_script");
+          }
+          await navi.clearInitScript();
+          for (const line of kept) {
+            await navi.addToInitScript(line);
+          }
+          styleRewriteLink(a, "ok");
+        } catch (err) {
+          console.error("[gadgets] rewrite-no-remount failed", err);
+          styleRewriteLink(a, "fail");
+        }
+      };
+
+      const rewriteReaddRemount = async (a) => {
+        styleRewriteLink(a, "run");
+        try {
+          requireInitApis();
+          const lines = await navi.getInitScript();
+          if (lines.some((line) => REMOUNT_RE.test(String(line ?? "")))) {
+            throw new Error("navi.remount() already in init_script");
+          }
+          await navi.addToInitScript(REMOUNT_LINE);
+          styleRewriteLink(a, "ok");
+        } catch (err) {
+          console.error("[gadgets] rewrite-readd-remount failed", err);
+          styleRewriteLink(a, "fail");
+        }
+      };
+
+      const setSurfProscene = async (a, enabled) => {
+        styleRewriteLink(a, "run");
+        try {
+          const surf = typeof navi !== "undefined" && navi ? navi.mod?.surf : null;
+          const cmd = surf?.commands?.surf_settings?.execute;
+          if (typeof surf?.ensureSettings !== "function" || typeof cmd !== "function") {
+            throw new Error("surf settings unavailable");
+          }
+          const current = !!(await surf.ensureSettings()).proscene;
+          if (current === enabled) {
+            throw new Error("surf proscene already " + (enabled ? "on" : "off"));
+          }
+          await cmd("proscene", enabled ? "true" : "false");
+          styleRewriteLink(a, "ok");
+        } catch (err) {
+          console.error("[gadgets] surfproscene-" + (enabled ? "on" : "off") + " failed", err);
+          styleRewriteLink(a, "fail");
+        }
+      };
+
+      const unmounterEl = () => root.querySelector('[data-part="mini-unmounter"]');
+
+      const listMountedModNames = () => {
+        if (typeof navi === "undefined" || !navi) return [];
+        let names = [];
+        if (typeof navi.listModules === "function") {
+          try {
+            names = navi.listModules() || [];
+          } catch (_) {
+            names = [];
+          }
+        }
+        if (!names.length && navi.mod && typeof navi.mod === "object") {
+          names = Object.keys(navi.mod);
+        }
+        return [...new Set(names.map((n) => String(n || "").trim()).filter(Boolean))].sort(
+          (a, b) => a.localeCompare(b)
+        );
+      };
+
+      const unmountModByName = async (name) => {
+        const key = String(name || "").trim();
+        if (!key) throw new Error("empty mod name");
+        if (typeof navi === "undefined" || !navi) {
+          throw new Error("navi unavailable");
+        }
+        const surf = navi.mod && navi.mod.surf;
+        if (surf && typeof surf.unmount === "function") {
+          const msg = await surf.unmount(key);
+          const s = String(msg || "");
+          if (/^Error:/i.test(s) || /\bError unmounting\b/i.test(s)) {
+            throw new Error(s);
+          }
+          return s || "unmounted " + key;
+        }
+        const mod = navi.mod && navi.mod[key];
+        if (!mod) throw new Error("navi.mod." + key + " is not mounted");
+        if (typeof navi.unmount !== "function") {
+          throw new Error("navi.unmount unavailable");
+        }
+        await navi.unmount(mod);
+        return "unmounted " + key;
+      };
+
+      const renderMiniUnmounter = () => {
+        const host = unmounterEl();
+        if (!host) return;
+        host.textContent = "";
+        const names = listMountedModNames();
+        if (!names.length) {
+          const empty = document.createElement("div");
+          empty.style.opacity = "0.75";
+          empty.textContent = "no mods mounted on this unit";
+          host.appendChild(empty);
+          return;
+        }
+        for (const name of names) {
+          const row = document.createElement("div");
+          row.setAttribute("data-part", "mini-unmount-row");
+          row.dataset.modName = name;
+          row.style.cssText =
+            "display:flex;align-items:center;gap:0.5rem;margin:0.15rem 0;flex-wrap:wrap;";
+          const lab = document.createElement("span");
+          lab.style.cssText = "flex:1 1 auto;min-width:6rem;word-break:break-all;";
+          lab.textContent = name;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.setAttribute("data-act", "mini-unmount-one");
+          btn.dataset.modName = name;
+          btn.textContent = "unmount";
+          btn.style.cssText =
+            "flex:0 0 auto;font:11px/1.2 ui-monospace,monospace;padding:2px 6px;cursor:pointer;";
+          const msg = document.createElement("span");
+          msg.setAttribute("data-part", "mini-unmount-msg");
+          msg.style.cssText = "flex:1 1 100%;font-size:11px;opacity:0.85;";
+          row.appendChild(lab);
+          row.appendChild(btn);
+          row.appendChild(msg);
+          host.appendChild(row);
+        }
+      };
+
+      const toggleMiniUnmounter = () => {
+        const host = unmounterEl();
+        if (!host) return;
+        const open = host.hasAttribute("hidden");
+        if (open) {
+          host.removeAttribute("hidden");
+          renderMiniUnmounter();
+        } else {
+          host.setAttribute("hidden", "");
+        }
+      };
+
+      const runMiniUnmountOne = async (btn) => {
+        const name = String(btn?.dataset?.modName || "").trim();
+        if (!name) return;
+        const row = btn.closest('[data-part="mini-unmount-row"]');
+        const msg = row && row.querySelector('[data-part="mini-unmount-msg"]');
+        btn.disabled = true;
+        if (msg) {
+          msg.style.color = "#246";
+          msg.textContent = "unmounting…";
+        }
+        try {
+          await unmountModByName(name);
+          if (row && row.parentNode) row.parentNode.removeChild(row);
+          const host = unmounterEl();
+          if (host && !host.querySelector('[data-part="mini-unmount-row"]')) {
+            renderMiniUnmounter();
+          }
+        } catch (err) {
+          console.error("[gadgets] mini-unmount failed", err);
+          btn.disabled = false;
+          if (msg) {
+            msg.style.color = "#a30";
+            msg.textContent = err && err.message ? err.message : String(err);
+          }
+        }
+      };
+
+      const HOST = "https://foobarch.net";
+      const WAREZ_TIP = "hypernetizen/warez";
+
+      const splitAddr = (addr) => {
+        const a = String(addr || "");
+        const i = a.indexOf("^");
+        if (i <= 0) return { ib: a, gib: "" };
+        return { ib: a.slice(0, i), gib: a.slice(i + 1) };
+      };
+
+      const getJson = async (url) => {
+        const res = await fetch(url);
+        const text = await res.text();
+        if (!res.ok) throw new Error(res.status + ": " + text.slice(0, 120));
+        return JSON.parse(text);
+      };
+
+      const mountAllWarez = async () => {
+        if (typeof navi === "undefined" || !navi) {
+          setStatus("navi unavailable", true);
+          return;
+        }
+        setStatus("loading warez…");
+        try {
+          const tip = await getJson(HOST + "/" + WAREZ_TIP);
+          const frames = Array.isArray(tip.frames) ? tip.frames : [];
+          if (!frames.length) {
+            setStatus("warez index empty", true);
+            return;
+          }
+          const parks = frames
+            .map((f) => splitAddr(f).ib)
+            .filter((ib) => ib && !ib.includes("/"));
+          setStatus("pinning " + parks.length + " parks…");
+          for (const park of parks) {
+            if (typeof navi.callin === "function") {
+              await navi.callin({ path: park, method: "GET" });
+            } else if (typeof navi === "function") {
+              await navi(park);
+            }
+          }
+          setStatus("pinned " + parks.length + " parks");
+        } catch (err) {
+          console.error("[gadgets] mount-all failed", err);
+          setStatus(err && err.message ? err.message : String(err), true);
+        }
+      };
+
+      const runStagemods = async (a) => {
+        const status = () => root.querySelector('[data-part="stagemods-status"]');
+        const set = (msg, isErr) => {
+          const el = status();
+          if (!el) return;
+          el.style.color = isErr ? "#a30" : "#555";
+          el.textContent = msg ? String(msg) : "";
+        };
+        if (typeof navi === "undefined" || !navi) {
+          set("navi unavailable", true);
+          return;
+        }
+        try {
+          set("mounting…");
+          if (a) {
+            a.setAttribute("aria-busy", "true");
+            a.style.pointerEvents = "none";
+          }
+          if (!navi.mod?.scripter) {
+            await navi("mount scripter");
+          }
+          await navi("scripter run torus/scripts/stagemods");
+          set("stage mods mounted");
+          if (a) a.style.color = "#c00";
+        } catch (err) {
+          console.error("[gadgets] stagemods failed", err);
+          set("failed", true);
+          if (a) a.style.color = "#a30";
+        } finally {
+          if (a) {
+            a.removeAttribute("aria-busy");
+            a.style.pointerEvents = "";
+          }
+        }
+      };
+
+      const ensureParkMod = async (park) => {
+        if (navi.mod && navi.mod[park]) return navi.mod[park];
+        if (typeof navi.callin === "function") {
+          await navi.callin({ path: park, method: "GET" });
+        } else {
+          await navi(park);
+        }
+        if (!navi.mod || !navi.mod[park]) throw new Error(park + " did not mount");
+        return navi.mod[park];
+      };
+
+      const requestTokens = async (a) => {
+        const el = root.querySelector('[data-part="tokens-status"]');
+        const set = (msg, isErr) => {
+          if (!el) return;
+          el.style.color = isErr ? "#a30" : "#555";
+          el.textContent = msg ? String(msg) : "";
+        };
+        if (typeof navi === "undefined" || !navi) {
+          set("navi unavailable", true);
+          return;
+        }
+        if (a) a.style.pointerEvents = "none";
+        try {
+          set("mounting keychain + token_distro_endpoint…");
+          await ensureParkMod("keychain");
+          const distro = (await ensureParkMod("token_distro_endpoint")).distro;
+          set("checking…");
+          const st = await distro.status();
+          if (st.allowed) {
+            set("claiming…");
+            const r = await distro.claimTokens();
+            set("+" + r.received + " tokens (stash " + r.stash + ")");
+            if (a) a.style.color = "#c00";
+            return;
+          }
+          if (st.pending) {
+            set("pending approval (" + st.pending + ") — click again once approved");
+            return;
+          }
+          const note = window.prompt("Note for the approver (who are you / why):", "") || "";
+          const r = await distro.requestAccess(note);
+          if (r.allowed) set("already approved — click again to claim");
+          else set("requested (" + r.pending + ")" + (r.notified ? " — approver notified" : " — approver offline, queued"));
+        } catch (err) {
+          console.error("[gadgets] request-tokens failed", err);
+          set(err && err.message ? err.message : String(err), true);
+        } finally {
+          if (a) a.style.pointerEvents = "";
+        }
+      };
+
+      root.addEventListener("click", (e) => {
+        const a = e.target.closest("[data-act]");
+        if (!a || !root.contains(a)) return;
+        const act = a.getAttribute("data-act");
+        if (act === "mount-all-warez") {
+          e.preventDefault();
+          e.stopPropagation();
+          void mountAllWarez();
+        } else if (act === "toggle-rewrite-init") {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleRewriteInit();
+        } else if (act === "rewrite-no-remount") {
+          e.preventDefault();
+          e.stopPropagation();
+          void rewriteNoRemount(a);
+        } else if (act === "rewrite-readd-remount") {
+          e.preventDefault();
+          e.stopPropagation();
+          void rewriteReaddRemount(a);
+        } else if (act === "surfproscene-on" || act === "surfproscene-off") {
+          e.preventDefault();
+          e.stopPropagation();
+          void setSurfProscene(a, act === "surfproscene-on");
+        } else if (act === "toggle-mini-unmounter") {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleMiniUnmounter();
+        } else if (act === "mini-unmount-one") {
+          e.preventDefault();
+          e.stopPropagation();
+          void runMiniUnmountOne(a);
+        } else if (act === "stagemods") {
+          e.preventDefault();
+          e.stopPropagation();
+          void runStagemods(a);
+        } else if (act === "request-tokens") {
+          e.preventDefault();
+          e.stopPropagation();
+          void requestTokens(a);
+        }
+      });
+    })();
+  </script>
+</div>

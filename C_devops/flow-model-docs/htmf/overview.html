@@ -1,0 +1,70 @@
+<div
+  name="flow-model-overview"
+  data-path="torus/devops/flow-model/overview"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Overview</h1>
+    <h2>One sentence</h2>
+    <p>A flow is a named, published record of how a user moves through screens; a Manager is a thin navi module that loads one active flow and navigates via surf; everything else (data APIs, device modules, HTML) stays resting and swappable.</p>
+    <h2>Why it exists</h2>
+    <p>foobarch + navi_shell already give you:</p>
+    <ul>
+    <li>a persistent runtime in the browser shell (<code>navi</code>, tip+bin storage, mounted module parks)</li>
+    <li>a versioned publish host (<strong>flowerpot</strong> by default) for HTML, JSON, JS modules, schemas</li>
+    <li>in-app navigation that swaps body content without tearing down navi (<code>surf</code>)</li>
+    <li>local-first resolve (<code>park.check</code> / planted tips before network)</li>
+    </ul>
+    <p>What they do not decide for you is journey design: which fragment is “home,” what happens on success/failure, which alternate screens are legal, which soft capabilities are on.</p>
+    <p>The flow model fills that gap with concrete, versioned artifacts instead of a fat orchestrator module or an abstract rules engine.</p>
+    <h2>Mental model</h2>
+    <pre><code>
+    launch  →  picks a flow (session tip); mounts init park
+    flow    →  maps route keys → HTML; declares entry + policy + meta
+    Manager →  go(routeKey), apply policy, hold session tips
+    surf    →  fetch fragment, replace body; navi stays alive
+    pages   →  call Manager / resting modules; do not own the journey
+    modules →  capability only; parks at navi:&lt;name&gt;; remount via navi:mod
+    </code></pre>
+    <p>Publish many flows and launches on flowerpot. Everything the session needs is tips (pointers, config, cached bodies under <code>flowerpot/…</code> when that matches fetch paths) — <strong>local-first</strong> by default; Manager tunes fetch/plant/refresh for <strong>UX</strong>. Run one active combination per navi session. Swap by pointing at a different published artifact — not by rewriting the registry.</p>
+    <h2>What it is not</h2>
+    <ul>
+    <li>Not a generic BPM / workflow engine</li>
+    <li>Not SPA client-side routing (React Router, etc.) as the primary metaphor</li>
+    <li>Not “put all UI in one <code>*_flow.js</code>”</li>
+    <li>Not event spaghetti where screens auto-open because a module emitted a fact</li>
+    <li>Not your application’s data model (that lives in your registry tips)</li>
+    <li>Not a redesign of navi units / entry-plug (ignore for flow products)</li>
+    </ul>
+    <h2>Environment assumption</h2>
+    <p>People write arbitrary programs: different entry screens, different HTML for the same route key, different policy graphs, different module sets. Navi enables dynamic mounting and flowerpot enables parallel published variants. Tips make the active set local-first. The flow model is the discipline that keeps those variants composable and comparable.</p>
+    <h2>Core pieces (index)</h2>
+    <ul>
+    <li>Flow artifact — Journey wiring (JSON on flowerpot; plantable as tip)</li>
+    <li>Manager — Thin navigator + session-tip helper (navi module park)</li>
+    <li>UI fragments — Screens loaded by surf</li>
+    <li>Resting modules — One-job capabilities (<code>navi:<name></code>)</li>
+    <li>Launch — Cold-start bookmark that chooses a flow</li>
+    <li>Program (optional layer) — Composition of family instances into a runnable whole</li>
+    <li>Config — Default module routes + default flow (tip, often mirrored from flowerpot)</li>
+    </ul>
+    <p>See <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>, <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>, <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>, <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>, <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>.</p>
+  </article>
+</div>

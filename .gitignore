@@ -1,0 +1,31 @@
+# Local secret inventory. Never commit.
+/SENSITIVE.local.md
+/_collect_sensitive.mjs
+
+# Shell bundle already lives in navi_shell/dist.
+foobarch/static/navi_shell.js
+
+# Demo page and posted script. Not part of this repo.
+C_devops/scripts/nashville_stars.txt
+C_devops/fragment/maxwell_lane.html
+C_devops/scranton/_demo_firebird_exxon.mjs
+C_devops/scranton/_post_nashville_stars.mjs
+C_devops/scranton/firebird_exxon_state.json
+C_devops/scranton/firebird_exxon_keys.json
+
+# Private write-gate keys, bearer reserves, signer material
+**/*owner*.json
+**/owner.json
+**/*token_reserve*.json
+**/*_keys.json
+**/credentials/
+**/*.pem
+**/*.key
+**/*tokens.json
+**/*tokens.json.bak
+
+# Dependencies
+**/node_modules/
+
+# Editor
+.cursor/

@@ -1,0 +1,5047 @@
+<div
+  name="tinyviewport"
+  data-path="torus/testkit/tinyviewport"
+  data-part="htmf"
+  style="display:block;box-sizing:border-box;max-width:800px;max-height:min(92vh,1200px);overflow-x:auto;overflow-y:auto;position:relative;"
+>
+  <div
+    data-part="shell"
+    style="box-sizing:border-box;border:1px solid #2ecc71;padding:6px;width:100%;min-width:0;position:relative;"
+  >
+    <label>
+      tip ib prefix (optional)
+      <br />
+      <input
+        type="text"
+        name="tip_prefix"
+        data-part="path"
+        placeholder="prefix filter (optional) â€” empty = all tips"
+        autocomplete="off"
+        spellcheck="false"
+        size="48"
+        style="max-width:100%;box-sizing:border-box;"
+      />
+    </label>
+    <button type="button" data-part="refresh">refresh</button>
+    <button type="button" data-part="view-prefix" title="viewport of all tips under this prefix (empty = whole index)">view</button>
+    <button type="button" data-part="export-tinyview" title="plant active prefix view as navi:tinyview:{prefix}">export-tinyview</button>
+    <span data-part="export-tinyview-confirm" style="display:none;align-items:center;gap:6px;margin-left:4px;">
+      <span>y?</span>
+      <button type="button" data-part="export-tinyview-yes">yes</button>
+    </span>
+    <span data-part="status"></span>
+    <br />
+    <div data-part="manager-bar" style="font:11px/1.35 monospace;margin:0.35rem 0;"></div>
+    <div
+      data-part="hostpark-mirror"
+      style="margin:0.4rem 0;font:11px/1.35 monospace;"
+    >
+      <label style="display:block;">
+        hostpark paths (one per line) â†’ mirror tip+bin into localpark
+    <br />
+        <textarea
+          data-part="hostpark-paths"
+          rows="3"
+          placeholder="opry/devops/ti_punch/launch/launch.html&#10;ti_punch:devops:ops @span all&#10;navi:relay:log @span reverse 6"
+          spellcheck="false"
+          style="width:100%;max-width:100%;box-sizing:border-box;font:inherit;"
+        ></textarea>
+      </label>
+      <button type="button" data-part="hostpark-mirror-btn">mirror</button>
+      <span data-part="hostpark-status" style="margin-left:0.4rem;transition:opacity 0.5s ease;"></span>
+    </div>
+    <div data-part="prefs-host" data-part-alias="prefs"></div>
+    <br />
+    <div data-part="legend" style="font:11px/1.35 monospace;margin:0.25rem 0;display:flex;flex-direction:column;gap:4px;"></div>
+    <div
+      data-part="viewport"
+      style="width:100%;min-width:0;box-sizing:border-box;overflow-x:auto;"
+    ></div>
+  </div>
+
+  <script>
+    (function () {
+      const root =
+        document.currentScript?.closest('div[name="tinyviewport"]') ||
+        document.querySelector('div[name="tinyviewport"][data-part="htmf"]');
+      if (!root) return;
+
+      const PREFS_KEY = "navi:tinyviewport:prefs";
+      const HOSTPARK_MIRROR_KEY = "navi:tinyviewport:hostpark_mirrors";
+      const TINYVIEW_IB_PREFIX = "navi:tinyview:";
+      const FRAME_PREFIX = "navi:ibgib:frame:";
+      const TIP_PREFIX = "navi:ibgib:tip:";
+      const MANAGER_SUBJECT =
+        "flowerpot/hypercloud/testkit/mods/legacy/tinyviewport_manager.js";
+      const MANAGER_WAREZ_MANIFEST =
+        "flowerpot/hypercloud/testkit/mods/tinyviewport_manager";
+      const HTMF_BUILD = "tv-lineage-time-scrub";
+      const SQ = 18;
+      const GAP = 6;
+      const ROW_H = 28;
+      /** Grow HTMF up to this when a graph board is wider than the base 800px. */
+      const HTMF_BASE_MAX = 800;
+      const HTMF_EXPAND_CAP = () =>
+        Math.min(Math.floor(window.innerWidth * 0.96), 1600);
+      const HTMF_CHROME = 48;
+      let htmfWidthNeed = HTMF_BASE_MAX;
+      const noteHtmfWidth = (boardW) => {
+        htmfWidthNeed = Math.max(
+          htmfWidthNeed,
+          Math.ceil(Number(boardW) || 0) + HTMF_CHROME
+        );
+      };
+      const applyHtmfWidth = () => {
+        const cap = HTMF_EXPAND_CAP();
+        const w = Math.min(cap, Math.max(HTMF_BASE_MAX, htmfWidthNeed));
+        root.style.maxWidth = `${w}px`;
+      };
+      const resetHtmfWidth = () => {
+        htmfWidthNeed = HTMF_BASE_MAX;
+      };
+      const EDGE = {
+        past: "#888888",
+        cascade: "#2ecc71",
+        other: "#c0392b",
+        tip: "#4a90d9",
+        orphan: "#9b59b6",
+        hostpark: "#8e44ad",
+      };
+      const DEFAULT_PREFS = {
+        border: "#c0c0c0",
+        hostpark: EDGE.hostpark,
+        text: "#111111",
+        bg: "#ffffff",
+        previewOverlay: true,
+        /** Nested tip-list by path segments (delimiter-nest) */
+        nesting: false,
+        /** Node appearance â€” default black squares showing only n */
+        nodeFill: "#000000",
+        nodeText: "#ffffff",
+        nodeStroke: "#000000",
+        /** Graph scale percent: 0â€“200, default 100 */
+        scale: 100,
+        /**
+         * Lineage time scrub (ISO or ms). When lineage+flowchart are on, nodes
+         * after this stamp dim. null = latest (no scrub).
+         */
+        timelineAt: null,
+      };
+      const FALLBACK_LEGEND = [
+        { id: "tip", label: "tip", color: EDGE.tip, kind: "swatch" },
+        {
+          id: "hostpark",
+          label: "hostpark mirror (this pipe)",
+          color: EDGE.hostpark,
+          kind: "swatch",
+        },
+        { id: "past", label: "past", color: EDGE.past, kind: "line" },
+        {
+          id: "cascade",
+          label: "cascade / mutation_of",
+          color: EDGE.cascade,
+          kind: "line",
+        },
+        { id: "other", label: "other rel8n", color: EDGE.other, kind: "line" },
+        { id: "orphan", label: "orphan", color: EDGE.orphan, kind: "swatch" },
+      ];
+
+      /** @type {{ prefix: string, ibs: string[], selectedIb: string|null, graph: any|null, prefixViewOpen: boolean, prefixGraph: any|null, spaceBytes: number|null, spaceBytesLabel: string, expandedPaths: Set<string>, sidebarActions: any[] }} */
+      const state = {
+        prefix: "",
+        ibs: [],
+        selectedIb: null,
+        graph: null,
+        prefixViewOpen: false,
+        prefixGraph: null,
+        /** Tip+bin payload bytes for current ib list; null = not measured yet. */
+        spaceBytes: null,
+        spaceBytesLabel: "",
+        expandedPaths: new Set(),
+        sidebarActions: [],
+      };
+      /** ibs successfully mirrored through this fragment's hostpark pipe */
+      /** @type {Set<string>} */
+      let hostparkMirrorIbs = new Set();
+
+      const part = (name) => root.querySelector(`[data-part="${name}"]`);
+      const pathEl = part("path");
+      const viewport = part("viewport");
+      const statusEl = part("status");
+      if (!viewport) {
+        console.error("[tinyviewport] missing [data-part=viewport]");
+        return;
+      }
+      const refreshBtn = part("refresh");
+      const nestingEl = () => part("pref-nesting");
+      const viewPrefixBtn = part("view-prefix");
+      const exportTinyviewBtn = part("export-tinyview");
+      const exportTinyviewConfirm = part("export-tinyview-confirm");
+      const exportTinyviewYes = part("export-tinyview-yes");
+      const prefsHost = part("prefs-host");
+      const borderEl = () => part("pref-border");
+      const hostparkEl = () => part("pref-hostpark");
+      const textEl = () => part("pref-text");
+      const bgEl = () => part("pref-bg");
+      const nodeFillEl = () => part("pref-node-fill");
+      const nodeTextEl = () => part("pref-node-text");
+      const nodeStrokeEl = () => part("pref-node-stroke");
+      const previewOverlayEl = () => part("pref-preview-overlay");
+      const legendEl = part("legend");
+      const managerBar = part("manager-bar");
+      const hostparkPathsEl = part("hostpark-paths");
+      const hostparkMirrorBtn = part("hostpark-mirror-btn");
+      const hostparkStatusEl = part("hostpark-status");
+      const shellEl = part("shell");
+
+      /** In-memory mirror of persisted prefs (manager tip, or fragment fallback). */
+      let prefsState = { ...DEFAULT_PREFS };
+      /** Live scale % while slider drags (null = use prefsState.scale). */
+      let liveScalePct = null;
+      /** Live lineage scrub ms while slider drags (null = use prefsState.timelineAt). */
+      let liveTimelineMs = null;
+      /** Exported tinyview tip mode â€” chrome stripped, state from data-path tip. */
+      let tinyviewMode = false;
+      /** @type {any|null} */
+      let tinyviewManifest = null;
+
+      let floatEl = null;
+      let floatAddr = null;
+      let unwatchManager = null;
+
+      const getManager = () =>
+        globalThis.navi?.mod?.tinyviewport_manager || null;
+
+      const setStatus = (text) => {
+        if (statusEl) statusEl.textContent = text || "";
+      };
+
+      const tipApi = () => {
+        const tip = globalThis.navi?.storage?.tip;
+        if (!tip || typeof tip.list !== "function" || typeof tip.get !== "function") {
+          throw new Error("navi.storage.tip unavailable");
+        }
+        return tip;
+      };
+
+      const itemApi = () => {
+        const item = globalThis.navi?.storage?.item;
+        if (!item || typeof item.get !== "function") {
+          throw new Error("navi.storage.item unavailable");
+        }
+        return item;
+      };
+
+      const formatSpaceBytes = (n) => {
+        const v = Math.max(0, Number(n) || 0);
+        if (v < 1024) return `${Math.round(v)} B`;
+        if (v < 1024 * 1024) return `${(v / 1024).toFixed(v < 10 * 1024 ? 1 : 0)} KB`;
+        if (v < 1024 * 1024 * 1024) {
+          return `${(v / (1024 * 1024)).toFixed(v < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+        }
+        return `${(v / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+      };
+
+      const utf8Bytes = (s) => {
+        const t = String(s ?? "");
+        if (typeof TextEncoder !== "undefined") {
+          try {
+            return new TextEncoder().encode(t).length;
+          } catch {
+            /* fall through */
+          }
+        }
+        return t.length;
+      };
+
+      const binShaFromRef = (ref) => {
+        const m = String(ref || "")
+          .trim()
+          .match(/^bin\s+([0-9a-fA-F]+)$/);
+        return m ? m[1].toLowerCase() : "";
+      };
+
+      /**
+       * One-shot measure of tip records + linked bins for the current ib list.
+       * Called on initial load and refresh only (cached on state.spaceBytes).
+       */
+      const measureTipBinSpace = async (ibs) => {
+        const list = Array.isArray(ibs) ? ibs : [];
+        const tip = tipApi();
+        const binApi = globalThis.navi?.storage?.bin;
+        const seenBin = new Set();
+        let total = 0;
+        for (const ib of list) {
+          let frame = null;
+          try {
+            frame = await tip.get(ib);
+          } catch {
+            frame = null;
+          }
+          if (!frame) continue;
+          try {
+            total += utf8Bytes(JSON.stringify(frame));
+          } catch {
+            total += 64;
+          }
+          const refs = Array.isArray(frame.rel8ns?.bin) ? frame.rel8ns.bin : [];
+          for (const ref of refs) {
+            const sha = binShaFromRef(ref);
+            if (!sha || seenBin.has(sha)) continue;
+            seenBin.add(sha);
+            if (!binApi?.get) continue;
+            try {
+              const bin = await binApi.get(sha);
+              if (bin?.media != null) total += utf8Bytes(bin.media);
+              else total += 32;
+            } catch {
+              total += 32;
+            }
+          }
+        }
+        return total;
+      };
+
+      const refreshSpaceLabel = async (ibs) => {
+        try {
+          const bytes = await measureTipBinSpace(ibs);
+          state.spaceBytes = bytes;
+          state.spaceBytesLabel = formatSpaceBytes(bytes);
+        } catch (err) {
+          state.spaceBytes = null;
+          state.spaceBytesLabel = "";
+          console.warn("[tinyviewport] space measure failed", err);
+        }
+      };
+
+      const tipsCountLabel = () => {
+        const n = state.ibs.length;
+        const base = state.prefix
+          ? `prefix â€œ${state.prefix}â€ Â· ${n} tip(s)`
+          : `entire index Â· ${n} tip(s)`;
+        return state.spaceBytesLabel
+          ? `${base} Â· ${state.spaceBytesLabel}`
+          : base;
+      };
+
+      const tinyviewHintLabel = () => {
+        const prefix = normalizePrefix(state.prefix || "");
+        const nodes = state.prefixGraph?.nodes?.size;
+        const bits = [
+          "tinyview",
+          prefix ? `prefix â€œ${prefix}â€` : "all tips",
+          nodes != null ? `${nodes} node(s)` : "",
+        ].filter(Boolean);
+        return bits.join(" Â· ");
+      };
+
+      /** @type {{ live: string, warez: string, subjectIb: string }|null} */
+      let managerUpdateOffer = null;
+      let managerUpdateChecking = false;
+
+      const flowerpotBase = () => {
+        const origin = String(
+          globalThis.navi?.origin || globalThis.location?.origin || ""
+        ).replace(/\/+$/, "");
+        return origin ? `${origin}/flowerpot` : "https://foobarch.net/flowerpot";
+      };
+
+      const bareRoute = (route) =>
+        String(route || "")
+          .replace(/^flowerpot\//i, "")
+          .replace(/^\/+/, "");
+
+      const isVersionOutdated = (live, warez) => {
+        const want = String(warez || "").trim();
+        if (!want) return false;
+        const have = String(live || "").trim();
+        if (!have) return true;
+        if (have === want) return false;
+        const parse = (v) =>
+          String(v)
+            .split(/[.+-]/)
+            .map((x) => {
+              const n = parseInt(x, 10);
+              return Number.isFinite(n) ? n : 0;
+            });
+        const a = parse(have);
+        const b = parse(want);
+        const n = Math.max(a.length, b.length);
+        for (let i = 0; i < n; i++) {
+          const x = a[i] || 0;
+          const y = b[i] || 0;
+          if (x < y) return true;
+          if (x > y) return false;
+        }
+        return false;
+      };
+
+      const fetchManagerWarezInfo = async () => {
+        const ib = bareRoute(MANAGER_WAREZ_MANIFEST);
+        const url = `${flowerpotBase()}/${ib}`;
+        const res = await fetch(url);
+        const text = await res.text();
+        if (!res.ok) throw new Error(`${res.status}: ${text.slice(0, 120)}`);
+        const man = JSON.parse(text);
+        const about = man.about || {};
+        const subject = man.subject || {};
+        return {
+          version: about.version != null ? String(about.version) : "",
+          subjectIb: String(subject.ib || MANAGER_SUBJECT).trim(),
+        };
+      };
+
+      const mountManagerFromSubject = async (subjectIb) => {
+        const path = String(subjectIb || MANAGER_SUBJECT).replace(/^\/+/, "");
+        const navi = globalThis.navi;
+        if (!navi?.mount) throw new Error("navi.mount unavailable");
+        const key = "tinyviewport_manager";
+        if (navi.mod?.[key]) {
+          const surf = navi.mod?.surf;
+          if (surf && typeof surf.unmount === "function") {
+            await surf.unmount(key);
+          } else if (typeof navi.unmount === "function") {
+            await navi.unmount(key);
+          }
+        }
+        let code = null;
+        if (typeof navi.fetch === "function") {
+          const res = await navi.fetch(path);
+          if (res && typeof res.text === "function") {
+            code = await res.text();
+            if (!res.ok) {
+              throw new Error(`${res.status}: ${String(code).slice(0, 120)}`);
+            }
+          }
+        }
+        if (!code) {
+          const url = `${flowerpotBase()}/${bareRoute(path)}`;
+          const r = await fetch(url);
+          code = await r.text();
+          if (!r.ok) throw new Error(`${r.status}: ${code.slice(0, 120)}`);
+        }
+        await navi.mount(String(code));
+        try {
+          const legacy = await itemApi().get(PREFS_KEY);
+          const m = getManager();
+          if (
+            legacy &&
+            typeof legacy === "object" &&
+            m &&
+            typeof m.patchPrefs === "function"
+          ) {
+            await m.patchPrefs(
+              fragmentToMgrPatch({ ...DEFAULT_PREFS, ...legacy })
+            );
+          }
+        } catch {
+          /* ignore */
+        }
+        wireManager();
+        await loadPrefs();
+        await mountPrefsHost();
+        managerUpdateOffer = null;
+        renderManagerBar();
+        await renderLegend();
+        if (state.selectedIb) await rerenderOpenGraph();
+        else await renderList();
+      };
+
+      const checkManagerUpdate = async () => {
+        if (tinyviewMode) return;
+        const mgr = getManager();
+        if (!mgr) {
+          managerUpdateOffer = null;
+          return;
+        }
+        managerUpdateChecking = true;
+        renderManagerBar();
+        try {
+          const info = await fetchManagerWarezInfo();
+          const live = String(mgr.version || mgr.moduleInfo?.version || "");
+          if (isVersionOutdated(live, info.version)) {
+            managerUpdateOffer = {
+              live,
+              warez: info.version,
+              subjectIb: info.subjectIb || MANAGER_SUBJECT,
+            };
+          } else {
+            managerUpdateOffer = null;
+          }
+        } catch (err) {
+          console.warn("[tinyviewport] manager update check failed", err);
+          managerUpdateOffer = null;
+        } finally {
+          managerUpdateChecking = false;
+          renderManagerBar();
+        }
+      };
+
+      const renderManagerBar = () => {
+        if (!managerBar) return;
+        if (tinyviewMode) {
+          managerBar.textContent = "";
+          managerBar.style.display = "none";
+          return;
+        }
+        managerBar.style.display = "";
+        managerBar.textContent = "";
+        const mgr = getManager();
+        const build = document.createElement("span");
+        build.style.opacity = "0.75";
+        build.textContent = `htmf ${HTMF_BUILD} Â· `;
+        managerBar.appendChild(build);
+        if (mgr) {
+          const ok = document.createElement("span");
+          ok.style.color = "#2ecc71";
+          const fc = mgr.listPlugins?.()?.find?.((p) => p.id === "flowchart");
+          const fcBit = fc
+            ? ` Â· flowchart ${fc.layout?.rev || "?"}`
+            : "";
+          ok.textContent = `manager v${mgr.version || "?"} Â· plugins via checkboxes${fcBit}`;
+          managerBar.appendChild(ok);
+          if (managerUpdateChecking) {
+            const checking = document.createElement("span");
+            checking.style.cssText = "margin-left:0.5rem;opacity:0.7;";
+            checking.textContent = " Â· checking warezâ€¦";
+            managerBar.appendChild(checking);
+          } else if (managerUpdateOffer) {
+            const offer = document.createElement("span");
+            offer.style.cssText = "margin-left:0.5rem;";
+            const note = document.createElement("span");
+            note.style.color = "#c0392b";
+            note.textContent = ` Â· update ${managerUpdateOffer.live || "?"} â†’ ${managerUpdateOffer.warez} `;
+            offer.appendChild(note);
+            const upd = document.createElement("button");
+            upd.type = "button";
+            upd.textContent = "update manager";
+            upd.title = managerUpdateOffer.subjectIb;
+            upd.addEventListener("click", () => {
+              void (async () => {
+                try {
+                  upd.disabled = true;
+                  setStatus(
+                    `updating tinyviewport_manager â†’ v${managerUpdateOffer.warez}â€¦`
+                  );
+                  await mountManagerFromSubject(managerUpdateOffer.subjectIb);
+                  setStatus(
+                    `tinyviewport_manager updated to v${getManager()?.version || managerUpdateOffer.warez}`
+                  );
+                } catch (err) {
+                  upd.disabled = false;
+                  setStatus(String(err?.message || err));
+                }
+              })();
+            });
+            offer.appendChild(upd);
+            managerBar.appendChild(offer);
+          }
+          return;
+        }
+        const msg = document.createElement("span");
+        msg.textContent =
+          "optional tinyviewport_manager not mounted â€” lineage only. ";
+        managerBar.appendChild(msg);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = "mount from warez";
+        btn.title = MANAGER_SUBJECT;
+        btn.addEventListener("click", () => {
+          void (async () => {
+            try {
+              setStatus("mounting tinyviewport_managerâ€¦");
+              btn.disabled = true;
+              await mountManagerFromSubject(MANAGER_SUBJECT);
+              setStatus("tinyviewport_manager mounted");
+              void checkManagerUpdate();
+            } catch (err) {
+              btn.disabled = false;
+              setStatus(String(err?.message || err));
+            }
+          })();
+        });
+        managerBar.appendChild(btn);
+      };
+
+      let legendRenderSeq = 0;
+
+      const refreshGraphAfterPluginChange = async () => {
+        if (state.prefixViewOpen) {
+          state.prefixGraph = await collectPrefixGraph(state.ibs);
+          await renderList();
+          return;
+        }
+        if (state.selectedIb) await rerenderOpenGraph();
+        else await renderList();
+      };
+
+      const appendLegendContent = async (host, opts = {}) => {
+        const compact = !!opts.compact;
+        const showNote = opts.showNote !== false;
+        const seq = opts.seq;
+        const mgr = getManager();
+        if (!mgr) {
+          for (const L of FALLBACK_LEGEND) {
+            if (seq != null && seq !== legendRenderSeq) return false;
+            const line = document.createElement("div");
+            const span = document.createElement("span");
+            span.style.color = L.color;
+            span.textContent =
+              (L.kind === "line" ? "â” " : "â–  ") + L.label;
+            line.appendChild(span);
+            host.appendChild(line);
+          }
+          if (showNote && !compact) {
+            const note = document.createElement("div");
+            note.style.opacity = "0.75";
+            note.textContent =
+              "extra rows = split lineages (no past after prune)";
+            host.appendChild(note);
+          }
+          return true;
+        }
+        await mgr.loadPrefs();
+        if (seq != null && seq !== legendRenderSeq) return false;
+        for (const p of mgr.listPlugins()) {
+          if (p.chromeOnly) continue;
+          const on = await mgr.isPluginEnabled(p.id);
+          if (seq != null && seq !== legendRenderSeq) return false;
+          const block = document.createElement("div");
+          block.style.cssText = compact
+            ? "display:block;margin:0 0 4px 0"
+            : "display:block;margin:0 0 2px 0";
+          const lab = document.createElement("label");
+          lab.style.cssText = compact
+            ? "display:flex;align-items:flex-start;gap:4px;cursor:pointer;margin:0;font:10px/1.3 monospace"
+            : "display:flex;align-items:center;gap:4px;cursor:pointer;margin:0";
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !!on;
+          cb.dataset.pluginId = p.id;
+          cb.addEventListener("change", () => {
+            void mgr.setPluginEnabled(p.id, cb.checked);
+          });
+          lab.appendChild(cb);
+          const name = document.createElement("span");
+          name.textContent = p.label;
+          lab.appendChild(name);
+          block.appendChild(lab);
+          if (on && (p.legend || []).length) {
+            const items = document.createElement("div");
+            items.style.cssText = compact
+              ? "padding-left:1em;margin-top:2px"
+              : "padding-left:1.15em";
+            for (const L of p.legend || []) {
+              const line = document.createElement("div");
+              line.style.color = L.color || "#888";
+              line.textContent = `â” ${L.label}`;
+              items.appendChild(line);
+            }
+            block.appendChild(items);
+          }
+          host.appendChild(block);
+        }
+        if (showNote && !compact) {
+          if (seq != null && seq !== legendRenderSeq) return false;
+          const note = document.createElement("div");
+          note.style.cssText = "opacity:0.75;margin-top:2px";
+          note.textContent =
+            "drag nodes to reposition. foreign rows = other ibs.";
+          host.appendChild(note);
+        }
+        return true;
+      };
+
+      const renderLegend = async () => {
+        if (!legendEl) return;
+        const seq = ++legendRenderSeq;
+        legendEl.replaceChildren();
+        if (tinyviewMode) {
+          legendEl.style.display = "none";
+          if (state.prefixViewOpen) await renderList();
+          return;
+        }
+        legendEl.style.display = "flex";
+        await appendLegendContent(legendEl, { seq, showNote: true });
+      };
+
+      const wireManager = () => {
+        if (unwatchManager) {
+          try {
+            unwatchManager();
+          } catch {
+            /* ignore */
+          }
+          unwatchManager = null;
+        }
+        const mgr = getManager();
+        if (mgr && typeof mgr.onChange === "function") {
+          unwatchManager = mgr.onChange(() => {
+            void (async () => {
+              try {
+                await loadPrefs();
+              } catch {
+                /* ignore */
+              }
+              await mountPrefsHost();
+              await renderLegend();
+              await refreshGraphAfterPluginChange();
+            })();
+          });
+        }
+      };
+
+      /** Prefer manager.collectGraph; else local loadGraph (lineage only). */
+      const resolveGraph = async (ib, opts = {}) => {
+        const mgr = getManager();
+        if (mgr && typeof mgr.collectGraph === "function") {
+          const g = await mgr.collectGraph(ib, opts);
+          const layout = Array.isArray(g.layout) ? g.layout : await resolveLayoutPlans(g);
+          g.layout = layout;
+          if (layout.length) inheritLayoutBands(g.nodes, layout);
+          const sameIb = [...g.nodes.values()]
+            .filter((n) => String(n.ib || "") === String(ib))
+            .map((n) => n.addr);
+          return {
+            ...g,
+            layout,
+            bandLayout: layout.length > 0,
+            // legacy alias used in a few call sites
+            flowMode: layout.length > 0,
+            directAddrs: sameIb,
+            lineages: [],
+            leafTips: [],
+            frameStoreCount: sameIb.length,
+            viaManager: true,
+          };
+        }
+        const g = await loadGraph(ib);
+        g.viaManager = false;
+        g.layout = [];
+        g.bandLayout = false;
+        g.flowMode = false;
+        return g;
+      };
+
+      /** Merge graphs for every tip under the current prefix filter. */
+      const collectPrefixGraph = async (ibs) => {
+        const nodes = new Map();
+        const edges = [];
+        const edgeKey = new Set();
+        let viaManager = false;
+        const sources = new Set();
+        const mgr = getManager();
+        let prefs = null;
+        if (mgr && typeof mgr.loadPrefs === "function") {
+          try {
+            prefs = await mgr.loadPrefs();
+          } catch {
+            prefs = null;
+          }
+        }
+
+        const isPluginBandRow = (row) => {
+          const r = String(row || "");
+          if (!r.includes(":")) return false;
+          if (
+            r.startsWith("ib:") ||
+            r.startsWith("lineage:") ||
+            r === "main" ||
+            r === "orphan" ||
+            r.startsWith("foreign")
+          ) {
+            return false;
+          }
+          return true;
+        };
+
+        const pluginRowFor = (node) => {
+          if (node?.layoutPrefix && node?.layoutBand) {
+            return `${node.layoutPrefix}:${node.layoutBand}`;
+          }
+          if (node?.flowBand) return `flow:${node.flowBand}`;
+          if (isPluginBandRow(node?.row)) return String(node.row);
+          return "";
+        };
+
+        /** @type {any[]} */
+        let layout = [];
+        for (const ib of ibs) {
+          const g = await resolveGraph(ib, { viewIbs: ibs });
+          if (g.viaManager) viaManager = true;
+          if (Array.isArray(g.layout) && g.layout.length) layout = g.layout;
+          for (const s0 of g.sources || []) sources.add(s0);
+          for (const [addr, node] of g.nodes) {
+            const prev = nodes.get(addr);
+            // Prefer plugin band row always â€” never collapse flow:* into ib:*
+            // (that stacked one row per tip and shoved the graph to the bottom).
+            const pluginRow = pluginRowFor(node) || pluginRowFor(prev || {});
+            const row =
+              pluginRow ||
+              (String(node.row || "").startsWith("ib:")
+                ? node.row
+                : `ib:${ib}`);
+            const merged = {
+              ...(prev || {}),
+              ...node,
+              addr,
+              row,
+            };
+            // Keep layout stamps from either side
+            if (!merged.layoutPrefix && prev?.layoutPrefix) {
+              merged.layoutPrefix = prev.layoutPrefix;
+            }
+            if (!merged.layoutBand && prev?.layoutBand) {
+              merged.layoutBand = prev.layoutBand;
+            }
+            if (merged.layoutOrder == null && prev?.layoutOrder != null) {
+              merged.layoutOrder = prev.layoutOrder;
+            }
+            if (merged.layoutBandRank == null && prev?.layoutBandRank != null) {
+              merged.layoutBandRank = prev.layoutBandRank;
+            }
+            if (!merged.flowBand && prev?.flowBand) merged.flowBand = prev.flowBand;
+            if (!merged.flowKind && prev?.flowKind) merged.flowKind = prev.flowKind;
+            if (!merged.flowMeta && prev?.flowMeta) merged.flowMeta = prev.flowMeta;
+            if (merged.flowLayoutOrder == null && prev?.flowLayoutOrder != null) {
+              merged.flowLayoutOrder = prev.flowLayoutOrder;
+            }
+            nodes.set(addr, merged);
+          }
+          for (const e of g.edges || []) {
+            const k = `${e.from}|${e.to}|${e.rel}|${e.source || ""}`;
+            if (edgeKey.has(k)) continue;
+            edgeKey.add(k);
+            edges.push(e);
+          }
+        }
+
+        // Always take the live plan last â€” per-ib collectGraph may have stamped
+        // an older layout onto `layout` before a companion remount.
+        try {
+          const live = await resolveLayoutPlans(null);
+          if (live.length) layout = live;
+        } catch {
+          /* keep merged */
+        }
+        if (!layout.length) layout = synthesizeLayoutFromNodes(nodes);
+        if (layout.length) inheritLayoutBands(nodes, layout);
+
+        return {
+          base: state.prefix || "(all)",
+          nodes,
+          edges,
+          prefs: prefs || { offsets: {} },
+          viaManager,
+          sources: [...sources],
+          prefixView: true,
+          layout,
+          bandLayout: layout.length > 0,
+          flowMode: layout.length > 0,
+        };
+      };
+
+      const resolveFetchUrl = (path) => {
+        const navi = globalThis.navi;
+        const raw = String(path || "").replace(/^\/+/, "");
+        if (typeof navi?.resolveUrl === "function") {
+          try {
+            const u = navi.resolveUrl(raw);
+            if (typeof u === "string") return u;
+            if (u && typeof u.href === "string") return u.href;
+          } catch {
+            /* fall through */
+          }
+        }
+        return `/${raw}`;
+      };
+
+      const bytesToMediaString = (bytes, mime) => {
+        const ct = String(mime || "").toLowerCase();
+        const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        if (
+          ct.startsWith("text/") ||
+          ct.includes("json") ||
+          ct.includes("javascript") ||
+          ct.includes("xml") ||
+          ct.includes("html") ||
+          ct.includes("svg") ||
+          ct.includes("lua") ||
+          ct.includes("navi-module")
+        ) {
+          return new TextDecoder("utf-8").decode(u8);
+        }
+        let s = "";
+        for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]);
+        return s;
+      };
+
+      /** GET foobarch tip JSON from hostpark (same origin / resolveUrl). */
+      const fetchHostparkTip = async (ibRaw) => {
+        const ib = normalizePrefix(ibRaw);
+        if (!ib) throw new Error("empty path");
+        const url = resolveFetchUrl(`foobarch/tip/${ib}`);
+        const res = await fetch(url, { method: "GET" });
+        if (res.status === 404) return null;
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`${res.status}: ${text.slice(0, 120)}`);
+        }
+        return JSON.parse(text);
+      };
+
+      const fetchHostparkFrame = async (addrRaw) => {
+        const addr = String(addrRaw || "").trim();
+        if (!addr) return null;
+        const url = resolveFetchUrl(
+          `foobarch/frame/${encodeURIComponent(addr)}`
+        );
+        const res = await fetch(url, { method: "GET" });
+        if (res.status === 404) return null;
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`${res.status}: ${text.slice(0, 120)}`);
+        }
+        return JSON.parse(text);
+      };
+
+      const fetchHostparkSpan = async (ibRaw, span) => {
+        const ib = normalizePrefix(ibRaw);
+        const params = new URLSearchParams();
+        params.set("dir", String(span?.dir || "reverse").toLowerCase());
+        if (span?.limit != null && Number.isFinite(Number(span.limit))) {
+          params.set("limit", String(span.limit));
+        }
+        if (span?.offset != null && Number.isFinite(Number(span.offset))) {
+          params.set("offset", String(span.offset));
+        }
+        const url = resolveFetchUrl(`foobarch/span/${ib}?${params}`);
+        const res = await fetch(url, { method: "GET" });
+        if (res.status === 404) return [];
+        const text = await res.text();
+        if (!res.ok) {
+          throw new Error(`${res.status}: ${text.slice(0, 120)}`);
+        }
+        const parsed = JSON.parse(text);
+        const hits = Array.isArray(parsed?.hits) ? parsed.hits : [];
+        return hits.map((hit) =>
+          typeof hit === "string"
+            ? { addr: hit, frame: null }
+            : {
+                addr: hit.addr,
+                frame: hit.frame || null,
+              }
+        );
+      };
+
+      const walkHostparkLineage = async (ibRaw) => {
+        const tipRow = await fetchHostparkTip(ibRaw);
+        if (!tipRow?.frame) return [];
+        const hits = [];
+        const seen = new Set();
+        let frame = tipRow.frame;
+        let addr = tipRow.addr || frameAddr(frame);
+        while (frame && addr && !seen.has(addr)) {
+          seen.add(addr);
+          hits.push({ addr, frame });
+          const past0 = Array.isArray(frame.rel8ns?.past)
+            ? String(frame.rel8ns.past[0] || "").trim()
+            : "";
+          if (!past0) break;
+          frame = await fetchHostparkFrame(past0);
+          addr = past0;
+        }
+        return hits;
+      };
+
+      const orderHostparkSpan = (chain, span) => {
+        const dir = String(span?.dir || "reverse").toLowerCase();
+        let ordered =
+          dir === "forward" || dir === "all"
+            ? chain.slice().reverse()
+            : chain;
+        const offset = Math.max(0, Number(span?.offset) || 0);
+        if (span?.limit != null && Number.isFinite(Number(span.limit))) {
+          ordered = ordered.slice(
+            offset,
+            offset + Math.max(0, Math.floor(Number(span.limit)))
+          );
+        } else {
+          ordered = ordered.slice(offset);
+        }
+        return ordered;
+      };
+
+      const parseMirrorPathSpec = (raw) => {
+        const s = String(raw || "").trim();
+        const m = s.match(
+          /^(.+?)\s+@span(?:\s+(reverse|forward|all))?(?:\s+(\d+))?\s*$/i
+        );
+        if (!m) return { ib: normalizePrefix(s), span: null };
+        return {
+          ib: normalizePrefix(m[1]),
+          span: {
+            dir: String(m[2] || "reverse").toLowerCase(),
+            ...(m[3] != null ? { limit: Number(m[3]) } : {}),
+          },
+        };
+      };
+
+      const plantHostparkFrame = async (frame) => {
+        const ib = String(frame?.ib || "").trim();
+        if (!ib) throw new Error("frame missing ib");
+        const binRef = Array.isArray(frame.rel8ns?.bin)
+          ? frame.rel8ns.bin[0]
+          : null;
+        const sha = String(binRef || "")
+          .trim()
+          .match(/^bin\s+([0-9a-fA-F]+)$/i)?.[1]
+          ?.toLowerCase();
+        if (sha) {
+          const bodyUrl = resolveFetchUrl(ib);
+          const res = await fetch(bodyUrl, { method: "GET" });
+          if (!res.ok) {
+            throw new Error(`bin GET ${res.status} (tip ok, body missing)`);
+          }
+          const mime =
+            frame.data?.content_type ||
+            res.headers.get("Content-Type") ||
+            "application/octet-stream";
+          const bytes = new Uint8Array(await res.arrayBuffer());
+          const media = bytesToMediaString(bytes, mime);
+          await globalThis.navi?.storage?.bin?.put?.(sha, {
+            media,
+            mime: String(mime),
+          });
+        }
+        // tip.set (not frame.put) â€” frame.put alone leaves no tip pointer, so tip.list() stays empty.
+        await tipApi().set(frame);
+        return ib;
+      };
+
+      const mirrorHostparkSpan = async (ibRaw, span) => {
+        const ib = normalizePrefix(ibRaw);
+        let picks = await fetchHostparkSpan(ib, span);
+        if (!picks.length) {
+          const chain = await walkHostparkLineage(ib);
+          if (!chain.length) throw new Error("no hostpark lineage");
+          picks = orderHostparkSpan(chain, span);
+        }
+        const mirrored = [];
+        for (const hit of picks) {
+          let frame = hit.frame;
+          if (!frame && hit.addr) {
+            frame = await fetchHostparkFrame(hit.addr);
+          }
+          if (!frame) continue;
+          await plantHostparkFrame(frame);
+          mirrored.push(frame.ib || ib);
+        }
+        const head = picks[0]?.frame || (picks[0]?.addr && (await fetchHostparkFrame(picks[0].addr)));
+        if (head) await tipApi().set(head);
+        return { ib, count: mirrored.length, mirrored };
+      };
+
+      /**
+       * Plant hostpark tip+bin into localpark at the same ib (frame unchanged).
+       * Bin bytes come from GET /{ib} when rel8ns.bin is present.
+       */
+      const mirrorHostparkPath = async (pathRaw) => {
+        const spec = parseMirrorPathSpec(pathRaw);
+        if (spec.span) {
+          return mirrorHostparkSpan(spec.ib, spec.span);
+        }
+        const ib = spec.ib;
+        if (!ib) throw new Error("empty path");
+        const tipRow = await fetchHostparkTip(ib);
+        if (!tipRow || tipRow.tombstone || !tipRow.frame) {
+          throw new Error("no hostpark frame");
+        }
+        await plantHostparkFrame(tipRow.frame);
+        return { ib, addr: tipRow.addr || frameAddr(tipRow.frame) };
+      };
+
+      const runHostparkMirror = async () => {
+        const raw = String(hostparkPathsEl?.value || "");
+        const paths = raw
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter(Boolean);
+        if (!paths.length) {
+          setHostparkStatus("no hostpark frame â€” enter a path", mirrorStatusFade);
+          return;
+        }
+        hostparkMirrorBtn.disabled = true;
+        setHostparkStatus(`mirroring ${paths.length}â€¦`);
+        const ok = [];
+        const fail = [];
+        for (const p of paths) {
+          try {
+            const r = await mirrorHostparkPath(p);
+            ok.push(r.ib || p);
+          } catch (err) {
+            fail.push({
+              path: p,
+              err: String(err?.message || err),
+            });
+          }
+        }
+        hostparkMirrorBtn.disabled = false;
+        if (!ok.length && fail.length === 1) {
+          setHostparkStatus(
+            `no hostpark frame â€” ${fail[0].err}`,
+            mirrorStatusFade
+          );
+        } else if (!ok.length) {
+          setHostparkStatus(
+            `no hostpark frame â€” ${fail.length} failed (${fail
+              .map((f) => f.path)
+              .join(", ")})`,
+            mirrorStatusFade
+          );
+        } else if (fail.length) {
+          setHostparkStatus(
+            `mirrored ${ok.length}; failed ${fail.length}: ${fail
+              .map((f) => `${f.path} (${f.err})`)
+              .join("; ")}`,
+            mirrorStatusFade
+          );
+        } else {
+          setHostparkStatus(
+            `mirrored ${ok.length}: ${ok.join(", ")}`,
+            mirrorStatusFade
+          );
+        }
+        if (ok.length) await rememberHostparkMirrors(ok);
+        await refresh();
+        if (ok.length && state.prefixViewOpen) {
+          await openPrefixView();
+        }
+      };
+
+      const normalizePrefix = (raw) =>
+        String(raw || "")
+          .trim()
+          .replace(/^\/+/, "");
+
+      const tinyviewIbForPrefix = (prefix) => {
+        const p = normalizePrefix(prefix);
+        return `${TINYVIEW_IB_PREFIX}${p || "_all"}`;
+      };
+
+      const isTinyviewPath = (raw) =>
+        String(raw || "").trim().startsWith(TINYVIEW_IB_PREFIX);
+
+      const applyTinyviewChrome = () => {
+        const hide = (el) => {
+          if (el) el.style.display = "none";
+        };
+        // Hide workspace chrome; keep status / legend / viewport / thin manager bar.
+        const pathLabel = pathEl?.closest?.("label");
+        hide(pathLabel);
+        hide(refreshBtn);
+        hide(viewPrefixBtn);
+        hide(exportTinyviewBtn);
+        hide(exportTinyviewConfirm);
+        hide(prefsHost);
+        hide(part("prefs"));
+        hide(part("hostpark-mirror"));
+        hide(managerBar);
+        if (legendEl) legendEl.style.display = "none";
+      };
+
+      const getBinMediaFromTip = async (ib) => {
+        const tip = tipApi();
+        const frame = await tip.get(ib);
+        if (!frame) return null;
+        const binRef = Array.isArray(frame.rel8ns?.bin)
+          ? frame.rel8ns.bin[0]
+          : null;
+        const sha = binShaFromRef(binRef);
+        if (!sha) return null;
+        const binApi = globalThis.navi?.storage?.bin;
+        if (!binApi?.get) return null;
+        const bin = await binApi.get(sha);
+        if (!bin || bin.media == null) return null;
+        return {
+          frame,
+          media: String(bin.media),
+          mime: String(bin.mime || "text/html; charset=utf-8"),
+        };
+      };
+
+      /** Kit HTML for planting a tinyview (never the tinyview tip itself). */
+      const fetchKitHtml = async () => {
+        const own = String(root.getAttribute("data-path") || "").trim();
+        const candidates = [];
+        if (own && !isTinyviewPath(own)) candidates.push(own);
+        candidates.push("testkit/tinyviewport", "torus/testkit/tinyviewport");
+        for (const ib of candidates) {
+          try {
+            const hit = await getBinMediaFromTip(ib);
+            if (hit?.media && hit.media.includes('name="tinyviewport"')) {
+              return hit.media;
+            }
+          } catch {
+            /* try next */
+          }
+        }
+        // Last resort: live DOM (scripts already evaluated; still usable as shell)
+        return root.outerHTML;
+      };
+
+      /** Rewrite only the tinyviewport root tag â€” never scan the whole HTML (script literals contain data-path= patterns). */
+      const rewriteDataPath = (html, ib) => {
+        const s = String(html || "");
+        const path = String(ib || "").trim();
+        const openRe = /<div\b[^>]*\bname="tinyviewport"[^>]*>/i;
+        const m = openRe.exec(s);
+        if (!m) {
+          return s.replace(
+            /name="tinyviewport"/,
+            `name="tinyviewport" data-path="${path}"`
+          );
+        }
+        const tag = m[0];
+        const newTag = /\bdata-path="/i.test(tag)
+          ? tag.replace(/\bdata-path="[^"]*"/i, `data-path="${path}"`)
+          : tag.replace(/>$/, ` data-path="${path}">`);
+        return s.slice(0, m.index) + newTag + s.slice(m.index + tag.length);
+      };
+
+      const enabledPluginIds = async () => {
+        const mgr = getManager();
+        if (!mgr?.listPlugins) return [];
+        const ids = [];
+        for (const p of mgr.listPlugins()) {
+          if (await mgr.isPluginEnabled(p.id)) ids.push(p.id);
+        }
+        return ids;
+      };
+
+      const seedManagerFromTinyview = async (manifest) => {
+        const mgr = getManager();
+        if (!mgr) return;
+        const plugins = Array.isArray(manifest.plugins) ? manifest.plugins : [];
+        for (const id of plugins) {
+          try {
+            await mgr.setPluginEnabled(id, true);
+          } catch {
+            /* ignore */
+          }
+        }
+        const viewKey = String(manifest.viewKey || "").trim();
+        const offsets =
+          manifest.offsets && typeof manifest.offsets === "object"
+            ? manifest.offsets
+            : {};
+        if (viewKey && typeof mgr.loadPrefs === "function") {
+          try {
+            const prefs = await mgr.loadPrefs();
+            const viewOffsets = { ...(prefs.viewOffsets || {}) };
+            viewOffsets[viewKey] = { ...offsets };
+            if (typeof mgr.savePrefs === "function") {
+              await mgr.savePrefs(
+                { ...prefs, viewOffsets },
+                { silent: true }
+              );
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+        const snap = manifest.prefs && typeof manifest.prefs === "object"
+          ? manifest.prefs
+          : null;
+        if (snap) {
+          applyPrefs({ ...prefsState, ...snap });
+          try {
+            if (typeof mgr.patchPrefs === "function") {
+              await mgr.patchPrefs(fragmentToMgrPatch(prefsState));
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      };
+
+      const tryLoadTinyviewManifest = async () => {
+        const path = String(root.getAttribute("data-path") || "").trim();
+        if (!isTinyviewPath(path)) return null;
+        try {
+          const frame = await tipApi().get(path);
+          const d = frame?.data;
+          if (!d || d.kind !== "tinyview") return null;
+          return { ...d, _ib: path };
+        } catch {
+          return null;
+        }
+      };
+
+      const enterTinyviewMode = async (manifest) => {
+        tinyviewMode = true;
+        tinyviewManifest = manifest;
+        applyTinyviewChrome();
+        await seedManagerFromTinyview(manifest);
+        const prefix = normalizePrefix(manifest.prefix || "");
+        if (pathEl) pathEl.value = prefix;
+        state.prefix = prefix;
+        renderManagerBar();
+        await renderLegend();
+        await refresh();
+        await openPrefixView();
+        setStatus(
+          `tinyview ${manifest._ib || tinyviewIbForPrefix(prefix)}` +
+            (prefix ? ` Â· ${prefix}` : " Â· all tips") +
+            ` Â· ${state.prefixGraph?.nodes?.size || 0} node(s)`
+        );
+      };
+
+      const plantTinyview = async () => {
+        if (!state.prefixViewOpen || !state.prefixGraph) {
+          throw new Error("open a prefix view first");
+        }
+        const tip = tipApi();
+        const binApi = globalThis.navi?.storage?.bin;
+        if (!binApi?.putMedia || !binApi?.ref) {
+          throw new Error("navi.storage.bin.putMedia unavailable");
+        }
+        const prefix = normalizePrefix(state.prefix || pathEl?.value || "");
+        const ib = tinyviewIbForPrefix(prefix);
+        const mgr = getManager();
+        let viewKey = String(state.prefixGraph.viewKey || "").trim();
+        if (!viewKey && mgr?.buildViewKey) {
+          viewKey = await mgr.buildViewKey({
+            prefixView: true,
+            scope: prefix || "*",
+          });
+          if ((state.prefixGraph.layout || []).length) {
+            viewKey = `${viewKey}${layoutRevSuffix(state.prefixGraph.layout)}`;
+          }
+        }
+        let offsets = {};
+        if (viewKey && mgr?.getViewOffsets) {
+          offsets = (await mgr.getViewOffsets(viewKey)) || {};
+        }
+        const plugins = await enabledPluginIds();
+        const prefs = currentPrefsSnapshot();
+        const exportedAt = new Date().toISOString();
+        const manifest = {
+          kind: "tinyview",
+          version: 1,
+          prefix,
+          mode: "mass",
+          plugins,
+          viewKey,
+          offsets,
+          prefs,
+          exportedAt,
+        };
+        let html = await fetchKitHtml();
+        html = rewriteDataPath(html, ib);
+        const sha = await binApi.putMedia({
+          media: html,
+          mime: "text/html; charset=utf-8",
+        });
+        const ref = binApi.ref(sha);
+        const data = {
+          ...manifest,
+          parts: ["htmf", "ibgib_frame", "manifest", "json"],
+          park: "defer",
+          default_method: "GET",
+          content_type: "text/html; charset=utf-8",
+          path: ib,
+          http: {
+            GET: { kind: "bin" },
+            POST: { kind: "bin" },
+            PUT: { kind: "commit" },
+            DELETE: { kind: "tombstone" },
+          },
+          about: {
+            label: prefix ? `tinyview ${prefix}` : "tinyview (all)",
+            description: `Exported tinyviewport prefix view (${plugins.join(",") || "no plugins"})`,
+          },
+        };
+        const existing = await tip.get(ib);
+        if (existing?.data && typeof tip.mut8 === "function") {
+          await tip.mut8(ib, data, { rel8ns: { bin: [ref] } });
+        } else {
+          await tip.set({
+            ib,
+            gib: "",
+            data,
+            rel8ns: { bin: [ref], past: [], tjp: [], dna: [] },
+          });
+        }
+        return { ib, html };
+      };
+
+      /** Replace this HTMF with the planted tinyview (htmx outerHTML swap). */
+      const swapRootToTinyview = async (ib, htmlFallback) => {
+        const navi = globalThis.navi;
+        const htmxApi = globalThis.htmx;
+        let url = `/${String(ib || "").replace(/^\/+/, "")}`;
+        if (typeof navi?.resolveUrl === "function") {
+          try {
+            const u = navi.resolveUrl(ib);
+            if (typeof u === "string" && u) url = u;
+            else if (u && typeof u.href === "string") url = u.href;
+          } catch {
+            /* keep */
+          }
+        }
+        url = encodeURI(url);
+
+        if (htmxApi && typeof htmxApi.ajax === "function") {
+          await new Promise((resolve, reject) => {
+            let settled = false;
+            let timer = null;
+            const done = (err) => {
+              if (settled) return;
+              settled = true;
+              if (timer) clearTimeout(timer);
+              document.removeEventListener("htmx:afterSwap", onAfter);
+              document.removeEventListener("htmx:afterSettle", onAfter);
+              document.removeEventListener("htmx:responseError", onErr);
+              document.removeEventListener("htmx:swapError", onErr);
+              if (err) reject(err);
+              else resolve();
+            };
+            const onAfter = () => {
+              if (!document.contains(root)) done();
+            };
+            const onErr = (ev) => {
+              done(
+                new Error(
+                  ev?.detail?.error || `htmx swap failed for ${ib}`
+                )
+              );
+            };
+            document.addEventListener("htmx:afterSwap", onAfter);
+            document.addEventListener("htmx:afterSettle", onAfter);
+            document.addEventListener("htmx:responseError", onErr);
+            document.addEventListener("htmx:swapError", onErr);
+            try {
+              htmxApi.ajax("GET", url, {
+                target: root,
+                swap: "outerHTML",
+              });
+            } catch (err) {
+              done(err);
+              return;
+            }
+            timer = setTimeout(() => {
+              if (!document.contains(root)) done();
+              else done(new Error(`htmx swap timeout for ${ib}`));
+            }, 8000);
+          });
+          return;
+        }
+
+        // Fallback without htmx: inject planted HTML + re-run scripts
+        const html = String(htmlFallback || "").trim();
+        if (!html) throw new Error("htmx unavailable and no html fallback");
+        const wrap = document.createElement("div");
+        wrap.innerHTML = html;
+        const next =
+          wrap.querySelector('div[name="tinyviewport"]') ||
+          wrap.firstElementChild;
+        if (!next) throw new Error("planted html missing tinyviewport root");
+        root.replaceWith(next);
+        next.querySelectorAll("script").forEach((oldScript) => {
+          const script = document.createElement("script");
+          for (const attr of oldScript.attributes) {
+            script.setAttribute(attr.name, attr.value);
+          }
+          script.textContent = oldScript.textContent;
+          oldScript.replaceWith(script);
+        });
+        if (htmxApi && typeof htmxApi.process === "function") {
+          htmxApi.process(next);
+        }
+      };
+
+      const splitAddr = (addr) => {
+        const a = String(addr || "");
+        const i = a.indexOf("^");
+        if (i <= 0) return { ib: a, gib: "" };
+        return { ib: a.slice(0, i), gib: a.slice(i + 1) };
+      };
+
+      const frameAddr = (frame) => {
+        if (!frame || !frame.ib) return "";
+        return frame.gib ? `${frame.ib}^${frame.gib}` : String(frame.ib);
+      };
+
+      const shortAddr = (addr) => {
+        const a = String(addr || "");
+        const caret = a.indexOf("^");
+        if (caret < 0) return a.length > 28 ? a.slice(0, 28) + "â€¦" : a;
+        return `${a.slice(0, caret)}^${a.slice(caret + 1, caret + 9)}â€¦`;
+      };
+
+      const looksLikeAddr = (s) => {
+        const t = String(s || "").trim();
+        const i = t.indexOf("^");
+        return i > 0 && i < t.length - 1;
+      };
+
+      const HOSTPARK_STATUS_FADE_MS = 15000;
+      const HOSTPARK_STATUS_FADE_DURATION_MS = 500;
+      let hostparkStatusFadeTimer = null;
+
+      const clearHostparkStatusFade = () => {
+        if (hostparkStatusFadeTimer) {
+          clearTimeout(hostparkStatusFadeTimer);
+          hostparkStatusFadeTimer = null;
+        }
+        if (hostparkStatusEl) {
+          hostparkStatusEl.style.opacity = "";
+        }
+      };
+
+      const setHostparkStatus = (text, opts = {}) => {
+        if (!hostparkStatusEl) return;
+        clearHostparkStatusFade();
+        hostparkStatusEl.textContent = text || "";
+        const fadeAfter = Number(opts.fadeAfterMs);
+        if (text && fadeAfter > 0) {
+          hostparkStatusFadeTimer = setTimeout(() => {
+            hostparkStatusEl.style.opacity = "0";
+            hostparkStatusFadeTimer = setTimeout(() => {
+              hostparkStatusEl.textContent = "";
+              hostparkStatusEl.style.opacity = "";
+              hostparkStatusFadeTimer = null;
+            }, HOSTPARK_STATUS_FADE_DURATION_MS);
+          }, fadeAfter);
+        }
+      };
+
+      const mirrorStatusFade = { fadeAfterMs: HOSTPARK_STATUS_FADE_MS };
+
+      const theme = () => ({
+        border: prefsState.border || DEFAULT_PREFS.border,
+        hostpark: prefsState.hostpark || DEFAULT_PREFS.hostpark,
+        text: prefsState.text || DEFAULT_PREFS.text,
+        bg: prefsState.bg || DEFAULT_PREFS.bg,
+        nodeFill: prefsState.nodeFill || DEFAULT_PREFS.nodeFill,
+        nodeText: prefsState.nodeText || DEFAULT_PREFS.nodeText,
+        nodeStroke: prefsState.nodeStroke || DEFAULT_PREFS.nodeStroke,
+      });
+
+      const clampScale = (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return DEFAULT_PREFS.scale;
+        return Math.max(0, Math.min(200, Math.round(n)));
+      };
+
+      const getScalePct = () =>
+        liveScalePct != null
+          ? clampScale(liveScalePct)
+          : clampScale(prefsState.scale);
+
+      const scaleMetrics = () => {
+        const s = getScalePct() / 100;
+        const sq = Math.max(6, Math.round(SQ * s));
+        const gap = Math.max(2, Math.round(GAP * s));
+        const rowH = Math.max(sq + 4, Math.round(ROW_H * s));
+        const fontPx = Math.max(7, Math.round(10 * s));
+        return { s, sq, gap, rowH, fontPx, pct: getScalePct() };
+      };
+
+      /** Parse frame/node wall time â†’ epoch ms (or null). */
+      const parseStampMs = (raw) => {
+        if (raw == null || raw === "") return null;
+        if (typeof raw === "number" && Number.isFinite(raw)) {
+          return raw > 1e12 ? raw : raw * 1000;
+        }
+        const s = String(raw).trim();
+        if (!s) return null;
+        const t = Date.parse(s);
+        return Number.isFinite(t) ? t : null;
+      };
+
+      const nodeStampMs = (node) => {
+        const d = node?.frame?.data;
+        if (!d || typeof d !== "object") return null;
+        return (
+          parseStampMs(d.timestamp) ??
+          parseStampMs(d.stamp?.timestamp) ??
+          parseStampMs(d.at) ??
+          parseStampMs(d.created_at) ??
+          parseStampMs(d.mutated_at)
+        );
+      };
+
+      /**
+       * Unique sorted timestamps from nodes in the open view's lineages.
+       * @returns {{ bumps: number[], min: number, max: number }|null}
+       */
+      const collectTimeline = (graph) => {
+        if (!graph?.nodes?.size) return null;
+        const set = new Set();
+        for (const node of graph.nodes.values()) {
+          const ms = nodeStampMs(node);
+          if (ms != null) set.add(ms);
+        }
+        if (set.size < 1) return null;
+        const bumps = [...set].sort((a, b) => a - b);
+        return { bumps, min: bumps[0], max: bumps[bumps.length - 1] };
+      };
+
+      const snapTimelineMs = (ms, bumps, thresholdRatio = 0.02) => {
+        if (!bumps?.length || !Number.isFinite(ms)) return ms;
+        const span = Math.max(1, bumps[bumps.length - 1] - bumps[0]);
+        const thresh = Math.max(1, span * thresholdRatio);
+        let best = bumps[0];
+        let bestD = Math.abs(ms - best);
+        for (const b of bumps) {
+          const d = Math.abs(ms - b);
+          if (d < bestD) {
+            best = b;
+            bestD = d;
+          }
+        }
+        return bestD <= thresh ? best : ms;
+      };
+
+      const formatTimelineLabel = (ms) => {
+        if (!Number.isFinite(ms)) return "â€”";
+        try {
+          const d = new Date(ms);
+          if (Number.isNaN(d.getTime())) return "â€”";
+          return d.toLocaleString(undefined, {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        } catch {
+          return "â€”";
+        }
+      };
+
+      const normalizeTimelineAt = (raw) => {
+        if (raw == null || raw === "") return null;
+        const ms = parseStampMs(raw);
+        if (ms == null) return null;
+        try {
+          return new Date(ms).toISOString();
+        } catch {
+          return null;
+        }
+      };
+
+      const getTimelineMs = (timeline) => {
+        if (liveTimelineMs != null && Number.isFinite(liveTimelineMs)) {
+          return liveTimelineMs;
+        }
+        const fromPrefs = parseStampMs(prefsState.timelineAt);
+        if (fromPrefs != null) return fromPrefs;
+        return timeline?.max ?? null;
+      };
+
+      const timelineScrubActive = async () => {
+        const mgr = getManager();
+        if (!mgr?.isPluginEnabled) return false;
+        try {
+          const [lin, flow] = await Promise.all([
+            mgr.isPluginEnabled("lineage"),
+            mgr.isPluginEnabled("flowchart"),
+          ]);
+          return !!lin && !!flow;
+        } catch {
+          return false;
+        }
+      };
+
+      /** Dim nodes / edges after the scrub stamp; highlight nodes on the snap. */
+      const applyTimelineScrub = (graph, scrubMs) => {
+        if (!graph?.nodes || scrubMs == null || !Number.isFinite(scrubMs)) {
+          for (const node of graph?.nodes?.values?.() || []) {
+            node._timelineDim = false;
+            node._timelineHit = false;
+            node._timelineMs = nodeStampMs(node);
+          }
+          return;
+        }
+        const near = 750; // ms window counts as "on" this bump
+        for (const node of graph.nodes.values()) {
+          const ms = nodeStampMs(node);
+          node._timelineMs = ms;
+          if (ms == null) {
+            node._timelineDim = false;
+            node._timelineHit = false;
+            continue;
+          }
+          node._timelineDim = ms > scrubMs + near;
+          node._timelineHit = Math.abs(ms - scrubMs) <= near;
+        }
+      };
+
+      const applyPrefs = (prefs) => {
+        const p = { ...DEFAULT_PREFS, ...(prefs || {}) };
+        p.scale = clampScale(p.scale);
+        p.timelineAt = normalizeTimelineAt(p.timelineAt);
+        prefsState = { ...p };
+        root.style.setProperty("--tv-border", p.border);
+        root.style.setProperty("--tv-hostpark", p.hostpark);
+        root.style.setProperty("--tv-text", p.text);
+        root.style.setProperty("--tv-bg", p.bg);
+        root.style.setProperty("--tv-node-fill", p.nodeFill);
+        root.style.setProperty("--tv-node-text", p.nodeText);
+        root.style.setProperty("--tv-node-stroke", p.nodeStroke);
+        const b = borderEl();
+        const h = hostparkEl();
+        const t = textEl();
+        const g = bgEl();
+        const nf = nodeFillEl();
+        const nt = nodeTextEl();
+        const ns = nodeStrokeEl();
+        const po = previewOverlayEl();
+        const nest = nestingEl();
+        if (b) b.value = p.border;
+        if (h) h.value = p.hostpark;
+        if (t) t.value = p.text;
+        if (g) g.value = p.bg;
+        if (nf) nf.value = p.nodeFill;
+        if (nt) nt.value = p.nodeText;
+        if (ns) ns.value = p.nodeStroke;
+        if (po) {
+          po.checked =
+            p.previewOverlay !== undefined
+              ? !!p.previewOverlay
+              : DEFAULT_PREFS.previewOverlay;
+        }
+        if (nest) nest.checked = !!p.nesting;
+      };
+
+      const mgrPrefsToFragment = (mp) => {
+        const n = mp?.node && typeof mp.node === "object" ? mp.node : {};
+        return {
+          border: mp.border || DEFAULT_PREFS.border,
+          hostpark: mp.hostpark || DEFAULT_PREFS.hostpark,
+          text: mp.text || DEFAULT_PREFS.text,
+          bg: mp.bg || DEFAULT_PREFS.bg,
+          nodeFill: n.fill || DEFAULT_PREFS.nodeFill,
+          nodeText: n.text || DEFAULT_PREFS.nodeText,
+          nodeStroke: n.stroke || DEFAULT_PREFS.nodeStroke,
+          previewOverlay:
+            mp.previewOverlay !== undefined
+              ? !!mp.previewOverlay
+              : DEFAULT_PREFS.previewOverlay,
+          nesting: !!mp.nesting,
+          scale: clampScale(
+            mp.scale !== undefined ? mp.scale : DEFAULT_PREFS.scale
+          ),
+          timelineAt: normalizeTimelineAt(
+            mp.timelineAt !== undefined ? mp.timelineAt : DEFAULT_PREFS.timelineAt
+          ),
+        };
+      };
+
+      const fragmentToMgrPatch = (prefs) => {
+        const stroke = prefs.nodeStroke || DEFAULT_PREFS.nodeStroke;
+        return {
+          border: prefs.border,
+          hostpark: prefs.hostpark,
+          text: prefs.text,
+          bg: prefs.bg,
+          previewOverlay: !!prefs.previewOverlay,
+          nesting: !!prefs.nesting,
+          scale: clampScale(prefs.scale),
+          timelineAt: normalizeTimelineAt(prefs.timelineAt),
+          node: {
+            fill: prefs.nodeFill,
+            text: prefs.nodeText,
+            stroke,
+            strokeTip: stroke,
+            strokeCascade: stroke,
+            strokeOrphan: stroke,
+            strokeStub: stroke,
+          },
+        };
+      };
+
+      const loadPrefs = async () => {
+        const mgr = getManager();
+        if (mgr && typeof mgr.loadPrefs === "function") {
+          try {
+            const mp = await mgr.loadPrefs();
+            applyPrefs(mgrPrefsToFragment(mp || {}));
+            return prefsState;
+          } catch (err) {
+            setStatus(String(err?.message || err));
+          }
+        }
+        // No manager: fragment-local fallback store
+        let merged = { ...DEFAULT_PREFS };
+        try {
+          const raw = await itemApi().get(PREFS_KEY);
+          if (raw && typeof raw === "object") {
+            merged = { ...merged, ...raw };
+          }
+        } catch {
+          /* default */
+        }
+        applyPrefs(merged);
+        return prefsState;
+      };
+
+      const nestingOn = () => {
+        const n = nestingEl();
+        return n ? !!n.checked : !!prefsState.nesting;
+      };
+
+      const previewOverlayOn = () => {
+        const po = previewOverlayEl();
+        return po ? !!po.checked : !!prefsState.previewOverlay;
+      };
+
+      const currentPrefsSnapshot = () => ({
+        border: borderEl()?.value || prefsState.border || DEFAULT_PREFS.border,
+        hostpark:
+          hostparkEl()?.value || prefsState.hostpark || DEFAULT_PREFS.hostpark,
+        text: textEl()?.value || prefsState.text || DEFAULT_PREFS.text,
+        bg: bgEl()?.value || prefsState.bg || DEFAULT_PREFS.bg,
+        nodeFill:
+          nodeFillEl()?.value || prefsState.nodeFill || DEFAULT_PREFS.nodeFill,
+        nodeText:
+          nodeTextEl()?.value || prefsState.nodeText || DEFAULT_PREFS.nodeText,
+        nodeStroke:
+          nodeStrokeEl()?.value ||
+          prefsState.nodeStroke ||
+          DEFAULT_PREFS.nodeStroke,
+        previewOverlay: previewOverlayOn(),
+        nesting: nestingOn(),
+        scale: getScalePct(),
+        timelineAt: normalizeTimelineAt(
+          liveTimelineMs != null ? liveTimelineMs : prefsState.timelineAt
+        ),
+      });
+
+      const savePrefs = async (patch = {}) => {
+        const prefs = { ...currentPrefsSnapshot(), ...patch };
+        prefs.scale = clampScale(prefs.scale);
+        prefs.timelineAt = normalizeTimelineAt(prefs.timelineAt);
+        liveScalePct = null;
+        liveTimelineMs = null;
+        applyPrefs(prefs);
+        try {
+          const mgr = getManager();
+          if (mgr && typeof mgr.patchPrefs === "function") {
+            await mgr.patchPrefs(fragmentToMgrPatch(prefs));
+          } else {
+          await itemApi().set(PREFS_KEY, prefs);
+          }
+          setStatus("prefs saved");
+        } catch (err) {
+          setStatus(String(err?.message || err));
+        }
+      };
+
+      /**
+       * Only tips mirrored through this fragment's hostpark pipe are tinted.
+       * No frame-shape heuristic (park / network_proposal) â€” host does not stamp origin.
+       */
+      const isHostparkMirroredIb = (ibOrAddr) => {
+        const ib = String(ibOrAddr || "").includes("^")
+          ? splitAddr(ibOrAddr).ib
+          : String(ibOrAddr || "").trim();
+        return !!ib && hostparkMirrorIbs.has(ib);
+      };
+
+      const loadHostparkMirrorIndex = async () => {
+        try {
+          const raw = await itemApi().get(HOSTPARK_MIRROR_KEY);
+          const list = Array.isArray(raw?.ibs)
+            ? raw.ibs
+            : Array.isArray(raw)
+              ? raw
+              : [];
+          hostparkMirrorIbs = new Set(
+            list.map((x) => String(x || "").trim()).filter(Boolean)
+          );
+        } catch {
+          hostparkMirrorIbs = new Set();
+        }
+      };
+
+      const rememberHostparkMirrors = async (ibs) => {
+        let changed = false;
+        for (const ib of ibs) {
+          const key = String(ib || "").trim();
+          if (!key || hostparkMirrorIbs.has(key)) continue;
+          hostparkMirrorIbs.add(key);
+          changed = true;
+        }
+        if (!changed) return;
+        try {
+          await itemApi().set(HOSTPARK_MIRROR_KEY, {
+            ibs: [...hostparkMirrorIbs].sort((a, b) => a.localeCompare(b)),
+          });
+        } catch (err) {
+          setHostparkStatus(
+            `mirrored ok but index save failed: ${err?.message || err}`,
+            mirrorStatusFade
+          );
+        }
+      };
+
+      const isCascadeFrame = (frame) => {
+        if (!frame || typeof frame !== "object") return false;
+        if (String(frame?.data?.source || "") === "cascade") return true;
+        const c = frame?.rel8ns?.cascade_of;
+        return Array.isArray(c) && c.length > 0;
+      };
+
+      const hasHtml = (frame) =>
+        frame && frame.data?.html != null && String(frame.data.html) !== "";
+
+      /** Read a frame from tip.frame space, live tip, or legacy embeds/items. */
+      const framesMapGet = (map, addr) => {
+        if (!map || typeof map !== "object") return null;
+        const a = String(addr || "").trim();
+        if (!a) return null;
+        if (map[a] && typeof map[a] === "object") return map[a];
+        const want = a.toUpperCase();
+        for (const [k, v] of Object.entries(map)) {
+          if (String(k).toUpperCase() === want && v && typeof v === "object") {
+            return v;
+          }
+        }
+        return null;
+      };
+
+      const getFrame = async (addr) => {
+        const a = String(addr || "").trim();
+        if (!a) return null;
+        const { ib, gib } = splitAddr(a);
+        try {
+          const f = await tipApi().frame?.get?.(a);
+          if (f && typeof f === "object") return f;
+        } catch {
+          /* ignore */
+        }
+        try {
+          const tip = await tipApi().get(ib);
+          if (tip && typeof tip === "object") {
+            if (
+              gib &&
+              String(tip.gib || "").toUpperCase() === gib.toUpperCase()
+            ) {
+              return tip;
+            }
+            const fromMap = framesMapGet(tip.data?.frames, a);
+            if (fromMap) return fromMap;
+            if (!gib) return tip;
+          }
+        } catch {
+          /* ignore */
+        }
+        try {
+          const f = await itemApi().get(FRAME_PREFIX + a);
+          if (f && typeof f === "object") return f;
+        } catch {
+          /* ignore */
+        }
+        return null;
+      };
+
+      /** Latest tip addr from navi.storage.tip (ignore legacy item tip keys). */
+      const getTipAddr = async (ib) => {
+        const key = String(ib || "").trim();
+        if (!key) return null;
+        try {
+          const tip = await tipApi().get(key);
+          if (tip && typeof tip === "object") return frameAddr(tip) || null;
+          if (typeof tip === "string" && tip.includes("^")) return tip;
+        } catch {
+          /* ignore */
+        }
+        return null;
+      };
+
+      /**
+       * Same lineage walk snoopy history uses: tip â†’ past via tip.frame.get.
+       * Also merges tip.frame.list so missing past links still show every gen.
+       */
+      const loadTipSpine = async (ib) => {
+        const key = String(ib || "").trim();
+        const out = new Map(); // addr â†’ frame
+        let tip = null;
+        try {
+          tip = await tipApi().get(key);
+        } catch {
+          tip = null;
+        }
+        if (!tip || typeof tip !== "object") {
+          return { tip: null, tipAddr: null, frames: out };
+        }
+        const tipAddr = frameAddr(tip);
+        if (tipAddr) out.set(tipAddr, tip);
+
+        // All generations in frame space (authoritative when present)
+        try {
+          const listed = ((await tipApi().frame?.list?.(key)) || []).map(String);
+          for (const addr of listed) {
+            if (!addr || out.has(addr)) continue;
+            const f = await getFrame(addr);
+            if (f) out.set(addr, f);
+          }
+        } catch {
+          /* list optional */
+        }
+
+        // Walk past from tip (same as snoopy history)
+        let cur = tip;
+        let guard = 0;
+        while (cur && guard++ < 64) {
+          const past =
+            Array.isArray(cur.rel8ns?.past) && cur.rel8ns.past[0]
+              ? String(cur.rel8ns.past[0])
+              : "";
+          if (!past || out.has(past)) break;
+          const f = await getFrame(past);
+          if (!f) break;
+          out.set(past, f);
+          cur = f;
+        }
+
+        // Chain position from the past walk (oldest = 0); no stored counter.
+        const chain = [];
+        for (let f = tip, g = 0; f && g < 512; g++) {
+          const a = g === 0 ? tipAddr : frameAddr(f);
+          if (!a || chain.includes(a)) break;
+          chain.push(a);
+          const past =
+            Array.isArray(f.rel8ns?.past) && f.rel8ns.past[0]
+              ? String(f.rel8ns.past[0])
+              : "";
+          f = past ? out.get(past) : null;
+        }
+        chain.reverse();
+        const seq = new Map(chain.map((a, i) => [a, i]));
+
+        return { tip, tipAddr, frames: out, seq };
+      };
+
+      /**
+       * Build graph for an ib: unique nodes by addr + edges from real rel8ns.
+       * Reads tip/frame item keys (+ navi tip store) â€” no module API.
+       */
+      const loadGraph = async (ib) => {
+        const base = String(ib || "").trim();
+        const nodes = new Map();
+        const edges = [];
+        const edgeKey = new Set();
+        let spineSeq = new Map();
+        const stampOf = (a) => {
+          const t = Date.parse(nodes.get(a)?.frame?.data?.timestamp);
+          return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY;
+        };
+        const byOrder = (a, b) => {
+          const sa = spineSeq.get(a);
+          const sb = spineSeq.get(b);
+          if (sa != null && sb != null) return sa - sb;
+          const ta = stampOf(a);
+          const tb = stampOf(b);
+          if (ta !== tb) return ta - tb;
+          return String(a).localeCompare(String(b));
+        };
+
+        const addNode = (addr, patch = {}) => {
+          const a = String(addr || "").trim();
+          if (!a) return null;
+          const prev = nodes.get(a) || {
+            addr: a,
+            ib: splitAddr(a).ib,
+            frame: null,
+            stub: true,
+            kind: "frame",
+            seq: null,
+            row: "main",
+          };
+          const next = { ...prev, ...patch, addr: a };
+          if (spineSeq.has(a)) next.seq = spineSeq.get(a);
+          if (next.frame) {
+            next.stub = false;
+            next.ib = String(next.frame.ib || next.ib || splitAddr(a).ib);
+            if (isCascadeFrame(next.frame)) next.kind = "cascade";
+          }
+          nodes.set(a, next);
+          return next;
+        };
+
+        const addEdge = (from, to, rel) => {
+          const f = String(from || "").trim();
+          const t = String(to || "").trim();
+          if (!f || !t || f === t) return;
+          const k = `${f}|${t}|${rel}`;
+          if (edgeKey.has(k)) return;
+          edgeKey.add(k);
+          let color = EDGE.other;
+          const r = String(rel || "");
+          if (r === "past") color = EDGE.past;
+          else if (
+            r === "cascade_of" ||
+            r === "mutation_of" ||
+            r === "htmf_ibgib"
+          ) {
+            color = EDGE.cascade;
+          }
+          edges.push({ from: f, to: t, rel: r, color });
+          addNode(f);
+          addNode(t);
+        };
+
+        const collectRelEdges = (addr, frame) => {
+          if (!frame?.rel8ns || typeof frame.rel8ns !== "object") return;
+          for (const [rel, vals] of Object.entries(frame.rel8ns)) {
+            if (rel === "bin" || rel === "dna" || rel === "tjp") continue;
+            const list = Array.isArray(vals) ? vals : [];
+            for (const v of list) {
+              if (looksLikeAddr(v)) addEdge(addr, String(v), rel);
+            }
+          }
+          const htmf = frame?.data?.htmf_ibgib;
+          if (htmf && looksLikeAddr(htmf)) {
+            addEdge(addr, String(htmf), "htmf_ibgib");
+          }
+        };
+
+        const walkLineage = async (startAddr, rowKey, kindDefault) => {
+          const addrs = [];
+          const seen = new Set();
+          let addr = String(startAddr || "").trim();
+          let guard = 0;
+          while (addr && !seen.has(addr) && guard++ < 64) {
+            seen.add(addr);
+            const frame = await getFrame(addr);
+            const cascade = frame ? isCascadeFrame(frame) : false;
+            addNode(addr, {
+              frame,
+              stub: !frame,
+              kind: cascade ? "cascade" : kindDefault,
+              row: rowKey,
+            });
+            if (frame) collectRelEdges(addr, frame);
+            addrs.push(addr);
+            if (!frame) break;
+            const past = Array.isArray(frame.rel8ns?.past)
+              ? frame.rel8ns.past.map(String)
+              : [];
+            addr = past[0] || "";
+          }
+          // Edges come only from real rel8ns (collectRelEdges) â€” do not
+          // invent past between neighbors after a prune.
+          return addrs;
+        };
+
+        /** Ensure tip.data.frames embeds appear as main-row squares (legacy). */
+        const mergeEmbeddedFrames = async (tipAddr, rowKey) => {
+          const tipFrame = await getFrame(tipAddr);
+          const map = tipFrame?.data?.frames;
+          if (!map || typeof map !== "object") return [];
+          const extra = [];
+          for (const [rawAddr, frame] of Object.entries(map)) {
+            const addr = String(rawAddr || "").trim();
+            if (!addr || !frame || typeof frame !== "object") continue;
+            if (!nodes.has(addr) || nodes.get(addr).stub) {
+              addNode(addr, {
+                frame,
+                stub: false,
+                kind: isCascadeFrame(frame) ? "cascade" : "main",
+                row: rowKey,
+              });
+              collectRelEdges(addr, frame);
+              extra.push(addr);
+            }
+          }
+          return extra;
+        };
+
+        /**
+         * Load every tip.frame generation for this ib (real ib^gib records).
+         * Rebuilds the n-spine even when past links are missing/dangling.
+         */
+        const mergeTipFrameStore = async (ib, tipAddr, rowKey) => {
+          const listFn = tipApi().frame?.list;
+          if (typeof listFn !== "function") return [];
+          let addrs = [];
+          try {
+            addrs = ((await listFn(ib)) || []).map(String);
+          } catch {
+            return [];
+          }
+          if (tipAddr && !addrs.includes(tipAddr)) addrs.push(tipAddr);
+          const extra = [];
+          for (const addr of addrs) {
+            const frame = await getFrame(addr);
+            if (!frame) continue;
+            addNode(addr, {
+              frame,
+              stub: false,
+              kind: isCascadeFrame(frame) ? "cascade" : "main",
+              row: rowKey,
+            });
+            collectRelEdges(addr, frame);
+            extra.push(addr);
+          }
+          return extra;
+        };
+
+        const orderSpineByN = (addrs) => {
+          const uniq = [...new Set(addrs.map(String).filter(Boolean))];
+          return uniq.sort(byOrder);
+        };
+
+        let directAddrs = [];
+        let frameStoreCount = 0;
+        const spine = await loadTipSpine(base);
+        // Only this ib's tip + frames â€” child ibs (base:â€¦) are separate list
+        // entries and get their own expand, not nested under the parent.
+        if (spine.tipAddr) {
+          frameStoreCount = spine.frames.size;
+          spineSeq = spine.seq;
+          const spineStamp = (a) => {
+            const t = Date.parse(spine.frames.get(a)?.data?.timestamp);
+            return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY;
+          };
+          const addrs = [...spine.frames.keys()].sort((a, b) => {
+            const sa = spineSeq.get(a);
+            const sb = spineSeq.get(b);
+            if (sa != null && sb != null) return sa - sb;
+            const ta = spineStamp(a);
+            const tb = spineStamp(b);
+            if (ta !== tb) return ta - tb;
+            return String(a).localeCompare(String(b));
+          });
+          for (const addr of addrs) {
+            const frame = spine.frames.get(addr);
+            addNode(addr, {
+              frame,
+              stub: false,
+              kind:
+                addr === spine.tipAddr
+                  ? "tip"
+                  : isCascadeFrame(frame)
+                    ? "cascade"
+                    : "main",
+              row: "main",
+            });
+            if (frame) collectRelEdges(addr, frame);
+          }
+          directAddrs = addrs;
+          const tipNode = nodes.get(spine.tipAddr);
+          if (tipNode) tipNode.kind = "tip";
+        }
+
+        const frameKeys = ((await tipApi().frame?.list?.()) || []).map(String);
+        for (const addr of frameKeys) {
+          const ibOf = splitAddr(addr).ib;
+          if (ibOf !== base) continue;
+          if (nodes.has(addr) && !nodes.get(addr).stub) continue;
+          const frame = await getFrame(addr);
+          if (!frame) continue;
+          addNode(addr, {
+            frame,
+            stub: false,
+            kind: isCascadeFrame(frame) ? "cascade" : "frame",
+            row: isCascadeFrame(frame) ? "orphan" : "main",
+          });
+          collectRelEdges(addr, frame);
+        }
+
+        // Resolve stubs that only appear as edge targets
+        for (const [addr, node] of [...nodes.entries()]) {
+          if (!node.stub && node.frame) continue;
+          const f = await getFrame(addr);
+          if (f) {
+            addNode(addr, { frame: f, stub: false });
+            collectRelEdges(addr, f);
+          }
+        }
+
+        if (directAddrs.length) {
+          const tipA = directAddrs[directAddrs.length - 1];
+          const n = nodes.get(tipA);
+          if (n) n.kind = "tip";
+        }
+
+        // Never draw unresolved "?" stubs â€” only real frames.
+        for (const [addr, node] of [...nodes.entries()]) {
+          if (node.stub || !node.frame) nodes.delete(addr);
+        }
+        for (let i = edges.length - 1; i >= 0; i--) {
+          const e = edges[i];
+          if (!nodes.has(e.from) || !nodes.has(e.to)) edges.splice(i, 1);
+        }
+        // Keep main spine addrs that still have nodes
+        directAddrs = directAddrs.filter((a) => nodes.has(a));
+
+        const byN = byOrder;
+
+        /**
+         * Same-ib frames that no longer share a live past edge are separate
+         * lineage heads (prune in the middle splits the chain).
+         */
+        const lineageComponents = (addrs) => {
+          const set = new Set(addrs);
+          const adj = new Map();
+          for (const a of addrs) adj.set(a, new Set());
+          for (const e of edges) {
+            if (e.rel !== "past") continue;
+            if (!set.has(e.from) || !set.has(e.to)) continue;
+            adj.get(e.from).add(e.to);
+            adj.get(e.to).add(e.from);
+          }
+          const seen = new Set();
+          const comps = [];
+          for (const start of addrs.slice().sort(byN)) {
+            if (seen.has(start)) continue;
+            const stack = [start];
+            const comp = [];
+            seen.add(start);
+            while (stack.length) {
+              const x = stack.pop();
+              comp.push(x);
+              for (const y of adj.get(x) || []) {
+                if (seen.has(y)) continue;
+                seen.add(y);
+                stack.push(y);
+              }
+            }
+            comp.sort(byN);
+            comps.push(comp);
+          }
+          comps.sort((a, b) => byN(a[0], b[0]));
+          return comps;
+        };
+
+        const sameIb = [...nodes.values()]
+          .filter((n) => String(n.ib || "") === base)
+          .map((n) => n.addr);
+        const lineages = lineageComponents(sameIb);
+        lineages.forEach((line, i) => {
+          const rowKey = i === 0 ? "main" : `lineage:${i}`;
+          for (const a of line) {
+            const n = nodes.get(a);
+            if (n) n.row = rowKey;
+          }
+        });
+        if (lineages[0]) directAddrs = lineages[0];
+
+        return {
+          base,
+          nodes,
+          edges,
+          directAddrs,
+          lineages,
+          leafTips: [],
+          frameStoreCount,
+        };
+      };
+
+      const dismissFloat = () => {
+        if (floatEl) {
+          try {
+            floatEl.remove();
+          } catch {
+            /* ignore */
+          }
+          floatEl = null;
+        }
+        floatAddr = null;
+        viewport
+          .querySelectorAll("[data-tv-selected='1']")
+          .forEach((el) => {
+            el.dataset.tvSelected = "0";
+            el.style.outline = "";
+          });
+      };
+
+      const pruneFrame = async (addr, node) => {
+        const tip = tipApi();
+        if (typeof tip.frame?.del !== "function") {
+          throw new Error("navi.storage.tip.frame.del unavailable");
+        }
+        const a = String(addr || "").trim();
+        if (!a || !a.includes("^")) {
+          throw new Error("prune needs a full ib^gib addr");
+        }
+        const { ib } = splitAddr(a);
+        const frame = node?.frame && typeof node.frame === "object"
+          ? node.frame
+          : await getFrame(a);
+        let currentTip = null;
+        try {
+          currentTip = await tip.get(ib);
+        } catch {
+          currentTip = null;
+        }
+        const currentTipAddr = currentTip ? frameAddr(currentTip) : null;
+        const wasTip = !currentTipAddr || currentTipAddr === a;
+
+        await tip.frame.del(a);
+        try {
+          const item = itemApi();
+          if (typeof item.del === "function") {
+            await item.del(FRAME_PREFIX + a);
+          }
+        } catch {
+          /* legacy item key optional */
+        }
+
+        const remaining = ((await tip.frame.list?.(ib)) || [])
+          .map(String)
+          .filter((x) => x && x !== a);
+
+        if (wasTip) {
+          if (!remaining.length) {
+            if (typeof tip.del === "function") await tip.del(ib);
+          } else {
+            const past0 =
+              Array.isArray(frame?.rel8ns?.past) && frame.rel8ns.past[0]
+                ? String(frame.rel8ns.past[0])
+                : "";
+            let nextFrame = null;
+            if (past0 && remaining.includes(past0)) {
+              nextFrame = await getFrame(past0);
+            }
+            if (!nextFrame) {
+              const ranked = [];
+              for (const ra of remaining) {
+                const f = await getFrame(ra);
+                if (f) ranked.push(f);
+              }
+              ranked.sort((x, y) => {
+                const tx = Date.parse(x?.data?.timestamp) || 0;
+                const ty = Date.parse(y?.data?.timestamp) || 0;
+                if (tx !== ty) return ty - tx;
+                return frameAddr(y).localeCompare(frameAddr(x));
+              });
+              nextFrame = ranked[0] || null;
+            }
+            if (nextFrame && typeof tip.set === "function") {
+              await tip.set(nextFrame);
+            }
+          }
+        }
+      };
+
+      /** Every frame (ib^gib) in frame space at this ib, plus the tip pointer. */
+      const listFramesAtIb = async (ib) => {
+        const tip = tipApi();
+        const addrs = new Set(
+          ((await tip.frame?.list?.(ib)) || []).map(String).filter(Boolean)
+        );
+        try {
+          const cur = await tip.get(ib);
+          const a = cur ? frameAddr(cur) : null;
+          if (a) addrs.add(a);
+        } catch {
+          /* no tip */
+        }
+        return [...addrs].filter((a) => splitAddr(a).ib === ib);
+      };
+
+      /** Drop every frame at ib and the tip itself. Bins are left alone (same as prune). */
+      const pruneAllAtIb = async (ib) => {
+        const tip = tipApi();
+        if (typeof tip.frame?.del !== "function") {
+          throw new Error("navi.storage.tip.frame.del unavailable");
+        }
+        const target = String(ib || "").trim();
+        if (!target) throw new Error("prune all needs an ib");
+        const addrs = await listFramesAtIb(target);
+        const item = itemApi();
+        let dropped = 0;
+        for (const a of addrs) {
+          try {
+            await tip.frame.del(a);
+            dropped++;
+          } catch (err) {
+            console.warn("[tinyviewport] prune all: frame.del failed", a, err);
+          }
+          try {
+            if (typeof item.del === "function") await item.del(FRAME_PREFIX + a);
+          } catch {
+            /* legacy item key optional */
+          }
+        }
+        if (typeof tip.del === "function") {
+          try {
+            await tip.del(target);
+          } catch {
+            /* tip may already be gone */
+          }
+        }
+        return { ib: target, dropped, total: addrs.length };
+      };
+
+      const rerenderOpenGraph = async () => {
+        if (!state.selectedIb) {
+          renderList();
+          return;
+        }
+        setStatus(`loading graph ${state.selectedIb}â€¦`);
+        state.graph = await resolveGraph(state.selectedIb);
+        await renderLegend();
+        renderList();
+        const graph = state.graph;
+        setStatus(
+          `${state.ibs.length} tip(s) Â· open ${state.selectedIb} Â· ${graph.nodes.size} node(s) Â· ${graph.edges.length} edge(s)` +
+            (graph.viaManager
+              ? ` Â· manager [${(graph.sources || []).join(",")}]`
+              : "") +
+            (graph.lineages?.length > 1
+              ? ` Â· ${graph.lineages.length} lineage lines`
+              : "")
+        );
+      };
+
+      const renderPluginOverlayActions = async (
+        hostEl,
+        node,
+        frame,
+        ui = {}
+      ) => {
+        const mgr = getManager();
+        if (!hostEl || !mgr?.resolveNodeOverlay) return;
+        let overlay = { actions: [], scrub: null };
+        try {
+          overlay = await mgr.resolveNodeOverlay(node, frame);
+        } catch (err) {
+          console.warn("[tinyviewport] resolveNodeOverlay failed", err);
+          return;
+        }
+        const items = Array.isArray(overlay?.actions) ? overlay.actions : [];
+        const scrub = overlay?.scrub;
+
+        const isLaunchNode =
+          node?.flowKind === "launch" ||
+          node?.flowBand === "launch" ||
+          node?.layoutBand === "launch" ||
+          /:launch$/i.test(String(node?.row || ""));
+        if (
+          isLaunchNode &&
+          !items.some((a) => String(a?.id || "") === "open_boot")
+        ) {
+          const ib = String(node?.ib || frame?.ib || "")
+            .trim()
+            .replace(/^\/+/, "");
+          if (ib) {
+            const naviApi = globalThis.navi;
+            let url = "";
+            if (naviApi?.resolveUrl) {
+              try {
+                url = String(naviApi.resolveUrl(ib) || "").trim();
+              } catch {
+                url = "";
+              }
+            }
+            if (!url) {
+              const origin = String(
+                naviApi?.origin || globalThis.location?.origin || ""
+              ).replace(/\/+$/, "");
+              url = origin ? `${origin}/${ib}` : `/${ib}`;
+            }
+            const openBoot = () => {
+              if (typeof globalThis.open === "function") {
+                globalThis.open(url, "_blank", "noopener,noreferrer");
+              }
+            };
+            items.push({
+              id: "open_boot",
+              label: "open boot",
+              title: `Open ${ib} in a new tab`,
+              href: url,
+              run: openBoot,
+            });
+          }
+        }
+
+        hostEl.replaceChildren();
+        if (!items.length && !scrub) {
+          hostEl.style.display = "none";
+          return;
+        }
+        hostEl.style.display = "flex";
+        hostEl.style.flexDirection = "column";
+        hostEl.style.alignItems = "stretch";
+        hostEl.style.gap = "6px";
+
+        if (scrub && typeof scrub.step === "function") {
+          const scrubRow = document.createElement("div");
+          scrubRow.style.cssText =
+            "display:flex;align-items:center;gap:6px;flex-wrap:wrap";
+          const label = document.createElement("span");
+          label.textContent = String(scrub.label || "lineage");
+          scrubRow.appendChild(label);
+          const prevBtn = document.createElement("button");
+          prevBtn.type = "button";
+          prevBtn.textContent = "â€¹";
+          const nextBtn = document.createElement("button");
+          nextBtn.type = "button";
+          nextBtn.textContent = "â€º";
+          const idxEl = document.createElement("span");
+          const range = document.createElement("input");
+          range.type = "range";
+          range.min = "0";
+          range.max = String(Math.max(0, Number(scrub.total) - 1));
+          range.value = String(
+            Math.max(
+              0,
+              Math.min(
+                Number(scrub.index) || 0,
+                Math.max(0, Number(scrub.total) - 1)
+              )
+            )
+          );
+          const applyScrub = async (index) => {
+            const i = Math.max(
+              0,
+              Math.min(Number(index) || 0, Number(range.max))
+            );
+            range.value = String(i);
+            idxEl.textContent = `${i + 1}/${Number(scrub.total) || 1}`;
+            let hit = scrub.step(i);
+            if (hit && typeof hit.then === "function") hit = await hit;
+            if (!hit) return;
+            const fr = hit.frame || frame;
+            if (ui.tipEl && fr) {
+              try {
+                ui.tipEl.textContent = JSON.stringify(fr, null, 2);
+              } catch {
+                ui.tipEl.textContent = String(fr);
+              }
+            }
+            if (ui.detailEl && hit.detail) {
+              ui.detailEl.textContent = String(hit.detail);
+              ui.detailEl.style.display = "block";
+            }
+          };
+          prevBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            void applyScrub(Number(range.value) - 1);
+          });
+          nextBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            void applyScrub(Number(range.value) + 1);
+          });
+          range.addEventListener("input", (ev) => {
+            ev.stopPropagation();
+            void applyScrub(Number(range.value));
+          });
+          scrubRow.appendChild(prevBtn);
+          scrubRow.appendChild(range);
+          scrubRow.appendChild(nextBtn);
+          scrubRow.appendChild(idxEl);
+          hostEl.appendChild(scrubRow);
+          const detailEl = document.createElement("div");
+          detailEl.style.cssText = "font-size:11px;opacity:0.85";
+          detailEl.style.display = "none";
+          hostEl.appendChild(detailEl);
+          if (ui) ui.detailEl = detailEl;
+          void applyScrub(range.value);
+        }
+
+        const actionRow = document.createElement("div");
+        actionRow.style.cssText =
+          "display:flex;align-items:center;gap:8px;flex-wrap:wrap";
+        for (const a of items) {
+          const label = String(a?.label || a?.id || "action");
+          const href = a?.href != null ? String(a.href).trim() : "";
+          if (href) {
+            const link = document.createElement("a");
+            link.href = href;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = label;
+            if (a.title) link.title = String(a.title);
+            link.style.cssText = "font:inherit;cursor:pointer";
+            link.addEventListener("click", (ev) => ev.stopPropagation());
+            actionRow.appendChild(link);
+            continue;
+          }
+          if (typeof a?.run !== "function") continue;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = label;
+          if (a.title) btn.title = String(a.title);
+          btn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof a.run !== "function") return;
+            void Promise.resolve(a.run()).catch((err) => {
+              setStatus(String(err?.message || err));
+            });
+          });
+          actionRow.appendChild(btn);
+        }
+        if (actionRow.childNodes.length) hostEl.appendChild(actionRow);
+      };
+
+      const showFloat = (anchorEl, node, host) => {
+        const addr = String(node.addr || "");
+        if (floatAddr && floatAddr === addr && floatEl) {
+          dismissFloat();
+          return;
+        }
+        dismissFloat();
+        floatAddr = addr;
+        anchorEl.dataset.tvSelected = "1";
+        anchorEl.style.outline = "2px solid #111";
+        anchorEl.style.outlineOffset = "1px";
+
+        const overlay = previewOverlayOn();
+        floatEl = document.createElement("div");
+        floatEl.setAttribute("data-part", "preview");
+        floatEl.dataset.tvPreviewMode = overlay ? "overlay" : "inline";
+        if (overlay) {
+          const hostBox = (shellEl || root).getBoundingClientRect();
+          const nodeBox = anchorEl.getBoundingClientRect();
+          const gap = 4;
+          const maxW = Math.min(420, Math.max(220, hostBox.width * 0.72));
+          let left = nodeBox.left - hostBox.left;
+          let top = nodeBox.bottom - hostBox.top + gap;
+          // keep panel inside shell horizontally
+          left = Math.max(4, Math.min(left, hostBox.width - maxW - 4));
+          floatEl.style.cssText = [
+            "position:absolute",
+            `left:${Math.round(left)}px`,
+            `top:${Math.round(top)}px`,
+            `width:${Math.round(maxW)}px`,
+            "z-index:40",
+            "display:block",
+            "box-sizing:border-box",
+            "margin:0",
+            "min-height:min(40vh,22rem)",
+            "height:min(55vh,36rem)",
+            "max-height:min(65vh,44rem)",
+            "overflow:auto",
+            "padding:10px 12px",
+            "border:2px solid silver",
+            "background:#fff",
+            "color:#111",
+            "box-shadow:2px 2px 0 #bbb",
+            "font:12px/1.35 monospace",
+            "word-break:break-word",
+          ].join(";");
+        } else {
+        floatEl.style.cssText = [
+          "display:block",
+          "width:100%",
+          "box-sizing:border-box",
+          "margin:10px 0 4px 0",
+          "min-height:min(55vh,36rem)",
+          "height:min(65vh,44rem)",
+          "max-height:min(75vh,48rem)",
+          "overflow:auto",
+          "padding:10px 12px",
+          "border:2px solid silver",
+          "background:#fff",
+          "color:#111",
+          "box-shadow:2px 2px 0 #ccc",
+          "font:12px/1.35 monospace",
+          "word-break:break-word",
+        ].join(";");
+        }
+
+        const head = document.createElement("div");
+        head.style.cssText =
+          "font-weight:700;margin-bottom:6px;word-break:break-all;display:flex;align-items:flex-start;justify-content:space-between;gap:8px";
+        const headText = document.createElement("span");
+        const nLab = node.seq != null ? ` #${node.seq}` : "";
+        headText.textContent = `${addr}${nLab}`;
+        head.appendChild(headText);
+        if (overlay) {
+          const closeBtn = document.createElement("button");
+          closeBtn.type = "button";
+          closeBtn.textContent = "close";
+          closeBtn.style.cssText = "flex:0 0 auto;cursor:pointer";
+          closeBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            dismissFloat();
+          });
+          head.appendChild(closeBtn);
+        }
+        floatEl.appendChild(head);
+
+        const actions = document.createElement("div");
+        actions.setAttribute("data-part", "preview-prune");
+        actions.style.cssText =
+          "margin:0 0 10px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap";
+        const pruneBtn = document.createElement("button");
+        pruneBtn.type = "button";
+        pruneBtn.textContent = "prune";
+        const confirmWrap = document.createElement("span");
+        confirmWrap.style.cssText =
+          "display:none;align-items:center;gap:8px;flex-wrap:wrap";
+        const sureEl = document.createElement("span");
+        sureEl.textContent = "are u sure?";
+        const yesBtn = document.createElement("button");
+        yesBtn.type = "button";
+        yesBtn.textContent = "yes";
+        confirmWrap.appendChild(sureEl);
+        confirmWrap.appendChild(yesBtn);
+        actions.appendChild(pruneBtn);
+        actions.appendChild(confirmWrap);
+
+        const pruneIb = splitAddr(String(addr || "")).ib;
+        const pruneAllBtn = document.createElement("button");
+        pruneAllBtn.type = "button";
+        pruneAllBtn.textContent = "prune all";
+        pruneAllBtn.title = `Prune every ib^gib frame at ${pruneIb} (and its tip)`;
+        const allConfirmWrap = document.createElement("span");
+        allConfirmWrap.style.cssText =
+          "display:none;align-items:center;gap:8px;flex-wrap:wrap";
+        const allSureEl = document.createElement("span");
+        allSureEl.textContent = `prune ALL frames at ${pruneIb}?`;
+        const allYesBtn = document.createElement("button");
+        allYesBtn.type = "button";
+        allYesBtn.textContent = "yes, all";
+        allConfirmWrap.appendChild(allSureEl);
+        allConfirmWrap.appendChild(allYesBtn);
+        if (pruneIb) {
+          actions.appendChild(pruneAllBtn);
+          actions.appendChild(allConfirmWrap);
+        }
+        pruneAllBtn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          pruneAllBtn.style.display = "none";
+          allConfirmWrap.style.display = "inline-flex";
+          void listFramesAtIb(pruneIb)
+            .then((addrs) => {
+              allSureEl.textContent = `prune ALL ${addrs.length} frame(s) at ${pruneIb}?`;
+            })
+            .catch(() => {});
+        });
+        allYesBtn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          allYesBtn.disabled = true;
+          pruneAllBtn.disabled = true;
+          pruneBtn.disabled = true;
+          void (async () => {
+            try {
+              setStatus(`pruning all at ${pruneIb}...`);
+              const r = await pruneAllAtIb(pruneIb);
+              dismissFloat();
+              await refresh();
+              setStatus(`pruned ${r.dropped}/${r.total} frame(s) at ${pruneIb}`);
+            } catch (err) {
+              allYesBtn.disabled = false;
+              pruneAllBtn.disabled = false;
+              pruneBtn.disabled = false;
+              setStatus(String(err?.message || err));
+            }
+          })();
+        });
+        pruneBtn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          pruneBtn.style.display = "none";
+          confirmWrap.style.display = "inline-flex";
+        });
+        yesBtn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          yesBtn.disabled = true;
+          pruneBtn.disabled = true;
+          void (async () => {
+            try {
+              setStatus(`pruning ${shortAddr(addr)}â€¦`);
+              await pruneFrame(addr, node);
+              dismissFloat();
+              await rerenderOpenGraph();
+              setStatus(`pruned ${shortAddr(addr)}`);
+            } catch (err) {
+              yesBtn.disabled = false;
+              pruneBtn.disabled = false;
+              setStatus(String(err?.message || err));
+            }
+          })();
+        });
+        floatEl.appendChild(actions);
+
+        const pluginActionsEl = document.createElement("div");
+        pluginActionsEl.setAttribute("data-part", "preview-plugin-actions");
+        pluginActionsEl.style.cssText =
+          "margin:0 0 10px 0;display:none;align-items:center;gap:8px;flex-wrap:wrap";
+        floatEl.appendChild(pluginActionsEl);
+
+        const tipEl = document.createElement("div");
+        tipEl.setAttribute("data-part", "preview-tip");
+        tipEl.style.cssText = "white-space:pre-wrap;flex:1 1 auto";
+        tipEl.textContent = "loadingâ€¦";
+        floatEl.appendChild(tipEl);
+
+        const binHost = document.createElement("div");
+        binHost.setAttribute("data-part", "preview-bin");
+        binHost.style.cssText = [
+          "display:none",
+          "margin-top:14px",
+          "padding-top:14px",
+          "border-top:2px solid #333",
+          "flex:0 0 auto",
+        ].join(";");
+        floatEl.appendChild(binHost);
+
+        if (overlay) {
+          (shellEl || root).appendChild(floatEl);
+        } else {
+        const row =
+          (host && host.closest && host.closest("[data-part='tip-row']")) ||
+          host;
+        if (row) row.appendChild(floatEl);
+        else host.appendChild(floatEl);
+        }
+
+        const primaryMime = (raw) =>
+          String(raw || "")
+            .split(";")[0]
+            .trim()
+            .toLowerCase();
+
+        const binPreviewKind = (mime, frame) => {
+          let m = primaryMime(mime);
+          if (!m) {
+            const parts = Array.isArray(frame?.data?.parts)
+              ? frame.data.parts.map(String)
+              : [];
+            if (parts.includes("text")) m = "text/plain";
+          }
+          if (!m) return null;
+          if (m === "application/json" || m.endsWith("+json")) return "text";
+          if (m === "text/html" || m.endsWith("+html")) return "html";
+          if (m === "text/plain" || m.startsWith("text/")) return "text";
+          if (m.startsWith("image/")) return "image";
+          if (m.startsWith("video/")) return "video";
+          return null;
+        };
+
+        /** Build a data:/blob: URL for image|video bin media. */
+        const mediaSrcForBinary = (media, mime) => {
+          const s = String(media ?? "");
+          if (!s) return null;
+          if (/^(data:|blob:)/i.test(s)) return s;
+          const m = primaryMime(mime) || "application/octet-stream";
+          // Common case: base64 payload without data: prefix
+          const compact = s.replace(/\s+/g, "");
+          if (/^[A-Za-z0-9+/]+=*$/.test(compact) && compact.length > 32) {
+            return `data:${m};base64,${compact}`;
+          }
+          try {
+            const bytes = new Uint8Array(s.length);
+            for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i) & 0xff;
+            const blob = new Blob([bytes], { type: m });
+            return URL.createObjectURL(blob);
+          } catch {
+            return null;
+          }
+        };
+
+        /** Payload size: decoded bytes for base64 / data: media, else UTF-8 bytes. */
+        const binSizeLabel = (media, kind) => {
+          const s = String(media ?? "");
+          const stored = utf8Bytes(s);
+          const b64Bytes = (b64) => {
+            const c = b64.replace(/\s+/g, "");
+            const pad = c.endsWith("==") ? 2 : c.endsWith("=") ? 1 : 0;
+            return Math.max(0, Math.floor((c.length * 3) / 4) - pad);
+          };
+          let decoded = stored;
+          const dataUrl = s.match(/^data:[^,]*;base64,(.*)$/is);
+          if (dataUrl) {
+            decoded = b64Bytes(dataUrl[1]);
+          } else if (
+            (kind === "image" || kind === "video" || kind === null) &&
+            /^[A-Za-z0-9+/]+=*$/.test(s.replace(/\s+/g, "")) &&
+            s.length > 32
+          ) {
+            decoded = b64Bytes(s);
+          }
+          const main = formatSpaceBytes(decoded);
+          return decoded !== stored
+            ? `${main} (stored ${formatSpaceBytes(stored)})`
+            : main;
+        };
+
+        void (async () => {
+          // Always re-load frame from tip/frame space (graph node may be stale).
+          let frame = null;
+          try {
+            frame = (await getFrame(addr)) || node.frame || null;
+          } catch {
+            frame = node.frame || null;
+          }
+          if (!frame) {
+            tipEl.textContent =
+              "(frame not in tip/frame store â€” stub addr only)";
+            tipEl.style.opacity = "0.65";
+            await renderPluginOverlayActions(pluginActionsEl, node, null, {
+              tipEl,
+            });
+            return;
+          }
+
+          await renderPluginOverlayActions(pluginActionsEl, node, frame, {
+            tipEl,
+          });
+
+          try {
+            tipEl.textContent = JSON.stringify(frame, null, 2);
+          } catch {
+            tipEl.textContent = String(frame);
+          }
+
+          const ref = Array.isArray(frame.rel8ns?.bin)
+            ? frame.rel8ns.bin[0]
+            : null;
+          const sha = String(ref || "")
+            .trim()
+            .match(/^bin\s+([0-9a-fA-F]+)$/)?.[1]
+            ?.toLowerCase();
+          if (!sha) return;
+
+          let bin = null;
+          try {
+            bin = await globalThis.navi?.storage?.bin?.get?.(sha);
+          } catch (err) {
+            binHost.style.display = "block";
+            binHost.textContent = `bin ${sha.slice(0, 12)}â€¦ load failed: ${
+              err && err.message ? err.message : err
+            }`;
+            return;
+          }
+          if (!bin || bin.media == null) {
+            binHost.style.display = "block";
+            binHost.textContent = `bin ${sha.slice(0, 12)}â€¦ missing in storage.bin`;
+            return;
+          }
+
+          const mime =
+            primaryMime(bin.mime) ||
+            primaryMime(frame.data?.content_type) ||
+            primaryMime(frame.data?.contentType) ||
+            "";
+          const kind = binPreviewKind(mime, frame);
+          if (!kind) {
+            binHost.style.display = "block";
+            binHost.textContent = `bin ${sha.slice(0, 12)}â€¦ Â· ${
+              mime || "(no mime)"
+            } Â· ${binSizeLabel(bin.media, null)} â€” no preview kind`;
+            return;
+          }
+
+          const labelRow = document.createElement("div");
+          labelRow.style.cssText =
+            "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px";
+          const label = document.createElement("span");
+          label.style.cssText = "font:700 12px/1.35 monospace";
+          label.textContent = `bin ${sha.slice(0, 12)}â€¦ Â· ${mime || kind} Â· ${binSizeLabel(bin.media, kind)}`;
+          const showBinBtn = document.createElement("button");
+          showBinBtn.type = "button";
+          showBinBtn.textContent = "show bin";
+          showBinBtn.style.cssText = "cursor:pointer";
+          labelRow.appendChild(label);
+          labelRow.appendChild(showBinBtn);
+          binHost.appendChild(labelRow);
+
+          const payloadEl = document.createElement("div");
+          payloadEl.setAttribute("data-part", "preview-bin-payload");
+          payloadEl.style.cssText = "white-space:normal;display:none";
+          binHost.appendChild(payloadEl);
+          binHost.style.display = "block";
+
+          let payloadRendered = false;
+          showBinBtn.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const open = payloadEl.style.display === "none";
+            if (open && !payloadRendered) {
+              payloadRendered = true;
+              renderBinPayload();
+            }
+            payloadEl.style.display = open ? "block" : "none";
+            showBinBtn.textContent = open ? "hide bin" : "show bin";
+          });
+
+          const renderBinPayload = () => {
+          if (kind === "text") {
+            const pre = document.createElement("pre");
+            pre.setAttribute("data-part", "preview-bin-text");
+            pre.style.cssText = [
+              "display:block",
+              "margin:0",
+              "padding:10px 12px",
+              "width:100%",
+              "min-height:4rem",
+              "max-height:40rem",
+              "overflow:auto",
+              "box-sizing:border-box",
+              "border:1px solid #bbb",
+              "background:#fff",
+              "color:#111",
+              "font:13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+              "white-space:pre-wrap",
+              "word-break:break-word",
+            ].join(";");
+            let body = String(bin.media);
+            if (
+              (mime === "application/json" || mime.endsWith("+json")) &&
+              body.trim()
+            ) {
+              try {
+                body = JSON.stringify(JSON.parse(body), null, 2);
+              } catch {
+                /* keep raw */
+              }
+            }
+            pre.textContent = body;
+            payloadEl.appendChild(pre);
+            return;
+          }
+
+          if (kind === "html") {
+            const iframe = document.createElement("iframe");
+            iframe.setAttribute("sandbox", "");
+            iframe.setAttribute("referrerpolicy", "no-referrer");
+            iframe.title = "bin html preview (sandboxed)";
+            iframe.style.cssText = [
+              "display:block",
+              "width:100%",
+              "min-height:14rem",
+              "max-height:40rem",
+              "border:1px solid #bbb",
+              "background:#fff",
+              "box-sizing:border-box",
+            ].join(";");
+            iframe.srcdoc = String(bin.media);
+            payloadEl.appendChild(iframe);
+            return;
+          }
+
+          const src = mediaSrcForBinary(bin.media, mime);
+          if (!src) {
+            payloadEl.textContent = "(no previewable media)";
+            return;
+          }
+
+          if (kind === "image") {
+            const img = document.createElement("img");
+            img.alt = `bin ${sha.slice(0, 12)}`;
+            img.src = src;
+            img.style.cssText =
+              "display:block;max-width:100%;height:auto;border:1px solid #bbb";
+            payloadEl.appendChild(img);
+            return;
+          }
+
+          if (kind === "video") {
+            const video = document.createElement("video");
+            video.controls = true;
+            video.preload = "metadata";
+            video.src = src;
+            video.style.cssText =
+              "display:block;max-width:100%;max-height:24rem;border:1px solid #bbb";
+            payloadEl.appendChild(video);
+          }
+          };
+        })();
+      };
+
+      /**
+       * Plugin band layout â€” plans come from manager.getLayoutPlan() /
+       * collectGraph().layout. Fragment does not know flow (or any plugin).
+       * Nodes stamp layoutPrefix + layoutBand (+ layoutOrder); row = `${prefix}:${band}`.
+       */
+      const layoutOrderOf = (n) => {
+        if (n?.layoutOrder != null && Number.isFinite(Number(n.layoutOrder))) {
+          return Number(n.layoutOrder);
+        }
+        // brief compat with flowchart field name
+        if (
+          n?.flowLayoutOrder != null &&
+          Number.isFinite(Number(n.flowLayoutOrder))
+        ) {
+          return Number(n.flowLayoutOrder);
+        }
+        return null;
+      };
+
+    // Also accept legacy head/core band ids from brief broken builds.
+      const layoutBandOf = (n, plan) => {
+        const raw = (() => {
+          if (
+            n?.layoutPrefix === plan.prefix &&
+            n?.layoutBand != null &&
+            String(n.layoutBand) !== ""
+          ) {
+            return String(n.layoutBand);
+          }
+          const row = String(n?.row || "");
+          const pref = `${plan.prefix}:`;
+          if (row.startsWith(pref)) return row.slice(pref.length);
+          if (n?.flowBand && (plan.prefix === "flow" || !n.layoutPrefix)) {
+            return String(n.flowBand);
+          }
+          return "";
+        })();
+        if (!raw) return "";
+        // Map short-lived head/core aliases back onto original bands.
+        if (plan.bands.includes(raw)) return raw;
+        if (raw === "head") {
+          if (plan.bands.includes("launch") || plan.bands.includes("config")) {
+            const kind = String(n?.flowKind || "");
+            if (kind === "config") return "config";
+            if (kind === "launch") return "launch";
+            return plan.bands.includes("config") ? "config" : "launch";
+          }
+        }
+        if (raw === "core") {
+          if (plan.bands.includes("flow") || plan.bands.includes("modules")) {
+            const kind = String(n?.flowKind || "");
+            if (kind === "flow") return "flow";
+            if (
+              kind === "init" ||
+              kind === "manager" ||
+              kind === "registry" ||
+              kind === "module"
+            ) {
+              return "modules";
+            }
+            return plan.bands.includes("flow") ? "flow" : "modules";
+          }
+        }
+        return raw;
+      };
+
+      const synthesizeLayoutFromNodes = (nodes) => {
+        /** @type {Map<string, Map<string, number>>} */
+        const byPrefix = new Map();
+        for (const n of nodes.values()) {
+          let prefix = String(n.layoutPrefix || "").trim();
+          let band = String(n.layoutBand || "").trim();
+          if ((!prefix || !band) && n.flowBand) {
+            prefix = prefix || "flow";
+            band = band || String(n.flowBand);
+          }
+          if ((!prefix || !band) && String(n.row || "").includes(":")) {
+            const row = String(n.row);
+            if (
+              row.startsWith("ib:") ||
+              row.startsWith("lineage:") ||
+              row.startsWith("foreign")
+            ) {
+              continue;
+            }
+            const i = row.indexOf(":");
+            prefix = prefix || row.slice(0, i);
+            band = band || row.slice(i + 1);
+          }
+          if (!prefix || !band) continue;
+          if (!byPrefix.has(prefix)) byPrefix.set(prefix, new Map());
+          const ranks = byPrefix.get(prefix);
+          const r = Number(n.layoutBandRank);
+          const prev = ranks.has(band) ? ranks.get(band) : Infinity;
+          const next = Number.isFinite(r) ? r : 1000;
+          ranks.set(band, Math.min(prev, next));
+        }
+        const plans = [];
+        for (const [prefix, ranks] of byPrefix) {
+          const bands = [...ranks.keys()].sort((a, b) => {
+            const ra = ranks.get(a);
+            const rb = ranks.get(b);
+            if (ra !== rb) return ra - rb;
+            return String(a).localeCompare(String(b));
+          });
+          plans.push({
+            pluginId: prefix,
+            prefix,
+            bands,
+            rev: "synth",
+          });
+        }
+        return plans;
+      };
+
+      const ensureGraphLayout = async (graph) => {
+        if (!graph || !graph.nodes) return [];
+        // Prefer live getLayoutPlan() over graph.layout â€” remount/reindex can
+        // change bands while a cached prefixGraph still carries an old plan.
+        let plans = [];
+        try {
+          plans = await resolveLayoutPlans(null);
+        } catch {
+          plans = [];
+        }
+        if (!plans.length && Array.isArray(graph.layout) && graph.layout.length) {
+          plans = graph.layout;
+        }
+        if (!plans.length) {
+          plans = synthesizeLayoutFromNodes(graph.nodes);
+        }
+        graph.layout = plans;
+        graph.bandLayout = plans.length > 0;
+        graph.flowMode = plans.length > 0;
+        if (plans.length) inheritLayoutBands(graph.nodes, plans);
+        return plans;
+      };
+
+      const nodeInLayoutPlan = (n, plans) => {
+        if (!plans?.length) return false;
+        if (n?.layoutPrefix && n?.layoutBand) return true;
+        if (n?.flowBand) return true;
+        const row = String(n?.row || "");
+        return plans.some((p) => row.startsWith(`${p.prefix}:`));
+      };
+
+      /** When a band-layout plugin is on, paste tip layout fields onto same-ib past gens. */
+      const inheritLayoutBands = (nodes, plans) => {
+        if (!plans?.length) return;
+        const byIb = new Map();
+        for (const n of nodes.values()) {
+          if (!nodeInLayoutPlan(n, plans)) continue;
+          const ib = String(n.ib || "").trim();
+          if (!ib) continue;
+          if (!byIb.has(ib)) {
+            byIb.set(ib, {
+              layoutPrefix: n.layoutPrefix,
+              layoutBand: n.layoutBand,
+              layoutBandRank: n.layoutBandRank,
+              layoutOrder: n.layoutOrder,
+              flowBand: n.flowBand,
+              flowKind: n.flowKind,
+              flowMeta: n.flowMeta,
+              flowLayoutOrder: n.flowLayoutOrder,
+              flowRouteOrder: n.flowRouteOrder,
+              row: n.row,
+            });
+          }
+        }
+        for (const n of nodes.values()) {
+          const ib = String(n.ib || "").trim();
+          const hit = byIb.get(ib);
+          if (!hit) continue;
+          if (!n.layoutPrefix && hit.layoutPrefix) n.layoutPrefix = hit.layoutPrefix;
+          if (!n.layoutBand && hit.layoutBand) n.layoutBand = hit.layoutBand;
+          if (n.layoutBandRank == null && hit.layoutBandRank != null) {
+            n.layoutBandRank = hit.layoutBandRank;
+          }
+          if (n.layoutOrder == null && hit.layoutOrder != null) {
+            n.layoutOrder = hit.layoutOrder;
+          }
+          if (!n.flowBand && hit.flowBand) n.flowBand = hit.flowBand;
+          if (!n.flowKind && hit.flowKind) n.flowKind = hit.flowKind;
+          if (!n.flowMeta && hit.flowMeta) n.flowMeta = hit.flowMeta;
+          if (n.flowLayoutOrder == null && hit.flowLayoutOrder != null) {
+            n.flowLayoutOrder = hit.flowLayoutOrder;
+          }
+          if (n.flowRouteOrder == null && hit.flowRouteOrder != null) {
+            n.flowRouteOrder = hit.flowRouteOrder;
+          }
+          if (hit.layoutPrefix && hit.layoutBand) {
+            n.row = `${hit.layoutPrefix}:${hit.layoutBand}`;
+          } else if (hit.row && String(hit.row).includes(":")) {
+            n.row = hit.row;
+          }
+        }
+      };
+
+      const resolveLayoutPlans = async (graphOrNull) => {
+        if (Array.isArray(graphOrNull?.layout) && graphOrNull.layout.length) {
+          return graphOrNull.layout;
+        }
+        const mgr = getManager();
+        if (mgr && typeof mgr.getLayoutPlan === "function") {
+          try {
+            return (await mgr.getLayoutPlan()) || [];
+          } catch {
+            return [];
+          }
+        }
+        return [];
+      };
+
+      const layoutRevSuffix = (plans) => {
+        if (!plans?.length) return "";
+        return (
+          "|L:" +
+          plans
+            .map((p) => `${p.prefix}.${p.rev || "1"}`)
+            .join("+")
+        );
+      };
+
+      const layoutGraph = (graph) => {
+        const rows = [];
+        const rowIndex = new Map();
+        const ensureRow = (key) => {
+          if (rowIndex.has(key)) return rowIndex.get(key);
+          const i = rows.length;
+          rowIndex.set(key, i);
+          rows.push({ key, addrs: [] });
+          return i;
+        };
+
+        const plans = Array.isArray(graph.layout) ? graph.layout : [];
+        const usesBandLayout = plans.length > 0;
+
+        if (usesBandLayout) {
+          const placed = new Set();
+          for (const plan of plans) {
+            const bandRank = (band) => {
+              let min = Infinity;
+              let found = false;
+              for (const n of graph.nodes.values()) {
+                if (layoutBandOf(n, plan) !== band) continue;
+                const r = Number(n.layoutBandRank);
+                if (!Number.isFinite(r)) continue;
+                min = Math.min(min, r);
+                found = true;
+              }
+              if (found) return min;
+              const idx = (plan.bands || []).indexOf(band);
+              return idx >= 0 ? idx : 1000;
+            };
+            // Node ranks win over plan.bands array order (synth used tip-scan
+            // order and put boot above cfg even when the plugin wanted cfg first).
+            const bandSet = new Set(plan.bands || []);
+            for (const n of graph.nodes.values()) {
+              const b = layoutBandOf(n, plan);
+              if (b) bandSet.add(b);
+            }
+            const bands = [...bandSet].sort((a, b) => {
+              const ra = bandRank(a);
+              const rb = bandRank(b);
+              if (ra !== rb) return ra - rb;
+              const ia = (plan.bands || []).indexOf(a);
+              const ib = (plan.bands || []).indexOf(b);
+              if (ia >= 0 && ib >= 0 && ia !== ib) return ia - ib;
+              if (ia >= 0 && ib < 0) return -1;
+              if (ib >= 0 && ia < 0) return 1;
+              return String(a).localeCompare(String(b));
+            });
+            for (const band of bands) {
+              const rk = `${plan.prefix}:${band}`;
+              const addrs = [...graph.nodes.values()]
+                .filter((n) => layoutBandOf(n, plan) === band)
+                .sort((a, b) => {
+                  const oa = layoutOrderOf(a);
+                  const ob = layoutOrderOf(b);
+                  if (oa != null && ob != null && oa !== ob) return oa - ob;
+                  if (oa != null && ob == null) return -1;
+                  if (ob != null && oa == null) return 1;
+                  const iba = String(a?.ib || "");
+                  const ibb = String(b?.ib || "");
+                  if (iba !== ibb) return iba.localeCompare(ibb);
+                  const na = a?.seq;
+                  const nb = b?.seq;
+                  if (na != null && nb != null && Number(na) !== Number(nb)) {
+                    return Number(na) - Number(nb);
+                  }
+                  if (a?.kind === "tip" && b?.kind !== "tip") return 1;
+                  if (b?.kind === "tip" && a?.kind !== "tip") return -1;
+                  return String(a.addr).localeCompare(String(b.addr));
+                })
+                .map((n) => n.addr);
+              if (!addrs.length) continue;
+              const ri = ensureRow(rk);
+              rows[ri].addrs = addrs;
+              for (const a of addrs) placed.add(a);
+            }
+          }
+          const orphanBand = [...graph.nodes.values()]
+            .filter((n) => !placed.has(n.addr))
+            .map((n) => n.addr);
+          if (orphanBand.length) {
+            const pref = plans[0]?.prefix || "plugin";
+            const ri = ensureRow(`${pref}:other`);
+            rows[ri].addrs.push(...orphanBand);
+          }
+        } else {
+        ensureRow("main");
+        const lineageKeys = [];
+        const foreignKeys = [];
+        for (const node of graph.nodes.values()) {
+          const rk = node.row || "orphan";
+          if (
+            rk === "main" ||
+            String(rk).startsWith("lineage:") ||
+            String(rk).startsWith("ib:")
+          ) {
+            if (!lineageKeys.includes(rk)) lineageKeys.push(rk);
+          } else if (rk === "foreign" || String(rk).startsWith("foreign")) {
+            if (!foreignKeys.includes(rk)) foreignKeys.push(rk);
+          }
+        }
+        lineageKeys.sort((a, b) => {
+          if (a === "main") return -1;
+          if (b === "main") return 1;
+          return String(a).localeCompare(String(b));
+        });
+        for (const rk of lineageKeys) {
+          const ri = ensureRow(rk);
+          rows[ri].addrs = [...graph.nodes.values()]
+            .filter((n) => n.row === rk)
+            .sort((a, b) => {
+              if (a.seq != null && b.seq != null && a.seq !== b.seq) {
+                return a.seq - b.seq;
+              }
+              return String(a.addr).localeCompare(String(b.addr));
+            })
+            .map((n) => n.addr);
+        }
+        foreignKeys.sort((a, b) => String(a).localeCompare(String(b)));
+        for (const rk of foreignKeys) {
+          const ri = ensureRow(rk);
+          rows[ri].addrs = [...graph.nodes.values()]
+            .filter((n) => n.row === rk)
+            .sort((a, b) => String(a.addr).localeCompare(String(b.addr)))
+            .map((n) => n.addr);
+        }
+
+        const byRow = new Map();
+        for (const node of graph.nodes.values()) {
+          const rk = node.row || "orphan";
+          if (
+            rk === "main" ||
+            String(rk).startsWith("lineage:") ||
+            String(rk).startsWith("ib:") ||
+            rk === "foreign" ||
+            String(rk).startsWith("foreign")
+          ) {
+            continue;
+          }
+          if (!byRow.has(rk)) byRow.set(rk, []);
+          byRow.get(rk).push(node.addr);
+        }
+        const orphanKeys = [...byRow.keys()].sort((a, b) =>
+          String(a).localeCompare(String(b))
+        );
+        for (const rk of orphanKeys) {
+          const ri = ensureRow(rk);
+          // order by chain position then addr
+          const addrs = byRow.get(rk).slice().sort((a, b) => {
+            const na = graph.nodes.get(a)?.seq;
+            const nb = graph.nodes.get(b)?.seq;
+            if (na != null && nb != null) return Number(na) - Number(nb);
+            return String(a).localeCompare(String(b));
+          });
+          rows[ri].addrs = addrs;
+        }
+        }
+
+        // Assign x,y â€” cell size follows preference-stack node sizes when set
+        const { sq, gap, rowH } = scaleMetrics();
+        let cellW = sq;
+        let cellH = sq;
+        for (const n of graph.nodes.values()) {
+          if (n.nw) cellW = Math.max(cellW, n.nw);
+          if (n.nh) cellH = Math.max(cellH, n.nh);
+        }
+        const colStep = cellW + gap;
+        const rowStep = Math.max(rowH, cellH + gap);
+        let maxCols = 1;
+        for (const row of rows) {
+          maxCols = Math.max(maxCols, row.addrs.length || 1);
+          row.addrs.forEach((addr, col) => {
+            const n = graph.nodes.get(addr);
+            if (!n) return;
+            n.col = col;
+            n.rowIdx = rowIndex.get(row.key);
+            const nw = n.nw || cellW;
+            const nh = n.nh || cellH;
+            n.x = col * colStep + nw / 2;
+            n.y = n.rowIdx * rowStep + nh / 2;
+          });
+        }
+        return {
+          rows,
+          width: Math.max(120, maxCols * colStep),
+          height: Math.max(rowStep, rows.length * rowStep),
+          sq,
+          gap,
+          rowH: rowStep,
+          cellW,
+          cellH,
+        };
+      };
+
+      const prepareNodeStyles = async (graph) => {
+        const { s, sq } = scaleMetrics();
+        const mgr = getManager();
+        const t = theme();
+        const nodes = [...graph.nodes.values()];
+        await Promise.all(
+          nodes.map(async (node) => {
+            let style = null;
+            if (mgr && typeof mgr.resolveNodeStyle === "function") {
+              try {
+                style = await mgr.resolveNodeStyle(node, node.frame, {
+                  fill: t.nodeFill,
+                  text: t.nodeText,
+                  stroke: t.nodeStroke,
+                  opacity: node.stub ? 0.65 : 1,
+                });
+              } catch {
+                style = null;
+              }
+            }
+            node._style = style && typeof style === "object" ? style : null;
+            const w = Number(style?.width);
+            const h = Number(style?.height);
+            node.nw =
+              Number.isFinite(w) && w > 0
+                ? Math.max(sq, Math.round(w * s))
+                : sq;
+            node.nh =
+              Number.isFinite(h) && h > 0
+                ? Math.max(sq, Math.round(h * s))
+                : sq;
+          })
+        );
+      };
+
+      const makeGraphPanel = async (graph) => {
+        const panel = document.createElement("div");
+        panel.setAttribute("data-part", "tree");
+        const prefixCanvas = !!graph.prefixView;
+        panel.style.cssText = [
+          "margin:4px 0 10px 0",
+          "padding:8px",
+          "border:1px dashed #2ecc71",
+          "box-sizing:border-box",
+          "position:relative",
+          "overflow-x:auto",
+          "overflow-y:auto",
+          prefixCanvas ? "min-height:min(40vh,22rem)" : "min-height:3.5rem",
+          "width:100%",
+          "max-width:100%",
+          "min-width:0",
+        ].join(";");
+
+        if (!graph.nodes.size) {
+          const empty = document.createElement("div");
+          empty.style.cssText = "font:11px/1.3 monospace;opacity:0.7";
+          empty.textContent = "(no frames)";
+          panel.appendChild(empty);
+          return panel;
+        }
+
+        await prepareNodeStyles(graph);
+        const scrubOn = await timelineScrubActive();
+        const timeline = scrubOn ? collectTimeline(graph) : null;
+        const scrubMs =
+          scrubOn && timeline ? getTimelineMs(timeline) : null;
+        applyTimelineScrub(graph, scrubMs);
+        await ensureGraphLayout(graph);
+
+        const layout = layoutGraph(graph);
+        const { sq, fontPx, s } = scaleMetrics();
+        const mgr = getManager();
+
+        if (graph.prefixView && (graph.layout || []).length) {
+          const planBits = (graph.layout || [])
+            .map((p) => `${p.prefix}:${(p.bands || []).join("â†’")}`)
+            .join(" | ");
+          const rowBits = (layout.rows || []).map((r) => r.key).join(" Â· ");
+          const cap = document.createElement("div");
+          cap.setAttribute("data-part", "layout-plan");
+          cap.style.cssText =
+            "font:10px/1.35 monospace;opacity:0.75;margin:0 0 6px 0;word-break:break-word";
+          cap.textContent = `layout ${planBits}` + (rowBits ? ` â‡’ ${rowBits}` : "");
+          panel.appendChild(cap);
+        }
+
+        // Identical views share a bag: mass/iso scope + enabled plugin set.
+        let viewKey = "";
+        if (mgr && typeof mgr.buildViewKey === "function") {
+          try {
+            viewKey = await mgr.buildViewKey({
+              prefixView: !!graph.prefixView,
+              scope: graph.prefixView
+                ? String(state.prefix || graph.base || "*").trim() || "*"
+                : String(graph.base || state.selectedIb || "?").trim() || "?",
+            });
+          } catch {
+            viewKey = "";
+          }
+        }
+        if (!viewKey) {
+          const scope = graph.prefixView
+            ? String(state.prefix || graph.base || "*").trim() || "*"
+            : String(graph.base || state.selectedIb || "?").trim() || "?";
+          const mode = graph.prefixView ? "mass" : "iso";
+          viewKey = `${mode}:${scope.replace(/\|/g, "/")}|p:-`;
+        }
+        if ((graph.layout || []).length) viewKey = `${viewKey}${layoutRevSuffix(graph.layout)}`;
+        graph.viewKey = viewKey;
+
+        let offsets = {};
+        if (mgr && typeof mgr.getViewOffsets === "function") {
+          try {
+            offsets = (await mgr.getViewOffsets(viewKey)) || {};
+          } catch {
+            offsets = {};
+          }
+        } else if (graph.prefs?.viewOffsets?.[viewKey]) {
+          offsets = graph.prefs.viewOffsets[viewKey] || {};
+        }
+
+        for (const node of graph.nodes.values()) {
+          if (node.x == null) continue;
+          node.ox = node.x;
+          node.oy = node.y;
+          const o = offsets[node.addr] || { dx: 0, dy: 0 };
+          node.dx = Number(o.dx) || 0;
+          node.dy = Number(o.dy) || 0;
+          node.x = node.ox + node.dx;
+          node.y = node.oy + node.dy;
+        }
+
+        let minX = 0;
+        let minY = 0;
+        let maxX = layout.width;
+        let maxY = layout.height;
+        for (const node of graph.nodes.values()) {
+          if (node.x == null) continue;
+          const hw = (node.nw || sq) / 2;
+          const hh = (node.nh || sq) / 2;
+          minX = Math.min(minX, node.x - hw, node.ox - hw);
+          minY = Math.min(minY, node.y - hh, node.oy - hh);
+          maxX = Math.max(maxX, node.x + hw, node.ox + hw);
+          maxY = Math.max(maxY, node.y + hh, node.oy + hh);
+        }
+        const pad = 8;
+        const shiftX = minX < 0 ? -minX + pad : pad;
+        const shiftY = minY < 0 ? -minY + pad : pad;
+        for (const node of graph.nodes.values()) {
+          if (node.x == null) continue;
+          node.x += shiftX;
+          node.y += shiftY;
+          node.ox += shiftX;
+          node.oy += shiftY;
+        }
+        const boardW = Math.max(layout.width, maxX + shiftX + pad);
+        const boardH = Math.max(layout.height, maxY + shiftY + pad);
+        let boundsW = boardW;
+        let boundsH = boardH;
+        const clampNodePos = (n) => {
+          const hw = (n.nw || sq) / 2;
+          const hh = (n.nh || sq) / 2;
+          const minXpos = hw;
+          const minYpos = hh;
+          const maxXpos = Math.max(hw, boundsW - hw);
+          const maxYpos = Math.max(hh, boundsH - hh);
+          n.x = Math.min(maxXpos, Math.max(minXpos, n.x));
+          n.y = Math.min(maxYpos, Math.max(minYpos, n.y));
+          n.dx = n.x - n.ox;
+          n.dy = n.y - n.oy;
+        };
+        for (const node of graph.nodes.values()) {
+          if (node.x == null) continue;
+          clampNodePos(node);
+        }
+
+        noteHtmfWidth(boundsW);
+
+        const board = document.createElement("div");
+        board.setAttribute("data-part", "graph-board");
+        board.style.cssText = [
+          `position:relative`,
+          `width:${boundsW}px`,
+          `height:${boundsH}px`,
+          "overflow:hidden",
+          "flex:0 0 auto",
+        ].join(";");
+
+        let boardHost = panel;
+
+        const syncBoardToPanel = () => {
+          const pad = 16;
+          const pw = Math.max(0, (boardHost?.clientWidth || panel.clientWidth) - pad);
+          // Grow width to the panel; do NOT stretch height â€” that left a huge
+          // empty region and made a correct top-down band layout look "bottomed".
+          const nextW = Math.max(boardW, pw);
+          const nextH = boardH;
+          if (nextW === boundsW && nextH === boundsH) return;
+          boundsW = nextW;
+          boundsH = nextH;
+          board.style.width = `${boundsW}px`;
+          board.style.height = `${boundsH}px`;
+          svg.setAttribute("width", String(boundsW));
+          svg.setAttribute("height", String(boundsH));
+          noteHtmfWidth(boundsW);
+        };
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", String(boundsW));
+        svg.setAttribute("height", String(boundsH));
+        svg.style.cssText =
+          "position:absolute;left:0;top:0;overflow:visible;pointer-events:none";
+
+        const edgeLines = [];
+        const edgesByAddr = new Map();
+        const addEdgeRef = (addr, line) => {
+          if (!edgesByAddr.has(addr)) edgesByAddr.set(addr, []);
+          edgesByAddr.get(addr).push(line);
+        };
+        const buildEdges = () => {
+          while (svg.firstChild) svg.removeChild(svg.firstChild);
+          edgeLines.length = 0;
+          edgesByAddr.clear();
+        for (const e of graph.edges) {
+          const a = graph.nodes.get(e.from);
+          const b = graph.nodes.get(e.to);
+          if (!a || !b || a.x == null || b.x == null) continue;
+          const line = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "line"
+          );
+          line.setAttribute("x1", String(a.x));
+          line.setAttribute("y1", String(a.y));
+          line.setAttribute("x2", String(b.x));
+          line.setAttribute("y2", String(b.y));
+            line.setAttribute("stroke", e.color || EDGE.other);
+          line.setAttribute("stroke-width", "2");
+            const dimEdge = !!(a._timelineDim || b._timelineDim);
+            line.setAttribute("opacity", dimEdge ? "0.18" : "0.85");
+            if (e.dash) line.setAttribute("stroke-dasharray", String(e.dash));
+          line.setAttribute("data-rel", e.rel);
+            if (e.source) line.setAttribute("data-source", e.source);
+            line.setAttribute("data-from", e.from);
+            line.setAttribute("data-to", e.to);
+          svg.appendChild(line);
+            edgeLines.push({ line, from: e.from, to: e.to });
+            addEdgeRef(e.from, line);
+            addEdgeRef(e.to, line);
+          }
+        };
+        let edgeRaf = 0;
+        const updateEdgesForNode = (addr) => {
+          if (edgeRaf) return;
+          edgeRaf = requestAnimationFrame(() => {
+            edgeRaf = 0;
+            const node = graph.nodes.get(addr);
+            if (!node || node.x == null) return;
+            for (const line of edgesByAddr.get(addr) || []) {
+              const from = line.getAttribute("data-from");
+              const to = line.getAttribute("data-to");
+              const a = graph.nodes.get(from);
+              const b = graph.nodes.get(to);
+              if (!a || !b) continue;
+              line.setAttribute("x1", String(a.x));
+              line.setAttribute("y1", String(a.y));
+              line.setAttribute("x2", String(b.x));
+              line.setAttribute("y2", String(b.y));
+            }
+          });
+        };
+        const redrawEdges = () => buildEdges();
+        buildEdges();
+        board.appendChild(svg);
+
+        const hoverCard = document.createElement("div");
+        hoverCard.setAttribute("data-part", "node-flair-detail");
+        hoverCard.style.cssText = [
+          "display:none",
+          "position:absolute",
+          "z-index:40",
+          "pointer-events:none",
+          "min-width:10rem",
+          "max-width:18rem",
+          "padding:0.55rem 0.65rem",
+          "border:2px solid #333",
+          "background:#fff",
+          "color:#111",
+          "box-shadow:0 4px 14px rgba(0,0,0,0.18)",
+          "font:12px/1.35 ui-monospace,monospace",
+          "box-sizing:border-box",
+        ].join(";");
+        board.appendChild(hoverCard);
+
+        const hideHoverCard = () => {
+          hoverCard.style.display = "none";
+          hoverCard.replaceChildren();
+        };
+
+        const showHoverCard = (btn, node, style) => {
+          const d = style?.detail;
+          if (!d && !style?.flair && !style?.label) {
+            hideHoverCard();
+            return;
+          }
+          hoverCard.replaceChildren();
+          const flairGlyph = d?.flair || style?.flair || "";
+          if (flairGlyph) {
+            const big = document.createElement("div");
+            big.style.cssText = [
+              "font-size:2rem",
+              "line-height:1",
+              "margin-bottom:0.25rem",
+              `color:${style?.flairColor || style?.text || "#111"}`,
+            ].join(";");
+            big.textContent = flairGlyph;
+            hoverCard.appendChild(big);
+          }
+          if (d?.kind || style?.label) {
+            const kindEl = document.createElement("div");
+            kindEl.style.cssText =
+              "font-weight:700;font-size:11px;text-transform:uppercase;opacity:0.75;margin-bottom:2px";
+            kindEl.textContent = d?.kind || "node";
+            hoverCard.appendChild(kindEl);
+          }
+          const head = document.createElement("div");
+          head.style.cssText = "font-weight:600;margin-bottom:4px;word-break:break-word";
+          head.textContent = d?.heading || style?.title || style?.label || node.addr;
+          hoverCard.appendChild(head);
+          for (const line of d?.lines || []) {
+            const row = document.createElement("div");
+            row.style.cssText =
+              "opacity:0.9;font-size:11px;word-break:break-all;margin-top:2px";
+            row.textContent = String(line);
+            hoverCard.appendChild(row);
+          }
+          if (node._timelineMs != null) {
+            const tsRow = document.createElement("div");
+            tsRow.style.cssText =
+              "opacity:0.9;font-size:11px;margin-top:4px;font-variant-numeric:tabular-nums";
+            tsRow.textContent = formatTimelineLabel(node._timelineMs);
+            hoverCard.appendChild(tsRow);
+          }
+          if (style?.fill) hoverCard.style.background = style.fill;
+          if (style?.text) hoverCard.style.color = style.text;
+          if (style?.stroke) hoverCard.style.borderColor = style.stroke;
+
+          const nw = node.nw || sq;
+          const nh = node.nh || sq;
+          let left = node.x + nw / 2 + 8;
+          let top = node.y - nh / 2;
+          hoverCard.style.display = "block";
+          // measure after show
+          const cardW = hoverCard.offsetWidth || 160;
+          const cardH = hoverCard.offsetHeight || 80;
+          if (left + cardW > boundsW - 4) left = node.x - nw / 2 - cardW - 8;
+          if (left < 4) left = 4;
+          if (top + cardH > boundsH - 4) top = Math.max(4, boundsH - cardH - 4);
+          if (top < 4) top = 4;
+          hoverCard.style.left = `${left}px`;
+          hoverCard.style.top = `${top}px`;
+        };
+
+        const t = theme();
+        const nodeEls = new Map();
+
+        const applyBtnPos = (btn, node) => {
+          const nw = node.nw || sq;
+          const nh = node.nh || sq;
+          btn.style.left = `${node.x - nw / 2}px`;
+          btn.style.top = `${node.y - nh / 2}px`;
+          btn.style.width = `${nw}px`;
+          btn.style.height = `${nh}px`;
+        };
+
+        const paintNodeFace = (btn, style, node) => {
+          const nw = node.nw || sq;
+          const nh = node.nh || sq;
+          const faceFont = Math.max(8, Math.round(fontPx * (style?.label ? 0.95 : 1)));
+          const flairFont = Math.max(10, Math.round(14 * s));
+          btn.replaceChildren();
+          btn.style.display = "flex";
+          btn.style.flexDirection = "column";
+          btn.style.alignItems = "center";
+          btn.style.justifyContent = "center";
+          btn.style.gap = "1px";
+          btn.style.padding = "2px";
+          if (style?.flair) {
+            const flair = document.createElement("span");
+            flair.textContent = style.flair;
+            flair.style.cssText = [
+              `font:${flairFont}px/1 ui-monospace,monospace`,
+              `color:${style.flairColor || style.text || t.nodeText}`,
+              "pointer-events:none",
+              "line-height:1",
+            ].join(";");
+            btn.appendChild(flair);
+          }
+          const lab = document.createElement("span");
+          lab.style.cssText = [
+            "display:block",
+            "line-height:1.1",
+            `font:${faceFont}px/1.1 ui-monospace,monospace`,
+            "white-space:pre-wrap",
+            "overflow:hidden",
+            "text-align:center",
+            `max-height:${Math.max(12, nh - (style?.flair ? flairFont + 4 : 4))}px`,
+            "width:100%",
+            "pointer-events:none",
+          ].join(";");
+          lab.textContent =
+            style?.label != null
+              ? String(style.label)
+              : node.seq != null
+              ? String(node.seq)
+              : node.stub
+                ? "?"
+                : "Â·";
+          btn.appendChild(lab);
+        };
+
+        const applyNodeStyle = (btn, style, node) => {
+          if (!style) {
+            paintNodeFace(btn, null, node);
+            return;
+          }
+          if (style.stroke) btn.style.borderColor = style.stroke;
+          if (style.fill) btn.style.background = style.fill;
+          if (style.text) btn.style.color = style.text;
+          let op = style.opacity != null ? Number(style.opacity) : 1;
+          if (node._timelineDim) op = Math.min(op, 0.18);
+          else if (node.stub) op = Math.min(op, 0.65);
+          btn.style.opacity = String(op);
+          if (node._timelineHit) {
+            btn.style.outline = `2px solid ${t.hostpark || "#8e44ad"}`;
+            btn.style.outlineOffset = "2px";
+            btn.style.boxShadow = `0 0 0 1px ${t.bg || "#fff"}, 0 0 6px ${t.hostpark || "#8e44ad"}`;
+          } else {
+            btn.style.outline = "";
+            btn.style.outlineOffset = "";
+            btn.style.boxShadow = "";
+          }
+          if (style.title) btn.title = String(style.title);
+          paintNodeFace(btn, style, node);
+          applyBtnPos(btn, node);
+          if (isHostparkMirroredIb(node.ib || node.addr)) {
+            btn.style.borderColor = t.hostpark || EDGE.hostpark;
+          }
+        };
+
+        for (const node of graph.nodes.values()) {
+          if (node.ox == null) continue;
+          const nw = node.nw || sq;
+          const nh = node.nh || sq;
+          const style = node._style;
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.dataset.tvAddr = node.addr;
+          btn.title = `${node.addr}${node.seq != null ? ` #${node.seq}` : ""}${
+            node._timelineMs != null
+              ? ` Â· ${formatTimelineLabel(node._timelineMs)}`
+              : ""
+          } (drag to move)`;
+
+          let borderC = t.nodeStroke;
+          let fillC = t.nodeFill;
+          let textC = t.nodeText;
+          if (isHostparkMirroredIb(node.ib || node.addr)) {
+            borderC = t.hostpark || EDGE.hostpark;
+          }
+
+          btn.style.cssText = [
+            "position:absolute",
+            `left:${node.x - nw / 2}px`,
+            `top:${node.y - nh / 2}px`,
+            `width:${nw}px`,
+            `height:${nh}px`,
+            "padding:2px",
+            "box-sizing:border-box",
+            `font:${fontPx}px/1 ui-monospace,monospace`,
+            "cursor:grab",
+            `border:2px solid ${borderC}`,
+            `color:${textC}`,
+            `background:${fillC}`,
+            node.stub ? "opacity:0.65;font-style:italic" : "",
+            "touch-action:none",
+            "user-select:none",
+            "overflow:hidden",
+            "display:flex",
+            "flex-direction:column",
+            "align-items:center",
+            "justify-content:center",
+            "z-index:2",
+          ].join(";");
+
+          applyNodeStyle(btn, style, node);
+
+          btn.addEventListener("pointerenter", () => {
+            if (style?.detail || style?.flair || style?.label) {
+              showHoverCard(btn, node, style);
+            }
+          });
+          btn.addEventListener("pointerleave", () => {
+            hideHoverCard();
+          });
+
+          let drag = null;
+          btn.addEventListener("pointerdown", (ev) => {
+            if (ev.button !== 0) return;
+            hideHoverCard();
+            drag = {
+              pid: ev.pointerId,
+              startX: ev.clientX,
+              startY: ev.clientY,
+              origDx: node.dx || 0,
+              origDy: node.dy || 0,
+              moved: false,
+            };
+            try {
+              btn.setPointerCapture(ev.pointerId);
+            } catch {
+              /* ignore */
+            }
+            btn.style.cursor = "grabbing";
+            ev.preventDefault();
+          });
+          btn.addEventListener("pointermove", (ev) => {
+            if (!drag || ev.pointerId !== drag.pid) return;
+            const ddx = ev.clientX - drag.startX;
+            const ddy = ev.clientY - drag.startY;
+            if (Math.abs(ddx) + Math.abs(ddy) > 3) drag.moved = true;
+            if (!drag.moved) return;
+            node.dx = drag.origDx + ddx;
+            node.dy = drag.origDy + ddy;
+            node.x = node.ox + node.dx;
+            node.y = node.oy + node.dy;
+            clampNodePos(node);
+            applyBtnPos(btn, node);
+            updateEdgesForNode(node.addr);
+          });
+          const endDrag = (ev) => {
+            if (!drag || ev.pointerId !== drag.pid) return;
+            const wasDrag = drag.moved;
+            const pid = drag.pid;
+            drag = null;
+            btn.style.cursor = "grab";
+            try {
+              btn.releasePointerCapture(pid);
+            } catch {
+              /* ignore */
+            }
+            if (wasDrag) {
+              if (mgr && typeof mgr.setNodeOffset === "function") {
+                void mgr.setNodeOffset(
+                  node.addr,
+                  { dx: node.dx, dy: node.dy },
+                  { viewKey }
+                );
+              }
+            } else {
+              showFloat(btn, node, panel);
+            }
+          };
+          btn.addEventListener("pointerup", endDrag);
+          btn.addEventListener("pointercancel", endDrag);
+
+          nodeEls.set(node.addr, btn);
+          board.appendChild(btn);
+        }
+
+        const useTinyviewLegend =
+          tinyviewMode && graph.prefixView;
+        if (useTinyviewLegend) {
+          const graphRow = document.createElement("div");
+          graphRow.setAttribute("data-part", "tinyview-graph-row");
+          graphRow.style.cssText =
+            "display:flex;align-items:flex-start;gap:12px;flex-wrap:nowrap;width:100%;min-width:0;box-sizing:border-box;";
+          const boardCol = document.createElement("div");
+          boardCol.setAttribute("data-part", "tinyview-graph-board-col");
+          boardCol.style.cssText =
+            "flex:1 1 auto;min-width:0;position:relative;";
+          boardCol.appendChild(board);
+          boardHost = boardCol;
+          const legendCol = document.createElement("div");
+          legendCol.setAttribute("data-part", "tinyview-legend");
+          legendCol.style.cssText =
+            "flex:0 0 auto;max-width:12rem;min-width:8.5rem;font:10px/1.35 monospace;align-self:flex-start;padding:4px 0 0 0;";
+          await appendLegendContent(legendCol, { compact: true, showNote: false });
+          graphRow.appendChild(boardCol);
+          graphRow.appendChild(legendCol);
+          panel.appendChild(graphRow);
+        } else {
+        panel.appendChild(board);
+        }
+        requestAnimationFrame(() => {
+          syncBoardToPanel();
+          if (typeof ResizeObserver === "function") {
+            const ro = new ResizeObserver(() => syncBoardToPanel());
+            ro.observe(boardHost);
+          }
+        });
+        return panel;
+      };
+
+      const openPrefixView = async () => {
+        try {
+          setStatus(
+            `building prefix viewport (${state.ibs.length} tip(s))â€¦`
+          );
+          state.prefixGraph = await collectPrefixGraph(state.ibs);
+          state.prefixViewOpen = true;
+          // collapse single-tip dropdown so the prefix board is the focus
+          state.selectedIb = null;
+          state.graph = null;
+          await renderLegend();
+          renderList();
+          const g = state.prefixGraph;
+          setStatus(
+            `prefix view Â· ${state.ibs.length} tip(s)` +
+              (state.prefix ? ` Â· filter ${state.prefix}` : " Â· entire index") +
+              ` Â· ${g.nodes.size} node(s) Â· ${g.edges.length} edge(s)` +
+              (g.viaManager
+                ? ` Â· manager [${(g.sources || []).join(",")}]`
+                : "")
+          );
+        } catch (err) {
+          state.prefixViewOpen = false;
+          state.prefixGraph = null;
+          renderList();
+          setStatus(String(err?.message || err));
+        }
+      };
+
+      const togglePrefixView = async () => {
+        if (state.prefixViewOpen) {
+          state.prefixViewOpen = false;
+          state.prefixGraph = null;
+          renderList();
+          setStatus(
+            `${state.ibs.length} tip(s)` +
+              (state.prefix ? ` Â· filter ${state.prefix}` : "")
+          );
+          return;
+        }
+        await openPrefixView();
+      };
+
+      let listRenderSeq = 0;
+
+      const nestingEnabled = () => nestingOn();
+
+      /** Split keeping real delimiters between segments. */
+      const segmentIbPartsLocal = (ib) => {
+        const s = String(ib || "");
+        const parts = [];
+        const re = /[:/\s]+|%20/gi;
+        let last = 0;
+        let m;
+        while ((m = re.exec(s))) {
+          const seg = s.slice(last, m.index).trim();
+          if (seg) parts.push({ seg, delimAfter: m[0] });
+          else if (parts.length) parts[parts.length - 1].delimAfter += m[0];
+          last = m.index + m[0].length;
+        }
+        const tail = s.slice(last).trim();
+        if (tail) parts.push({ seg: tail, delimAfter: "" });
+        return parts;
+      };
+
+      const collapseUnaryFoldersLocal = (node) => {
+        if (!node || !(node.children instanceof Map)) return;
+        for (const child of node.children.values()) {
+          collapseUnaryFoldersLocal(child);
+        }
+        while (!node.tipIb && node.children.size === 1 && node.segment) {
+          const only = [...node.children.values()][0];
+          const delim = only.leadDelim != null ? only.leadDelim : ":";
+          node.segment = `${node.segment}${delim}${only.segment}`;
+          node.path = only.path;
+          node.tipIb = only.tipIb;
+          node.children = only.children;
+        }
+      };
+
+      const ibUnderPrefixLocal = (ib, prefix) => {
+        const p = String(prefix || "").trim();
+        const s = String(ib || "").trim();
+        if (!p) return true;
+        if (!s) return false;
+        if (s.length < p.length) return false;
+        if (s.slice(0, p.length).toLowerCase() !== p.toLowerCase()) return false;
+        if (s.length === p.length) return true;
+        return /^([:/\s]+|%20)/i.test(s.slice(p.length));
+      };
+
+      const stripPrefixFromIbLocal = (ib, prefix) => {
+        const p = String(prefix || "").trim();
+        const s = String(ib || "").trim();
+        if (!p || !s || !ibUnderPrefixLocal(s, p)) return s;
+        if (s.length === p.length) return "";
+        const rest = s.slice(p.length);
+        const m = rest.match(/^([:/\s]+|%20)([\s\S]*)$/i);
+        if (m) return m[2];
+        return s;
+      };
+
+      const foldIbsLocal = (ibs) => {
+        const mgr = getManager();
+        const stripPrefix = normalizePrefix(state.prefix || "");
+        if (typeof mgr?.foldIbsToTree === "function") {
+          return mgr.foldIbsToTree(ibs, { stripPrefix });
+        }
+        const root = {
+          segment: "",
+          path: "",
+          tipIb: null,
+          children: new Map(),
+        };
+        for (const raw of ibs || []) {
+          const tipIb = String(raw || "").trim();
+          if (!tipIb) continue;
+          const forSegs = stripPrefix
+            ? stripPrefixFromIbLocal(tipIb, stripPrefix)
+            : tipIb;
+          const parts = segmentIbPartsLocal(forSegs || "");
+          if (!parts.length) {
+            const seg = "Â·";
+            if (!root.children.has(seg)) {
+              root.children.set(seg, {
+                segment: seg,
+                path: seg,
+                tipIb: null,
+                leadDelim: "",
+                children: new Map(),
+              });
+            }
+            root.children.get(seg).tipIb = tipIb;
+            continue;
+          }
+          let node = root;
+          let pathAcc = "";
+          for (let i = 0; i < parts.length; i++) {
+            const { seg } = parts[i];
+            const leadDelim = i === 0 ? "" : parts[i - 1].delimAfter;
+            pathAcc = pathAcc ? `${pathAcc}/${seg}` : seg;
+            if (!node.children.has(seg)) {
+              node.children.set(seg, {
+                segment: seg,
+                path: pathAcc,
+                tipIb: null,
+                leadDelim,
+                children: new Map(),
+              });
+            }
+            node = node.children.get(seg);
+          }
+          node.tipIb = tipIb;
+        }
+        for (const child of root.children.values()) {
+          collapseUnaryFoldersLocal(child);
+        }
+        return root;
+      };
+
+      const bindPrefsHostEvents = () => {
+        if (!prefsHost || prefsHost.dataset.prefsBound === "1") return;
+        prefsHost.dataset.prefsBound = "1";
+        prefsHost.addEventListener("change", (e) => {
+          const t = e.target;
+          if (!t || !t.getAttribute) return;
+          const partName = t.getAttribute("data-part") || "";
+          if (!partName.startsWith("pref-")) return;
+          void savePrefs().then(() => {
+            if (partName === "pref-preview-overlay") {
+        dismissFloat();
+              setStatus(
+                previewOverlayOn()
+                  ? "preview overlay on"
+                  : "preview inline (below graph)"
+              );
+            }
+            if (partName === "pref-nesting") {
+              state.expandedPaths.clear();
+              if (!nestingOn()) {
+                /* keep selectedIb for graph under flat list */
+              }
+              setStatus(
+                nestingOn() ? "delimiter-nest on" : "delimiter-nest off"
+              );
+            }
+            void renderList();
+          });
+        });
+      };
+
+      const mountPrefsHost = async () => {
+        if (!prefsHost || tinyviewMode) return;
+        const mgr = getManager();
+        prefsHost.textContent = "";
+        if (mgr?.collectPrefsChrome) {
+          try {
+            const els = await mgr.collectPrefsChrome({
+              root,
+              applyPrefs,
+              savePrefs,
+            });
+            for (const el of els || []) prefsHost.appendChild(el);
+          } catch (err) {
+            console.warn("[tinyviewport] prefsChrome", err);
+          }
+        }
+        if (!prefsHost.childNodes.length) {
+          prefsHost.innerHTML =
+            '<div data-part="list-style-prefs" style="font:11px/1.35 monospace;display:flex;flex-direction:column;gap:6px;margin:0.35rem 0;">' +
+            '<div data-part="prefs-section-list"><div data-part="prefs-section-head" style="font:11px/1.2 monospace;font-weight:700;letter-spacing:0.04em;opacity:0.85;margin:0 0 3px 0;">list</div>' +
+            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;">' +
+            '<label style="cursor:pointer;font:inherit;"><input type="checkbox" data-part="pref-nesting" /> delimiter-nest</label> Â· ' +
+            'border <input type="color" data-part="pref-border" /> hostpark <input type="color" data-part="pref-hostpark" /> text <input type="color" data-part="pref-text" /> bg <input type="color" data-part="pref-bg" />' +
+            "</div></div>" +
+            '<div data-part="prefs-section-graph"><div data-part="prefs-section-head" style="font:11px/1.2 monospace;font-weight:700;letter-spacing:0.04em;opacity:0.85;margin:0 0 3px 0;">graph</div>' +
+            '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;">' +
+            'node <input type="color" data-part="pref-node-fill" /> <input type="color" data-part="pref-node-text" /> <input type="color" data-part="pref-node-stroke" /> ' +
+            '<label style="margin-left:0.5rem;cursor:pointer;font:inherit;"><input type="checkbox" data-part="pref-preview-overlay" /> preview overlay</label>' +
+            "</div></div></div>";
+        }
+        applyPrefs(prefsState);
+        bindPrefsHostEvents();
+      };
+
+      const actionsUnder = (underPath, underIb) => {
+        const list = Array.isArray(state.sidebarActions)
+          ? state.sidebarActions
+          : [];
+        return list.filter((a) => {
+          if (underIb && a.underIb === underIb) return true;
+          if (underPath && a.underPath === underPath) return true;
+          return false;
+        });
+      };
+
+      const appendActionRows = (parent, actions, depth) => {
+        const t = theme();
+        for (const a of actions) {
+          const row = document.createElement("div");
+          row.setAttribute("data-part", "sidebar-action");
+          row.dataset.actionId = a.id || "";
+          row.style.cssText = `display:block;margin:1px 0 1px ${8 + depth * 12}px;`;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = `${a.kind === "method" ? "â–¸ " : a.kind === "command" ? "âŒ˜ " : "â€¢ "}${a.label}`;
+          btn.title = a.title || a.label;
+          btn.style.cssText = `display:block;width:100%;text-align:left;font:11px/1.35 monospace;padding:2px 6px;border:1px dashed ${t.border};background:${t.bg};color:#246;cursor:pointer;`;
+          btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void (async () => {
+              try {
+                if (a.href) {
+                  window.location.assign(a.href);
+                  return;
+                }
+                if (typeof a.run === "function") await a.run();
+              } catch (err) {
+                setStatus(String(err?.message || err));
+              }
+            })();
+          });
+          row.appendChild(btn);
+          parent.appendChild(row);
+        }
+      };
+
+      const renderNestNode = async (parent, node, depth) => {
+        const t = theme();
+        const kids = [...(node.children?.values?.() || [])].sort((a, b) =>
+          String(a.segment).localeCompare(String(b.segment))
+        );
+        const hasKids = kids.length > 0;
+        const path = node.path || "";
+        const tipIb = node.tipIb;
+        const isTip = !!tipIb;
+        const folderOpen = !!(path && state.expandedPaths.has(path));
+        const tipOpen = isTip && state.selectedIb === tipIb;
+        /** Tip+folder: show children when expanded or when this tip's graph is open. */
+        const showBody = folderOpen || tipOpen;
+
+        const row = document.createElement("div");
+        row.setAttribute("data-part", isTip ? "tip-row" : "folder-row");
+        if (tipIb) row.dataset.tipIb = tipIb;
+        if (path) row.dataset.path = path;
+        row.style.cssText = `display:block;margin:2px 0 2px ${depth * 12}px;box-sizing:border-box;min-width:0;max-width:100%;`;
+
+        const nameBtn = document.createElement("button");
+        nameBtn.type = "button";
+        nameBtn.setAttribute("data-part", isTip ? "tip-name" : "folder-name");
+        let mark = "â€¢ ";
+        if (isTip || hasKids) mark = tipOpen || folderOpen ? "â–¼ " : "â–¶ ";
+        nameBtn.textContent = mark + (node.segment || tipIb || path);
+        if (tipIb) nameBtn.title = tipIb;
+        const isMirror = tipIb && isHostparkMirroredIb(tipIb);
+        const left =
+          tipOpen ? EDGE.tip : isMirror ? t.hostpark : t.border;
+        nameBtn.style.cssText = [
+          "display:block",
+          "width:100%",
+          "text-align:left",
+          "font:12px/1.35 monospace",
+          "padding:4px 8px",
+          `border:1px solid ${t.border}`,
+          `border-left:4px solid ${left}`,
+          `background:${tipOpen ? t.bg : "transparent"}`,
+          `color:${t.text}`,
+          "cursor:pointer",
+          "box-sizing:border-box",
+          tipOpen ? "font-weight:700" : "font-weight:400",
+        ].join(";");
+        nameBtn.addEventListener("click", () => {
+          if (isTip) {
+            // Intermediate tips: open â†’ pink + kids + graph; close â†’ full collapse.
+            const opening = state.selectedIb !== tipIb;
+            if (path && hasKids) {
+              if (opening) state.expandedPaths.add(path);
+              else state.expandedPaths.delete(path);
+            }
+            void toggleTip(tipIb);
+            return;
+          }
+          if (path) {
+            if (state.expandedPaths.has(path)) state.expandedPaths.delete(path);
+            else state.expandedPaths.add(path);
+          }
+          void renderList();
+        });
+        row.appendChild(nameBtn);
+
+        if (showBody) {
+          if (tipIb) {
+            appendActionRows(row, actionsUnder(path, tipIb), depth + 1);
+          }
+          for (const child of kids) {
+            await renderNestNode(row, child, depth + 1);
+          }
+          // Graph below nested suffix entries for this ib.
+          if (tipOpen && state.graph) {
+            row.appendChild(await makeGraphPanel(state.graph));
+          }
+        }
+
+        parent.appendChild(row);
+      };
+
+      const commitList = (seq, list) => {
+        if (seq !== listRenderSeq || !viewport) return false;
+        viewport.replaceChildren(list);
+        applyHtmfWidth();
+        return true;
+      };
+
+      const renderList = async () => {
+        const seq = ++listRenderSeq;
+        dismissFloat();
+        resetHtmfWidth();
+        const list = document.createElement("div");
+        list.setAttribute("data-part", "tip-list");
+        list.style.cssText =
+          "display:block;width:100%;min-width:0;box-sizing:border-box;";
+
+        const viewRow = document.createElement("div");
+        viewRow.setAttribute("data-part", "prefix-view-bar");
+        viewRow.style.cssText =
+          "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px 0;";
+        if (!tinyviewMode) {
+          const viewBtn = document.createElement("button");
+          viewBtn.type = "button";
+          viewBtn.setAttribute("data-part", "view-prefix-inline");
+          viewBtn.textContent = state.prefixViewOpen ? "close view" : "view";
+          viewBtn.title = state.prefix
+            ? `viewport nodes under prefix â€œ${state.prefix}â€`
+            : "viewport entire tip index as nodes";
+          viewBtn.addEventListener("click", () => {
+            void togglePrefixView();
+          });
+          viewRow.appendChild(viewBtn);
+        }
+        const viewHint = document.createElement("span");
+        viewHint.style.cssText = "font:11px/1.3 monospace;opacity:0.75";
+        viewHint.textContent = tinyviewMode
+          ? tinyviewHintLabel()
+          : `${tipsCountLabel()}${nestingEnabled() ? " Â· delimiter-nest" : ""}`;
+        viewRow.appendChild(viewHint);
+        if (state.prefixViewOpen) {
+          const controls = document.createElement("div");
+          controls.setAttribute("data-part", "view-controls");
+          controls.style.cssText =
+            "display:inline-flex;align-items:center;gap:12px;margin-left:auto;flex:1 1 auto;min-width:0;justify-content:flex-end;flex-wrap:wrap;";
+
+          const scrubOn = await timelineScrubActive();
+          const timeline = scrubOn
+            ? collectTimeline(state.prefixGraph)
+            : null;
+          if (timeline && timeline.bumps.length) {
+            const timeWrap = document.createElement("div");
+            timeWrap.setAttribute("data-part", "timeline-wrap");
+            timeWrap.style.cssText =
+              "display:inline-flex;align-items:center;gap:6px;font:11px/1.3 monospace;flex:1 1 18rem;min-width:14rem;max-width:48rem;";
+            const timeLab = document.createElement("span");
+            timeLab.textContent = "time";
+            timeLab.title =
+              "Scrub lineage generations by frame timestamp (earliest â†’ latest in this view)";
+            const track = document.createElement("div");
+            track.setAttribute("data-part", "timeline-track");
+            track.style.cssText =
+              "position:relative;flex:1 1 auto;min-width:10rem;height:1.4rem;display:flex;align-items:center;";
+            const bumpsLayer = document.createElement("div");
+            bumpsLayer.setAttribute("data-part", "timeline-bumps");
+            bumpsLayer.style.cssText =
+              "position:absolute;left:0;right:0;top:50%;height:0;pointer-events:none;z-index:1;";
+            const span = Math.max(1, timeline.max - timeline.min);
+            for (const b of timeline.bumps) {
+              const pct = ((b - timeline.min) / span) * 100;
+              const tick = document.createElement("span");
+              tick.title = formatTimelineLabel(b);
+              tick.style.cssText = [
+                "position:absolute",
+                `left:${pct}%`,
+                "transform:translate(-50%,-50%)",
+                "width:3px",
+                "height:10px",
+                "border-radius:1px",
+                "background:#8e44ad",
+                "opacity:0.85",
+                "box-shadow:0 0 0 1px rgba(255,255,255,0.7)",
+              ].join(";");
+              bumpsLayer.appendChild(tick);
+            }
+            const timeRange = document.createElement("input");
+            timeRange.type = "range";
+            timeRange.setAttribute("data-part", "timeline-slider");
+            timeRange.min = String(timeline.min);
+            timeRange.max = String(timeline.max);
+            timeRange.step = "1";
+            const cur = getTimelineMs(timeline);
+            timeRange.value = String(
+              Math.min(timeline.max, Math.max(timeline.min, cur ?? timeline.max))
+            );
+            timeRange.title =
+              "Drag to scrub; purple bumps snap to node timestamps";
+            timeRange.style.cssText =
+              "position:relative;z-index:2;width:100%;margin:0;vertical-align:middle;background:transparent;cursor:pointer;";
+            const timeVal = document.createElement("span");
+            timeVal.setAttribute("data-part", "timeline-value");
+            timeVal.style.cssText =
+              "min-width:9.5rem;text-align:right;white-space:nowrap;";
+            const setTimeLabel = (ms) => {
+              timeVal.textContent = formatTimelineLabel(ms);
+            };
+            setTimeLabel(Number(timeRange.value));
+            const rebuildPrefixGraphs = async () => {
+              dismissFloat();
+              resetHtmfWidth();
+              const listEl = viewport.querySelector("[data-part='tip-list']");
+              if (!listEl) {
+                await renderList();
+                return;
+              }
+              for (const wrap of listEl.querySelectorAll(
+                "[data-part='prefix-viewport']"
+              )) {
+                wrap.textContent = "";
+                if (state.prefixGraph)
+                  wrap.appendChild(await makeGraphPanel(state.prefixGraph));
+              }
+              applyHtmfWidth();
+            };
+            const onTimeInput = () => {
+              let ms = Number(timeRange.value);
+              if (!Number.isFinite(ms)) return;
+              ms = snapTimelineMs(ms, timeline.bumps);
+              timeRange.value = String(ms);
+              liveTimelineMs = ms;
+              setTimeLabel(ms);
+              void rebuildPrefixGraphs();
+            };
+            const onTimeCommit = () => {
+              let ms = Number(timeRange.value);
+              if (!Number.isFinite(ms)) return;
+              ms = snapTimelineMs(ms, timeline.bumps, 1);
+              timeRange.value = String(ms);
+              liveTimelineMs = ms;
+              setTimeLabel(ms);
+              void savePrefs({ timelineAt: new Date(ms).toISOString() }).then(
+                () => {
+                  setStatus(`time ${formatTimelineLabel(ms)}`);
+                }
+              );
+            };
+            timeRange.addEventListener("input", onTimeInput);
+            timeRange.addEventListener("change", onTimeCommit);
+            track.appendChild(bumpsLayer);
+            track.appendChild(timeRange);
+            timeWrap.appendChild(timeLab);
+            timeWrap.appendChild(track);
+            timeWrap.appendChild(timeVal);
+            controls.appendChild(timeWrap);
+          }
+
+          const scaleWrap = document.createElement("label");
+          scaleWrap.setAttribute("data-part", "scale-wrap");
+          scaleWrap.style.cssText =
+            "display:inline-flex;align-items:center;gap:6px;font:11px/1.3 monospace;cursor:pointer;flex:0 0 auto;";
+          const scaleLab = document.createElement("span");
+          scaleLab.textContent = "scale";
+          const scaleRange = document.createElement("input");
+          scaleRange.type = "range";
+          scaleRange.setAttribute("data-part", "scale-slider");
+          scaleRange.min = "0";
+          scaleRange.max = "200";
+          scaleRange.step = "1";
+          scaleRange.value = String(getScalePct());
+          scaleRange.title = "0% â€¦ 100% (center) â€¦ 200%";
+          scaleRange.style.cssText = "width:9rem;vertical-align:middle;";
+          const scaleVal = document.createElement("span");
+          scaleVal.setAttribute("data-part", "scale-value");
+          scaleVal.style.cssText = "min-width:3.2rem;text-align:right;";
+          scaleVal.textContent = `${getScalePct()}%`;
+          const onScaleInput = () => {
+            const pct = clampScale(scaleRange.value);
+            liveScalePct = pct;
+            scaleVal.textContent = `${pct}%`;
+            void (async () => {
+              dismissFloat();
+              resetHtmfWidth();
+              const listEl = viewport.querySelector("[data-part='tip-list']");
+              if (!listEl) {
+                await renderList();
+                return;
+              }
+              for (const wrap of listEl.querySelectorAll(
+                "[data-part='prefix-viewport']"
+              )) {
+                wrap.textContent = "";
+                if (state.prefixGraph)
+                  wrap.appendChild(await makeGraphPanel(state.prefixGraph));
+              }
+              applyHtmfWidth();
+            })();
+          };
+          const onScaleCommit = () => {
+            const pct = clampScale(scaleRange.value);
+            liveScalePct = pct;
+            void savePrefs({ scale: pct }).then(() => {
+              setStatus(`scale ${pct}%`);
+            });
+          };
+          scaleRange.addEventListener("input", onScaleInput);
+          scaleRange.addEventListener("change", onScaleCommit);
+          scaleWrap.appendChild(scaleLab);
+          scaleWrap.appendChild(scaleRange);
+          scaleWrap.appendChild(scaleVal);
+          controls.appendChild(scaleWrap);
+          viewRow.appendChild(controls);
+        }
+        list.appendChild(viewRow);
+
+        if (state.prefixViewOpen && state.prefixGraph) {
+          const wrap = document.createElement("div");
+          wrap.setAttribute("data-part", "prefix-viewport");
+          wrap.style.cssText = "min-width:0;max-width:100%;overflow-x:auto;";
+          wrap.appendChild(await makeGraphPanel(state.prefixGraph));
+          list.appendChild(wrap);
+          if (tinyviewMode) {
+            commitList(seq, list);
+            return;
+          }
+        }
+
+        if (tinyviewMode) {
+          commitList(seq, list);
+          return;
+        }
+
+        if (!state.ibs.length) {
+          const empty = document.createElement("div");
+          empty.style.cssText =
+            "font:12px/1.3 monospace;opacity:0.7;padding:0.35rem 0";
+          empty.textContent = state.prefix
+            ? `no tips matching prefix â€œ${state.prefix}â€`
+            : "no tips in navi.storage";
+          list.appendChild(empty);
+          commitList(seq, list);
+          return;
+        }
+
+        if (nestingEnabled()) {
+          const mgr = getManager();
+          if (mgr?.collectSidebar) {
+            try {
+              const hit = await mgr.collectSidebar({
+                ibs: state.ibs,
+                prefix: state.prefix,
+              });
+              state.sidebarActions = hit?.nodes || [];
+            } catch (err) {
+              console.warn("[tinyviewport] collectSidebar", err);
+              state.sidebarActions = [];
+            }
+          }
+          const tree = foldIbsLocal(state.ibs);
+          const top = [...(tree.children?.values?.() || [])].sort((a, b) =>
+            String(a.segment).localeCompare(String(b.segment))
+          );
+          for (const n of top) await renderNestNode(list, n, 0);
+          commitList(seq, list);
+          return;
+        }
+
+        const t = theme();
+        for (const ib of state.ibs) {
+          const row = document.createElement("div");
+          row.setAttribute("data-part", "tip-row");
+          row.dataset.tipIb = ib;
+          row.style.cssText = "min-width:0;max-width:100%;";
+
+          const nameBtn = document.createElement("button");
+          nameBtn.type = "button";
+          nameBtn.setAttribute("data-part", "tip-name");
+          nameBtn.textContent = ib;
+          nameBtn.title = ib;
+          const open = state.selectedIb === ib;
+          let leftBorder = open ? EDGE.tip : t.border;
+          nameBtn.style.cssText = [
+            "display:block",
+            "width:100%",
+            "box-sizing:border-box",
+            "margin:0",
+            "padding:2px 6px",
+            "text-align:left",
+            "font:11px/1.35 ui-monospace,monospace",
+            "cursor:pointer",
+            "white-space:nowrap",
+            "overflow:hidden",
+            "text-overflow:ellipsis",
+            `border:1px solid ${t.border}`,
+            `border-left:3px solid ${leftBorder}`,
+            `color:${t.text}`,
+            `background:${open ? t.bg : "transparent"}`,
+            open ? "font-weight:700" : "font-weight:400",
+          ].join(";");
+          if (isHostparkMirroredIb(ib)) {
+            nameBtn.style.borderLeftColor = t.hostpark || EDGE.hostpark;
+          }
+          nameBtn.addEventListener("click", () => {
+            void toggleTip(ib);
+          });
+          row.appendChild(nameBtn);
+
+          if (open && state.graph) {
+            row.appendChild(await makeGraphPanel(state.graph));
+          }
+
+          list.appendChild(row);
+        }
+        commitList(seq, list);
+      };
+
+      const toggleTip = async (ib) => {
+        if (state.selectedIb === ib) {
+          state.selectedIb = null;
+          state.graph = null;
+          renderList();
+          setStatus(`${state.ibs.length} tip(s)`);
+          return;
+        }
+        try {
+          setStatus(`loading graph ${ib}â€¦`);
+          const graph = await resolveGraph(ib);
+          state.selectedIb = ib;
+          state.graph = graph;
+          await renderLegend();
+          renderList();
+          setStatus(
+            `${state.ibs.length} tip(s) Â· open ${ib} Â· ${graph.nodes.size} node(s) Â· ${graph.edges.length} edge(s)` +
+              (graph.viaManager
+                ? ` Â· manager [${(graph.sources || []).join(",")}]`
+                : "") +
+              (graph.frameStoreCount != null
+                ? ` Â· frame.list ${graph.frameStoreCount}`
+                : "")
+          );
+        } catch (err) {
+          state.selectedIb = null;
+          state.graph = null;
+          renderList();
+          setStatus(String(err?.message || err));
+        }
+      };
+      const listTipIbs = async () => {
+        const tip = tipApi();
+        const fromTip = await tip.list();
+        return (Array.isArray(fromTip) ? fromTip.map(String) : [])
+          .filter((ib) => {
+            const s = String(ib);
+            return (
+              !s.startsWith(FRAME_PREFIX) &&
+              !s.startsWith(TIP_PREFIX)
+            );
+          })
+          .sort((a, b) => a.localeCompare(b));
+      };
+
+      const refresh = async () => {
+        try {
+          const prefix = normalizePrefix(pathEl?.value || "");
+          state.prefix = prefix;
+          setStatus("loadingâ€¦");
+          dismissFloat();
+
+          let ibs = await listTipIbs();
+          if (prefix) {
+            const mgr = getManager();
+            const under =
+              typeof mgr?.ibUnderPrefix === "function"
+                ? (x) => mgr.ibUnderPrefix(x, prefix)
+                : (x) => ibUnderPrefixLocal(x, prefix);
+            ibs = ibs.filter((x) => under(x));
+          }
+
+          state.ibs = ibs;
+          await refreshSpaceLabel(ibs);
+
+          if (state.selectedIb && !ibs.includes(state.selectedIb)) {
+            state.selectedIb = null;
+            state.graph = null;
+          } else if (state.selectedIb) {
+            state.graph = await resolveGraph(state.selectedIb);
+          }
+
+          if (state.prefixViewOpen) {
+            state.prefixGraph = await collectPrefixGraph(ibs);
+          }
+
+          await renderLegend();
+          await renderList();
+          setStatus(
+            `${ibs.length} tip(s)` +
+              (state.spaceBytesLabel ? ` Â· ${state.spaceBytesLabel}` : "") +
+              (state.selectedIb ? ` Â· open ${state.selectedIb}` : "") +
+              (state.prefixViewOpen ? " Â· prefix view" : "") +
+              (prefix ? ` Â· filter ${prefix}` : "")
+          );
+        } catch (err) {
+          setStatus(String(err?.message || err));
+          viewport.textContent = "";
+          state.ibs = [];
+          state.selectedIb = null;
+          state.graph = null;
+          state.prefixViewOpen = false;
+          state.prefixGraph = null;
+          state.spaceBytes = null;
+          state.spaceBytesLabel = "";
+        }
+      };
+
+      refreshBtn?.addEventListener("click", () => {
+        void refresh();
+      });
+      viewPrefixBtn?.addEventListener("click", () => {
+        void togglePrefixView();
+      });
+      exportTinyviewBtn?.addEventListener("click", () => {
+        if (!state.prefixViewOpen) {
+          setStatus("open a prefix view first, then export-tinyview");
+          return;
+        }
+        if (exportTinyviewBtn) exportTinyviewBtn.style.display = "none";
+        if (exportTinyviewConfirm) {
+          exportTinyviewConfirm.style.display = "inline-flex";
+        }
+      });
+      exportTinyviewYes?.addEventListener("click", () => {
+        void (async () => {
+          if (exportTinyviewYes) exportTinyviewYes.disabled = true;
+          try {
+            setStatus("exporting tinyviewâ€¦");
+            const planted = await plantTinyview();
+            setStatus(`exported ${planted.ib} â€” swappingâ€¦`);
+            if (typeof globalThis.navi?.callout === "function") {
+              globalThis.navi.callout(`[tinyviewport] planted ${planted.ib}`);
+            }
+            await swapRootToTinyview(planted.ib, planted.html);
+          } catch (err) {
+            setStatus(String(err?.message || err));
+            if (exportTinyviewYes) exportTinyviewYes.disabled = false;
+            if (exportTinyviewConfirm) {
+              exportTinyviewConfirm.style.display = "none";
+            }
+            if (exportTinyviewBtn && !tinyviewMode) {
+              exportTinyviewBtn.style.display = "";
+            }
+          }
+        })();
+      });
+      hostparkMirrorBtn?.addEventListener("click", () => {
+        void runHostparkMirror();
+      });
+      pathEl?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          void refresh();
+        }
+      });
+      // Prefs inputs are bound via prefs-host change delegation (mountPrefsHost).
+
+      viewport.addEventListener("click", (e) => {
+        if (!floatEl) return;
+        const t = e.target;
+        if (t && typeof t.closest === "function" && t.closest("[data-part='preview']"))
+          return;
+        if (t && typeof t.closest === "function" && t.closest("button[data-tv-addr]"))
+          return;
+        dismissFloat();
+      });
+      (shellEl || root).addEventListener("click", (e) => {
+        if (!floatEl || floatEl.dataset.tvPreviewMode !== "overlay") return;
+        const t = e.target;
+        if (t && typeof t.closest === "function" && t.closest("[data-part='preview']"))
+          return;
+        if (t && typeof t.closest === "function" && t.closest("button[data-tv-addr]"))
+          return;
+        dismissFloat();
+      });
+
+      void loadPrefs()
+        .then(() => loadHostparkMirrorIndex())
+        .then(async () => {
+          wireManager();
+          renderManagerBar();
+          void checkManagerUpdate();
+          await mountPrefsHost();
+          const manifest = await tryLoadTinyviewManifest();
+          if (manifest) {
+            try {
+              await enterTinyviewMode(manifest);
+            } catch (err) {
+              setStatus(String(err?.message || err));
+              await renderLegend();
+              await refresh();
+            }
+            return;
+          }
+          await renderLegend();
+          await refresh();
+        })
+        .catch((err) => {
+          const msg = String(err?.message || err);
+          setStatus(msg);
+          console.error("[tinyviewport] boot failed", err);
+          if (viewport) {
+            viewport.replaceChildren();
+            const fail = document.createElement("div");
+            fail.style.cssText =
+              "font:12px/1.3 monospace;color:#c0392b;padding:0.35rem 0";
+            fail.textContent = `tinyviewport failed to start: ${msg}`;
+            viewport.appendChild(fail);
+          }
+      });
+    })();
+  </script>
+</div>

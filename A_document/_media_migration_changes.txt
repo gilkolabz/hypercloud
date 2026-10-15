@@ -1,0 +1,33 @@
+Navi storage `.content` -> `.media` migration
+Date: 2026-07-16
+
+Context
+-------
+navi.storage.file records are now { media, mime } (the payload field was
+previously called `content`). Bare-string / { content } saves now THROW, and
+reading `.content` off a get() record returns undefined. See
+A_document/navi_modules_guide.md ("Breaking change: file records are { media, mime }").
+
+Changes made in this folder (B_testkit_mods/)
+----------------------------------------------------
+1. local_tools.js
+   saveFile(): bare-string save
+     BEFORE: await this.navi.storage.file.save(filePath, content);
+     AFTER:  await this.navi.storage.file.save(filePath, { media: content, mime: "text/plain" });
+
+2. flowerpot_client_module.js
+   storeRead(): binary/base64 branch save
+     BEFORE: await navi.storage.file.save(filePath, payload);
+     AFTER:  await navi.storage.file.save(filePath, { media: payload, mime: contentType });
+
+3. spacebarz_admin.js
+   getFileContent(): saveToStorage branch
+     BEFORE: await navi.storage.file.save(storagePath, content);
+     AFTER:  await navi.storage.file.save(storagePath, { media: content, mime: contentType });
+
+Notes
+-----
+- Only save shapes changed. The .load(path) reads in these files already return
+  the media string directly, so no read-side changes were needed.
+- Matches like contentType / contentDocument / result-object `.content` are
+  unrelated to the storage API and were left untouched.

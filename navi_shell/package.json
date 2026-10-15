@@ -1,0 +1,33 @@
+{
+  "name": "navi-shell",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Navi Shell runtime (native Node / localnavi exe + browser bundle)",
+  "main": "dist/navi_shell_localnavi.cjs",
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "node build.js",
+    "build:host": "node build_host.js",
+    "build:clean": "npm run clean ; npm run build",
+    "start": "node dist/navi_shell_localnavi.cjs"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/eventemitter3": "^2.0.4",
+    "@types/node": "^22.13.10",
+    "@yao-pkg/pkg": "^6.21.0",
+    "esbuild": "^0.14.54",
+    "resedit-cli": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.2"
+  },
+  "pkg": {
+    "targets": [
+      "node22-win-x64",
+      "node22-linux-x64"
+    ],
+    "outputPath": "."
+  }
+}

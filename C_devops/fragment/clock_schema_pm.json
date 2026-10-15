@@ -1,0 +1,26 @@
+{
+  "kind": "navi.clock.schema",
+  "id": "pm",
+  "label": "PM",
+  "degrees": 360,
+  "period": {
+    "hours": 12,
+    "startHour": 12,
+    "endHour": 24,
+    "label": "PM"
+  },
+  "zeroAt": "top",
+  "clockwise": true,
+  "ticks": {
+    "majorEveryHours": 1,
+    "minorEveryMinutes": 5,
+    "labels": true
+  },
+  "event": {
+    "from": ["data.timestamp", "data.time", "data.events"],
+    "ibAsEvent": true
+  },
+  "about": {
+    "description": "12-hour afternoon/evening face — wall hours 12:00–23:59 map across 360°."
+  }
+}

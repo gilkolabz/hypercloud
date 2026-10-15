@@ -1,0 +1,106 @@
+<div
+  name="flow-model-runtime"
+  data-path="torus/devops/flow-model/runtime"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Runtime environment</h1>
+    <p>The flow model sits on foobarch + navi_shell + <strong>hostpark</strong>. This page names the runtime facts the model depends on — in <strong>current</strong> navi_shell terms (tip/park/callin). Units exist in the shell but flow products assume one session per navi window and do not design against them.</p>
+    <h2>Stack (bottom → top)</h2>
+    <ol>
+    <li>foobarch — origin dispatch server; serves the browser shell and hostpark routes.</li>
+    <li>Browser shell — loads <code>navi_shell.js</code> once. Body content may change; navi does not.</li>
+    <li>navi_shell — JS runtime: tip+bin storage, mount, callin (park dispatch), module registry.</li>
+    <li>surf — in-app navigation: fetch HTML from a route, parse, <code>document.body.replaceChildren</code>.</li>
+    <li><strong>hostpark</strong> — default versioned push host for product artifacts on <code>navi.origin</code> (modules, flows, UI, schemas, assets).</li>
+    <li>Project modules + flow + UI (+ optional <code>assets/</code>) — what authors push; Manager drives the journey; tips hold session/local copies.</li>
+    </ol>
+    <p>Flowerpot remains available as an alternate file-server surface; flow-model <strong>push</strong> defaults to hostpark.</p>
+    <h2>Shell persistence</h2>
+    <p>While the user moves through a product:</p>
+    <ul>
+    <li><code>navi</code> remains in the same window</li>
+    <li>tip space persists session and application data</li>
+    <li>Mounted modules stay mounted unless explicitly unmounted; ledger <code>navi:mod</code> + park tip bins support <code>navi.remount()</code> after reload</li>
+    <p>Body HTML is ephemeral payload from hostpark (or a planted tip that wins park-check)</p>
+    </ul>
+    <p>Deep links matter for entry (bookmark, PWA start URL, custom proposal). Inside a running session, prefer surf over full navigation so the runtime survives.</p>
+    <h2>Entry vs in-app move</h2>
+    <ul>
+    <li>First paint / cold start — Shell may HTMX-bootstrap a fragment, or a launch fragment runs bootstrap script</li>
+    <li>Step-to-step inside product — <code>navi.mod.surf.surf(url)</code> — not HTMX</li>
+    </ul>
+    <p>Surf avoids hx-get load flicker for in-app steps. HTMX may still seed the first screen on entry.</p>
+    <h2>Hostpark as default artifact host</h2>
+    <p>Projects <strong>hostpark-push</strong>:</p>
+    <ul>
+    <li>modules (<code>.js</code> navi modules, MIME <code>application/navi-module</code>)</li>
+    <li>flow artifacts (<code>.json</code>)</li>
+    <li>UI fragments (<code>.html</code> / HTMF)</li>
+    <li>schemas, seed data, config, indexes</li>
+    </ul>
+    <p>Each signed commit on a route appends a <strong>hostpark addr</strong>. Surf / fetch load latest unless UX requests a specific generation.</p>
+    <p>Hostpark does not invent variants. Authors create local files; push mirrors them to routes. Parallel variants = parallel paths (or parallel revisions), not overwrite-by-default.</p>
+    <p>See <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>. Devops tooling: <a href="/torus/testkit/mod/fsdevopstracker/readme" hx-get="/torus/testkit/mod/fsdevopstracker/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">fsdevopstracker readme</a>. Every push needs a real why — <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>.</p>
+    <h2>Logical route vs transport URL</h2>
+    <ul>
+    <li><strong>Logical route</strong> — bare park ib, e.g. <code>torus/…/flow/notes_basic.json</code> or <code>opry/…/flow/….json</code>. Stored in config / session tips. <strong>Do not</strong> invent a <code>/flowerpot/</code> prefix in Managers or launches.</li>
+    <li><strong>Transport / surf URL</strong> — same path on origin: <code>navi.resolveUrl(logical)</code> → <code>https://{navi.origin}/{logical}</code>, or <code>/</code> + logical for relative surf (e.g. <code>/opry/…/ui/list.html</code>). Hostpark serves that tip.</li>
+    </ul>
+    <p>Flowerpot is an <strong>alternate</strong> prefix park (<code>/flowerpot/{logical}</code>). Use it only when the artifact was deliberately potted there. Flow-model <strong>default</strong> is hostpark bare paths — push, fetch, mount, and plant tips all share the same logical ib.</p>
+    <p>See <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>.</p>
+    <h2>Storage: one tip layer (local-first)</h2>
+    <p>Authoritative store is tip + tip frame + bin. <code>navi.storage.item</code> / <code>file</code> are sugar only. Session, config, artifacts, and modules all live here — different ibs / roles, same layer.</p>
+    <table>
+    <thead><tr><th>Role (examples)</th><th>Same layer</th></tr></thead>
+    <tbody>
+    <tr><td>Active-flow pointer, pending ids, return-to</td><td>Tips (often project-prefixed)</td></tr>
+    <tr><td>Config defaults</td><td>Tip (often mirrored from hostpark JSON)</td></tr>
+    <tr><td>Flow JSON / UI / module bytes</td><td>Tips; <strong>cache under the same bare ib as the hostpark route</strong></td></tr>
+    <tr><td>Mounted modules</td><td><code>navi:<name></code> + bin; ledger <code>navi:mod</code></td></tr>
+    </tbody></table>
+    <p><strong>Local-first is the default:</strong> plant what you run; park-check / surf / <code>navi.fetch</code> already do local tip → then network/host. Planting at the logical route’s tip ib makes that passthru automatic.</p>
+    <p><strong>UX guides how:</strong> Manager chooses when to use a warm tip, when to refresh (e.g. hostpark addr moved), when to fetch on miss — so the journey feels right. Not a separate “selection store.”</p>
+    <p>“Which flow is active” is tip data (pointer to a logical route / typed id). The flow document itself is another tip at that logical ib. Both are tips; both participate in local-first.</p>
+    <h2>Callin and mount</h2>
+    <ul>
+    <li><code>navi("mount opry/…/modules/notes_init.js")</code> — surf install verb; fetches hostpark (or local tip), plants park tip from live <code>register().name</code></li>
+    <li><code>navi("notes bootstrap")</code> — only if the init module’s park + <code>commands.bootstrap</code> exist (park dispatch, not a global registry)</li>
+    <li>Prefer coherent names: module <code>name</code> / park leaf / default command key aligned (see navi modules guide)</li>
+    </ul>
+    <p>Remount after reload: init_script / <code>await navi.remount()</code> restores <code>navi:mod.parks[]</code> from tip bins. Prefer remounting product init/manager <strong>from the hostpark route</strong> when bytes may have moved (stale tip remounts keep old fetch helpers).</p>
+    <h2>Bootstrap shape</h2>
+    <p>A cold start typically:</p>
+    <ol>
+    <li>Wait for <code>navi</code> + storage (+ surf module)</li>
+    <li><code>mount</code> project init module from its <strong>bare hostpark</strong> route (plants <code>navi:<initName></code>)</li>
+    <li>Set session tip for which flow (and optionally program / manager module) to use</li>
+    <li>Callin bootstrap command: mount registry + Manager from hostpark, seed/plant flow if needed, <code>go(entry)</code></li>
+    </ol>
+    <p>Launch fragments own step 3. Config tip supplies the default when no session override is set. Managers resolve assets with <code>navi.resolveUrl(logical)</code> / origin <code>GET /{logical}</code> — never concatenate <code>/flowerpot/</code>.</p>
+    <h2>Citations</h2>
+    <ul>
+    <li><code>navi_shell/README.md</code></li>
+    <li><code>navi_shell/docs/navi_modules_guide.md</code></li>
+    <li><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a></li>
+    <li><code>A_document/_navi_style.md</code></li>
+    </ul>
+  </article>
+</div>

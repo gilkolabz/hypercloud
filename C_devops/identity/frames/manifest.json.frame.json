@@ -1,0 +1,36 @@
+{
+  "ib": "manifest.json",
+  "gib": "<sha256_of_file_bytes_UPPERCASE>",
+  "data": {
+    "parts": [
+      "network_proposal",
+      "ibgib_frame",
+      "manifest",
+      "json"
+    ],
+    "park": "defer",
+    "content_type": "application/manifest+json; charset=utf-8",
+    "default_method": "GET",
+    "method": {
+      "GET": {
+        "kind": "bin"
+      },
+      "PUT": {
+        "kind": "commit"
+      }
+    },
+    "n": 0,
+    "timestamp": "<Date.toUTCString()>"
+  },
+  "rel8ns": {
+    "bin": [
+      "bin <sha256_lowercase>"
+    ],
+    "policy": [
+      "policies/foobarch-shell^<policy_gib>"
+    ],
+    "past": [],
+    "tjp": [],
+    "dna": []
+  }
+}

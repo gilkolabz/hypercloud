@@ -1,0 +1,525 @@
+<div
+  data-part="htmf"
+  data-path="hypercloud/testkit/htmf/scranton_lobby_v1_surfroster_part"
+  name="scranton_lobby_v1_surfroster_part"
+  data-surfroster-part="__PART__"
+  style="font:13px/1.35 ui-monospace,Consolas,monospace;padding:0.75rem;max-width:36rem;border:double 4px #000;box-sizing:border-box;background:#fff;color:#111;"
+>
+  <div style="font-weight:700;margin:0 0 0.2rem;">scranton · <span data-sp="title">__PART__</span></div>
+  <div data-sp="blurb" style="opacity:0.65;font-size:11px;margin:0 0 0.35rem;"></div>
+  <div data-sp="source" style="opacity:0.65;font-size:11px;margin:0 0 0.35rem;word-break:break-all;"></div>
+  <div style="display:flex;gap:0.35rem;margin:0 0 0.5rem;">
+    <input data-sp="page" type="text" spellcheck="false" placeholder="page (follows your surfs)" title="The page whose lobby or affordance frame is shown. Follows your surfs; type one to look elsewhere." style="flex:1;min-width:0;font:inherit;" />
+    <button type="button" data-sp="refresh">refresh</button>
+  </div>
+  <div data-sp="sub" style="opacity:0.65;font-size:11px;margin:0 0 0.25rem;word-break:break-all;"></div>
+  <div data-sp="body"></div>
+  <p data-sp="note" style="margin:0.35rem 0 0;opacity:0.75;"></p>
+
+  <script>
+(function () {
+  const root = document.currentScript.closest("[data-part]");
+  if (!root || root.dataset.spWired === "1") return;
+  root.dataset.spWired = "1";
+
+  const MOD_PARK = "scranton_lobby";
+  const AVATAR_PARK = "scranton_avatar";
+  const ROSTER_IB = "testkit/surfroster";
+  // Each part is the standalone view of one thing the scranton frames already define.
+  const PARTS = {
+    posts: {
+      title: "posts",
+      blurb: "frames people POSTed onto this page's lobby; each post kind is read by its affordance",
+      source: "lobby scranton/lobby/v1 · any post kind with a descriptor under scranton/affordance/v1",
+    },
+    comments: { affordance: "comments", blurb: "comments kept beside the page at comments/<page>; one signed row each" },
+    stagedirections: { affordance: "stagedir", blurb: "shared placements kept at stagedir/<page>; place one or all onto your stage" },
+    links: { affordance: "links", blurb: "paths people left for this page at links/<page>; clicking one surfs there" },
+  };
+  const partName = root.dataset.surfrosterPart || "";
+  const part = PARTS[partName] || null;
+
+  const $ = (k) => root.querySelector('[data-sp="' + k + '"]');
+  const titleEl = $("title");
+  const blurbEl = $("blurb");
+  const sourceEl = $("source");
+  const pageEl = $("page");
+  const subEl = $("sub");
+  const bodyEl = $("body");
+  const noteEl = $("note");
+
+  let myPub = "";
+  let showHidden = false;
+  let pageTyped = false;
+  let seq = 0;
+
+  function setNote(msg) {
+    noteEl.textContent = msg || "";
+  }
+  function lobbyApi() {
+    return navi?.mod?.scranton_lobby?.lobby || null;
+  }
+  function avatarApi() {
+    return navi?.mod?.scranton_avatar || null;
+  }
+  async function ensureAvatar() {
+    if (avatarApi()?.paintByCell) return avatarApi();
+    try {
+      if (typeof navi?.callin === "function") await navi.callin({ path: AVATAR_PARK, method: "GET" });
+    } catch (e) {
+      console.warn("[surfroster part] scranton_avatar:", e?.message || e);
+    }
+    return avatarApi();
+  }
+  async function ensureMod() {
+    if (lobbyApi()) {
+      void ensureAvatar();
+      return;
+    }
+    if (typeof navi?.callin === "function") await navi.callin({ path: MOD_PARK, method: "GET" });
+    else if (typeof navi === "function") await navi(MOD_PARK);
+    if (!lobbyApi()) throw new Error("mounted but navi.mod.scranton_lobby.lobby missing");
+    await ensureAvatar();
+  }
+
+  function peelSurfPark(park) {
+    const segs = String(park || "").replace(/^\/+/, "").split("/").filter(Boolean);
+    let i = 0;
+    if (segs[i] && /^navi$/i.test(segs[i])) i += 1;
+    if (String(segs[i] || "").toLowerCase() !== "surf") return "";
+    return segs.slice(i + 1).filter((s) => !s.startsWith("-")).join("/");
+  }
+  /** Surfroster's own pages are never the page being looked at. */
+  function isRosterPath(p) {
+    return new RegExp("(^|/)" + ROSTER_IB + "(/|$)", "i").test(String(p || "").replace(/^navi:/i, ""));
+  }
+  function bodySurfPath() {
+    for (const el of document.body ? document.body.querySelectorAll("[data-path]") : []) {
+      if (el === root || root.contains(el) || el.contains(root)) continue;
+      const p = (el.getAttribute("data-path") || "").trim().replace(/^\/+/, "");
+      if (p && !isRosterPath(p)) return p;
+    }
+    return "";
+  }
+  function shortPathFromRaw(raw) {
+    const s = String(raw || "").trim().replace(/^\/+/, "").replace(/^navi:/i, "");
+    if (!s) return "";
+    const hit = lobbyApi()?.parseLobbyPathFromSurf?.(s);
+    if (hit?.path) return hit.path;
+    const m = s.match(/(?:^|\/)scranton\/lobby\/v1\/(.+)$/i);
+    return m ? m[1] : s;
+  }
+  function contextPage() {
+    const l = lobbyApi();
+    for (const p of [l?.lastSurfPath, l?.prevSurfPath, bodySurfPath()]) {
+      if (p && !isRosterPath(p)) return shortPathFromRaw(p);
+    }
+    return "";
+  }
+  function page() {
+    if (!pageTyped || !pageEl.value.trim()) pageEl.value = contextPage();
+    return pageEl.value.trim();
+  }
+
+  function noteLi(text) {
+    const li = document.createElement("li");
+    li.style.opacity = "0.65";
+    li.textContent = text;
+    return li;
+  }
+  function smallMark(text, title, color) {
+    const s = document.createElement("span");
+    s.style.cssText = "margin-left:0.4rem;font-size:11px;color:" + (color || "#666") + ";";
+    s.textContent = text;
+    if (title) s.title = title;
+    return s;
+  }
+  const trustedMark = (via) => smallMark("✓ trusted", "acts on its own for you (" + via + ")", "#1a7f37");
+  const gateMark = (from) => smallMark("· only when arriving from " + from, "applies itself on surf only when you come here from " + from + "; you can still apply it by hand", "#8a5a00");
+  const hiddenMark = (why) => smallMark("· hidden (" + why + ")", "", "#999");
+
+  async function trustButton(author, opts = {}) {
+    const lobby = lobbyApi();
+    if (!author || author === myPub || !lobby?.trustKey || !lobby?.isTrusted) return null;
+    const t0 = await lobby.isTrusted(author).catch(() => null);
+    if (t0?.trusted && opts.untrust === false) return null;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.style.marginLeft = "0.5rem";
+    const paint = async () => {
+      const t = await lobby.isTrusted(author).catch(() => null);
+      b.textContent = t?.trusted ? "untrust" : "trust";
+      b.title = t?.trusted
+        ? "stop treating this key as trusted (avi/name hide again)"
+        : "trust this pubkey — then their avi and name show";
+    };
+    void paint();
+    b.addEventListener("click", async () => {
+      const t = await lobby.isTrusted(author).catch(() => null);
+      await lobby.trustKey(author, !t?.trusted);
+      setNote((t?.trusted ? "untrusted " : "trusted ") + author.slice(0, 12) + "…");
+      void refresh();
+    });
+    return b;
+  }
+  function hideButton(author) {
+    const lobby = lobbyApi();
+    if (!author || author === myPub || !lobby?.hideKey) return null;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "hide author";
+    b.title = "Fold away everything by " + author.slice(0, 12) + "… (only for you)";
+    b.style.marginLeft = "0.5rem";
+    b.addEventListener("click", async () => {
+      await lobby.hideKey(author, true);
+      setNote("hiding " + author.slice(0, 12) + "… (surfroster filter to undo)");
+      void refresh();
+    });
+    return b;
+  }
+  function hiddenToggle(n) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = showHidden ? "fold hidden" : "show " + n + " hidden";
+    b.style.cssText = "font-size:11px;margin:0.2rem 0;";
+    b.addEventListener("click", () => {
+      showHidden = !showHidden;
+      void refresh();
+    });
+    return b;
+  }
+
+  /** Plugin action: run → note; a { text, show } result also opens a <pre> under `host`. */
+  function actionButton(act, host) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = act.label;
+    if (act.title) b.title = act.title;
+    b.style.marginLeft = "0.5rem";
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      let rerender = true;
+      try {
+        const out = await act.run();
+        if (out && typeof out === "object") {
+          setNote(String(out.text || act.label + " ok"));
+          if (out.show != null) {
+            rerender = false;
+            const pre = document.createElement("pre");
+            pre.style.cssText = "max-height:14rem;overflow:auto;background:#f6f6f6;border:1px solid #ddd;padding:4px;margin:0.25rem 0;white-space:pre-wrap;font-size:11px;";
+            pre.textContent = String(out.show);
+            host.querySelector(":scope > pre")?.remove();
+            host.appendChild(pre);
+          }
+        } else {
+          setNote(String(out || act.label + " ok"));
+        }
+      } catch (e) {
+        setNote(act.label + ": " + (e?.message || e));
+      }
+      b.disabled = false;
+      if (rerender) void refresh();
+    });
+    return b;
+  }
+
+  async function renderPosts(p, mySeq) {
+    const lobby = lobbyApi();
+    const ul = document.createElement("ul");
+    ul.style.cssText = "margin:0;padding-left:1.25rem;";
+    const found = await lobby.postsFor(p);
+    subEl.textContent = found.ib + (found.lobby ? "" : " · no lobby yet");
+    const items = found.list.filter((x) => x.post);
+    if (!items.length) ul.appendChild(noteLi("(none on this page)"));
+    let hiddenN = 0;
+    for (const x of items) {
+      const hid = lobby.isHidden ? await lobby.isHidden(x.post?.author, x.kind).catch(() => null) : null;
+      if (hid?.hidden) hiddenN += 1;
+      if (hid?.hidden && !showHidden) continue;
+      const li = document.createElement("li");
+      li.style.cssText = "word-break:break-all;margin-bottom:0.3rem;";
+      const aff = await lobby.affordanceForPostKind(x.kind).catch(() => null);
+      const plugin = aff?.plugin || null;
+      const text = document.createElement("span");
+      if (!x.valid) {
+        text.style.opacity = "0.6";
+        text.textContent = x.kind + " · ✗ " + x.reason;
+      } else if (!plugin) {
+        const mod = aff?.descriptor?.interpreter?.mod;
+        text.textContent = x.kind + " · " + (mod ? "mount " + mod + " to read it" : "no affordance for this kind") + " (" + x.addr + ")";
+      } else {
+        text.textContent = plugin.describe ? plugin.describe(x, { path: p, lobby }) : x.kind;
+      }
+      text.title = x.addr;
+      li.appendChild(text);
+      if (x.valid && lobby.isTrusted) {
+        const t = await lobby.isTrusted(x.post?.author).catch(() => null);
+        if (t?.trusted) li.appendChild(trustedMark(t.via));
+      }
+      const gate = lobby.gateOf ? lobby.gateOf(x) : "";
+      if (gate) li.appendChild(gateMark(gate));
+      if (hid?.hidden) li.appendChild(hiddenMark(hid.why));
+      if (x.valid && plugin?.actions) {
+        for (const act of (await plugin.actions(x, { path: p, lobby })) || []) li.appendChild(actionButton(act, li));
+      }
+      const tb = await trustButton(x.post?.author);
+      if (tb) li.appendChild(tb);
+      const hb = hideButton(x.post?.author);
+      if (hb) li.appendChild(hb);
+      ul.appendChild(li);
+    }
+    if (mySeq !== seq) return;
+    bodyEl.replaceChildren(ul);
+    if (hiddenN) bodyEl.appendChild(hiddenToggle(hiddenN));
+  }
+
+  function fmtCell(col, v, mine) {
+    if (col === "by") return String(v || "?").slice(0, 10) + "…" + (mine ? " (you)" : "");
+    if (col === "at") {
+      const d = new Date(v);
+      return isNaN(d) ? String(v || "") : d.toLocaleString();
+    }
+    return String(v ?? "");
+  }
+  /** Field type "surf": a page path, surfed in this navi. */
+  function fieldCell(type, v) {
+    const s = String(v ?? "").trim();
+    if (type === "surf" && s && !/^[a-z][a-z0-9+.-]*:/i.test(s.replace(/^navi:/i, ""))) {
+      const target = s.replace(/^navi:/i, "").replace(/^\/+/, "");
+      const a = document.createElement("a");
+      a.href = "#";
+      a.textContent = target;
+      a.title = "surf " + target;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (typeof navi?.callin === "function") void navi.callin("surf/" + target);
+      });
+      return a;
+    }
+    return document.createTextNode(s);
+  }
+
+  async function renderAddress(name, p, mySeq) {
+    const lobby = lobbyApi();
+    const a = await lobby.affordanceNamed(name);
+    const d = a?.descriptor;
+    if (!d?.address) throw new Error("no address affordance '" + name + "' (scranton_lobby affordance list)");
+    titleEl.textContent = d.label || name;
+    if (!sourceEl.textContent) {
+      sourceEl.textContent = "descriptor " + d.ib + " · policy " + (d.policy_ib || "?");
+    }
+    const box = document.createElement("div");
+    const head = document.createElement("div");
+    box.appendChild(head);
+    const r = await lobby.readAddress(name, p);
+    subEl.textContent = r.ib + (r.exists ? (r.valid ? " · " + r.rows.length + " row(s)" : " · ✗ " + r.reason) : " · none yet (the first add creates it, +1 token)");
+    if (r.pending?.length) subEl.textContent += " · " + r.pending.length + " pending (scranton_lobby park sync)";
+    if (d.interpreter?.mod && !a.plugin) subEl.textContent += " · mount " + d.interpreter.mod + " for its buttons";
+    const plugin = a.plugin;
+    const ctx = { path: p, lobby, affordance: a };
+    if (r.valid && plugin?.actions) {
+      for (const act of (await plugin.actions(r, ctx).catch(() => [])) || []) head.appendChild(actionButton(act, box));
+    }
+    const trustedBy = new Map();
+    const hiddenRows = new Map();
+    const hid = lobby.hideList ? await lobby.hideList().catch(() => null) : null;
+    for (const by of new Set(r.rows.map((row) => row.by))) {
+      const t = lobby.isTrusted ? await lobby.isTrusted(by).catch(() => null) : null;
+      if (t?.trusted) trustedBy.set(by, t.via);
+      if (by === myPub) continue;
+      if (hid?.keys?.[by]) hiddenRows.set(by, "author hidden");
+    }
+    const cols = Array.isArray(d.columns) && d.columns.length ? d.columns : [...Object.keys(d.fields || {}), "by", "at"];
+    const shownRows = r.rows.map((row, i) => [i, row]).filter(([, row]) => showHidden || !hiddenRows.has(row.by));
+    const hiddenCount = r.rows.filter((row) => hiddenRows.has(row.by)).length;
+    if (hiddenCount) subEl.textContent += " · " + hiddenCount + " hidden";
+    if (shownRows.length) {
+      const table = document.createElement("table");
+      table.style.cssText = "border-collapse:collapse;width:100%;font-size:12px;margin:0 0 0.3rem;";
+      const tr0 = document.createElement("tr");
+      for (const c of [...cols, ""]) {
+        const th = document.createElement("th");
+        th.style.cssText = "text-align:left;border-bottom:1px solid #999;padding:2px 4px;";
+        th.textContent = c;
+        tr0.appendChild(th);
+      }
+      table.appendChild(tr0);
+      for (const [i, row] of shownRows) {
+        const tr = document.createElement("tr");
+        const mine = !!myPub && row.by === myPub;
+        if (row._pending) tr.style.opacity = "0.55";
+        for (const c of cols) {
+          const td = document.createElement("td");
+          td.style.cssText = "padding:2px 4px;vertical-align:top;word-break:break-word;";
+          const type = d.fields?.[c]?.type;
+          if (type) td.appendChild(fieldCell(type, row[c]));
+          else if (c === "by" && avatarApi()?.paintByCell) {
+            void avatarApi().paintByCell(td, row.by, { mine, myPub });
+          } else td.textContent = fmtCell(c, row[c], mine);
+          if (c === "by") {
+            td.title = row.by || "";
+            if (name !== "comments" && trustedBy.has(row.by)) td.appendChild(trustedMark(trustedBy.get(row.by)));
+            if (hiddenRows.has(row.by)) td.appendChild(hiddenMark(hiddenRows.get(row.by)));
+          }
+          tr.appendChild(td);
+        }
+        const td = document.createElement("td");
+        td.style.whiteSpace = "nowrap";
+        if (row._park) td.appendChild(Object.assign(document.createElement("span"), { textContent: row._park + " ", style: "font-size:11px;font-style:italic;" }));
+        if (plugin?.rowActions) {
+          for (const act of (await plugin.rowActions(row, i, r, ctx).catch(() => [])) || []) td.appendChild(actionButton(act, box));
+        }
+        if (name === "comments") {
+          const tb = await trustButton(row.by, { untrust: false });
+          if (tb) td.appendChild(tb);
+        } else {
+          const tb = await trustButton(row.by);
+          if (tb) td.appendChild(tb);
+          const hb = hideButton(row.by);
+          if (hb) td.appendChild(hb);
+        }
+        if (mine) {
+          const del = document.createElement("button");
+          del.type = "button";
+          del.textContent = "delete";
+          del.title = "Remove your row (1 token)";
+          del.addEventListener("click", async () => {
+            del.disabled = true;
+            try {
+              await lobby.addressDelete(name, p, i);
+              setNote(name + ": deleted your row");
+            } catch (e) {
+              setNote(name + " delete: " + (e?.message || e));
+            }
+            void refresh();
+          });
+          td.appendChild(del);
+        }
+        tr.appendChild(td);
+        table.appendChild(tr);
+      }
+      box.appendChild(table);
+    } else if (r.valid || !r.exists) {
+      box.appendChild(Object.assign(document.createElement("div"), { textContent: "(nothing yet)", style: "opacity:0.65;font-size:12px;" }));
+    }
+    if (hiddenCount) box.appendChild(hiddenToggle(hiddenCount));
+    const fields = Object.entries(d.fields || {});
+    if ((!r.exists || r.valid) && fields.length) {
+      const form = document.createElement("div");
+      form.style.cssText = "display:flex;gap:0.35rem;margin-top:0.3rem;";
+      const inputs = {};
+      for (const [f, spec] of fields) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = f + (spec?.min === 0 ? " (optional)" : spec?.max ? " (≤ " + spec.max + ")" : "");
+        if (spec?.max) input.maxLength = spec.max;
+        input.style.cssText = "flex:1;font:inherit;min-width:0;";
+        inputs[f] = input;
+        form.appendChild(input);
+      }
+      const add = document.createElement("button");
+      add.type = "button";
+      add.textContent = "add";
+      add.title = "Signed with your lobby key (1 token, +1 if this frame does not exist yet)";
+      add.addEventListener("click", async () => {
+        add.disabled = true;
+        try {
+          const vals = Object.fromEntries(Object.entries(inputs).map(([f, el]) => [f, el.value]));
+          setNote(name + ": created - hostparking...");
+          const out = await lobby.addressPush(name, p, vals);
+          setNote(name + ": " + (out.pending ? out.note : "hostparked" + (out.created ? " (new frame " + out.ib + ")" : "")));
+        } catch (e) {
+          setNote(name + " add: " + (e?.message || e));
+        }
+        void refresh();
+      });
+      form.appendChild(add);
+      box.appendChild(form);
+    }
+    if (mySeq === seq) bodyEl.replaceChildren(box);
+  }
+
+  async function refresh() {
+    const mySeq = ++seq;
+    const lobby = lobbyApi();
+    if (!part) {
+      setNote("unknown part '" + partName + "' (posts, comments, stagedirections, links)");
+      return;
+    }
+    if (!lobby) {
+      bodyEl.replaceChildren();
+      setNote("scranton_lobby not mounted");
+      return;
+    }
+    await ensureAvatar();
+    if (!myPub) {
+      try {
+        myPub = (await lobby.lobbyKey()).publicKey;
+      } catch {}
+    }
+    const p = page();
+    if (!p) {
+      subEl.textContent = "";
+      bodyEl.replaceChildren();
+      setNote("surf somewhere (or type a page)");
+      return;
+    }
+    try {
+      if (part.affordance) await renderAddress(part.affordance, p, mySeq);
+      else await renderPosts(p, mySeq);
+      if (mySeq === seq) setNote("");
+    } catch (e) {
+      if (mySeq === seq) setNote(e?.message || String(e));
+    }
+  }
+
+  if (part) {
+    titleEl.textContent = part.title || partName;
+    blurbEl.textContent = part.blurb + " · standalone part of " + ROSTER_IB;
+    if (part.source) sourceEl.textContent = part.source;
+  }
+  pageEl.addEventListener("input", () => {
+    pageTyped = !!pageEl.value.trim();
+  });
+  pageEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void refresh();
+  });
+  $("refresh").addEventListener("click", () => void refresh());
+
+  function onCallin(req) {
+    const surfPath = peelSurfPark(typeof req === "string" ? req : req?.path || req?.input || "");
+    if (!surfPath || isRosterPath(surfPath)) return;
+    pageTyped = false;
+    pageEl.value = shortPathFromRaw(surfPath);
+    void refresh();
+    setTimeout(() => {
+      const chain = lobbyApi()?.surfChain;
+      if (chain) void chain.then(() => refresh(), () => refresh());
+    }, 0);
+  }
+  if (typeof navi?.on === "function") navi.on("callin", onCallin);
+
+  void (async () => {
+    try {
+      if (!lobbyApi()) {
+        setNote("mounting scranton_lobby…");
+        await ensureMod();
+      }
+    } catch (e) {
+      setNote("auto-mount failed: " + (e?.message || e));
+      return;
+    }
+    let queued = false;
+    lobbyApi()?.onPark?.(() => {
+      if (queued) return;
+      queued = true;
+      setTimeout(() => {
+        queued = false;
+        void refresh();
+      }, 250);
+    });
+    await refresh();
+  })();
+})();
+  </script>
+</div>

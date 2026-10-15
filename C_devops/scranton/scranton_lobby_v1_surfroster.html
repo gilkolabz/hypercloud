@@ -1,0 +1,1367 @@
+<div
+  data-part="htmf"
+  data-path="hypercloud/testkit/htmf/scranton_lobby_v1_surfroster"
+  name="scranton_lobby_v1_surfroster"
+  data-mounted="0"
+  style="font:13px/1.35 ui-monospace,Consolas,monospace;padding:0.75rem;max-width:36rem;border:double 4px #000;box-sizing:border-box;background:#fff;color:#111;"
+>
+  <style>
+    div[name="scranton_lobby_v1_surfroster"][data-mounted="1"] button[data-act="mount"] {
+      display: none !important;
+    }
+    div[name="scranton_lobby_v1_surfroster"][data-wizard="1"] > :not(.sl-keep):not(style):not(script) {
+      display: none !important;
+    }
+    div[name="scranton_lobby_v1_surfroster"] .sl-nested {
+      margin: 0.4rem 0 0.4rem 0.85rem;
+      padding: 0.15rem 0 0.15rem 0.65rem;
+      border-left: 2px solid #bbb;
+    }
+    div[name="scranton_lobby_v1_surfroster"] .sl-nested > summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+  </style>
+  <div class="sl-keep" style="font-weight:700;margin:0 0 0.35rem;">scranton lobby · surfroster</div>
+  <div id="sl-wizard" class="sl-keep" hidden></div>
+  <div id="sl-meta" class="sl-keep" style="word-break:break-all;margin:0 0 0.5rem;opacity:0.8;font-size:12px;"></div>
+
+  <details open style="margin:0 0 0.5rem;">
+    <summary style="cursor:pointer;font-weight:700;">here</summary>
+    <label style="display:block;margin:0.35rem 0;">
+      path
+      <span style="opacity:0.65;font-size:11px;"> — short lobby leaf (e.g. demo → scranton/lobby/v1/demo)</span>
+      <input id="sl-path" type="text" spellcheck="false" placeholder="demo" style="display:block;width:100%;box-sizing:border-box;margin-top:0.15rem;font:inherit;" />
+    </label>
+    <label style="display:block;margin:0 0 0.5rem;">
+      alias
+      <span style="opacity:0.65;font-size:11px;"> — optional prefix → {alias}/scranton/lobby/v1/…</span>
+      <input id="sl-alias" type="text" spellcheck="false" placeholder="(none)" style="display:block;width:100%;box-sizing:border-box;margin-top:0.15rem;font:inherit;" />
+    </label>
+    <div id="sl-actions" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin:0 0 0.35rem;">
+      <button type="button" data-act="mount" title="Fetch and mount scranton_lobby if it is not already on navi.mod">mount mod</button>
+      <button type="button" data-act="enable-surf" title="Join (or create) this page's lobby and follow every later surf into that page's lobby">enable surfroster</button>
+      <button type="button" data-act="create" title="First-gen a new lobby tip at this path; puts you on the roster as OP">create</button>
+      <button type="button" data-act="join" title="Add your pubkey to the lobby roster (presence)">join</button>
+      <button type="button" data-act="leave" title="Remove your pubkey from this path’s roster (keeps alias prefs)">leave</button>
+      <button type="button" data-act="exit" title="Stop following surfs and leave the current lobby (here)">exit</button>
+      <button type="button" data-act="refresh" title="Ask the host about everything shown, then redraw">refresh</button>
+    </div>
+  </details>
+
+  <details style="margin:0 0 0.5rem;font-size:11px;opacity:0.9;">
+    <summary style="cursor:pointer;font-weight:700;">what the buttons do</summary>
+    <ul style="margin:0.35rem 0 0;padding-left:1.2rem;line-height:1.45;">
+      <li><strong>mount mod</strong> — pins the <code>scranton_lobby</code> park from hostpark and mounts it if missing (also tries <code>scranton_avatar</code> for avi thumbnails). Hidden once the lobby is mounted.</li>
+      <li><strong>enable surfroster</strong> — mounts if needed, joins (or creates) the lobby for the current page, and turns on following: every later surf leaves the old lobby and joins (or creates) the new page’s lobby. Stays on across reloads until <strong>exit</strong>.</li>
+      <li><strong>create</strong> — invents the lobby tip; you become OP and appear on the roster.</li>
+      <li><strong>join</strong> — publish your pubkey on the roster for this path.</li>
+      <li><strong>leave</strong> — remove yourself from this path’s roster.</li>
+      <li><strong>exit</strong> — stop following surfs and leave the lobby marked “here” (current).</li>
+      <li><strong>refresh</strong> — re-fetch tip and redraw the roster list.</li>
+      <li><strong>kick</strong> (on a roster row) — OP only; remove that pubkey.</li>
+      <li><strong>trust / untrust</strong> (on a roster or comment row) — local: after you trust a key, <code>scranton_avatar</code> shows their thumbnail and alias. Until then you only see the pubkey. Comments stay visible as pubkey text while untrusted.</li>
+      <li><strong>posts</strong> — frames people POSTed onto this page's lobby (e.g. a stage member to place here). Each post kind is read by its affordance, like <code>surfroster_stage_member</code>; a post only counts when its author signed the row.</li>
+      <li><strong>scripts</strong> — <code>navi_script</code> posts on this page (park <code>application/navi-script</code>). <strong>show</strong> / <strong>run</strong> POSTs the park; trusted authors run on surf. Post: <code>scranton_lobby script post &lt;page&gt; &lt;script park&gt; [label]</code>.</li>
+      <li><strong>affordances</strong> — frames kept beside the page instead of in its lobby, e.g. <code>comments/&lt;page&gt;</code> or <code>stagedir/&lt;page&gt;</code> (shared stage directions). Anyone can start one; its own policy decides what each write may add (one row signed by you, or deleting your own row).</li>
+      <li><strong>settings</strong> — nested <strong>trust</strong> (keys / identities; untrust lives here) and <strong>filter</strong> (hide authors or kinds; trusted-only for posts that act), plus the lobby prefs dropdowns.</li>
+      <li><strong>arriving from</strong> — a post or direction can say it only applies when you arrive from a certain page; it still shows here, and you can always apply it by hand.</li>
+    </ul>
+  </details>
+
+  <details open style="margin:0.5rem 0;">
+    <summary style="cursor:pointer;font-weight:700;">roster</summary>
+    <div id="sl-ib" style="word-break:break-all;margin:0.35rem 0;font-size:12px;"></div>
+    <div style="opacity:0.65;font-size:11px;margin:0 0 0.35rem;">keys stay pubkeys until you trust them. then their avi/name appear. your own avi always shows to you.</div>
+    <ul id="sl-roster" style="margin:0 0 0.5rem;padding-left:1.25rem;"></ul>
+    <div id="sl-avi"></div>
+  </details>
+  <details style="margin:0.5rem 0;">
+    <summary style="cursor:pointer;font-weight:700;">posts</summary>
+    <div style="opacity:0.65;font-size:11px;margin:0.25rem 0;">lobby rows that point at post frames; each kind's affordance knows what to do with it</div>
+    <ul id="sl-posts" style="margin:0 0 0.5rem;padding-left:1.25rem;"></ul>
+  </details>
+  <details id="sl-scripts-fold" style="margin:0.5rem 0;">
+    <summary style="cursor:pointer;font-weight:700;">scripts</summary>
+    <div style="opacity:0.65;font-size:11px;margin:0.25rem 0;">navi-script posts on this page (<code>application/navi-script</code>). show / run POSTs the park. trusted authors' scripts run when you surf here.</div>
+    <ul id="sl-scripts" style="margin:0 0 0.5rem;padding-left:1.25rem;"></ul>
+  </details>
+  <div id="sl-addresses"></div>
+  <details id="sl-settings" style="margin:0.5rem 0;">
+    <summary style="cursor:pointer;font-weight:700;">settings</summary>
+    <details id="sl-trust" class="sl-nested">
+      <summary>trust</summary>
+      <div style="opacity:0.65;font-size:11px;margin:0.25rem 0;">trusted authors' posts and directions act on their own when you surf (auto-stage, auto-run). An identity (e.g. hypernetizen) vouches for every key on its signed &lt;identity&gt;/frens list. Untrust a key here.</div>
+      <div id="sl-trust-me" style="font-size:11px;word-break:break-all;margin:0 0 0.25rem;"></div>
+      <ul id="sl-trust-list" style="margin:0 0 0.35rem;padding-left:1.25rem;font-size:12px;"></ul>
+      <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+        <input id="sl-trust-input" type="text" spellcheck="false" placeholder="pubkey, or identity name" style="flex:1;min-width:0;font:inherit;" />
+        <button type="button" data-trust="key" title="Trust this lobby pubkey">trust key</button>
+        <select id="sl-trust-hops" title="1 hop: the identity's frens. 2-3 hops: also the frens of identities it vouches for" style="font:inherit;">
+          <option value="1">1 hop</option>
+          <option value="2">2 hops</option>
+          <option value="3">3 hops</option>
+        </select>
+        <button type="button" data-trust="identity" title="Trust every key on <identity>/frens">trust identity</button>
+      </div>
+    </details>
+    <details id="sl-filter" class="sl-nested">
+      <summary>filter</summary>
+      <div style="opacity:0.65;font-size:11px;margin:0.25rem 0;">only for you, nothing is written anywhere: hidden authors and post kinds are folded away here and never act on their own.</div>
+      <label style="display:block;font-size:12px;margin:0 0 0.25rem;"><input id="sl-only-trusted" type="checkbox" checked /> show trusted authors only (posts that act)</label>
+      <ul id="sl-filter-list" style="margin:0 0 0.35rem;padding-left:1.25rem;font-size:12px;"></ul>
+      <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+        <input id="sl-filter-input" type="text" spellcheck="false" placeholder="pubkey, or post kind" style="flex:1;min-width:0;font:inherit;" />
+        <button type="button" data-hide="key" title="Hide this author everywhere">hide author</button>
+        <button type="button" data-hide="kind" title="Hide every post of this kind (e.g. navi_script)">hide kind</button>
+      </div>
+    </details>
+    <div id="sl-settings-body"></div>
+    <button type="button" id="sl-settings-wizard" style="margin-top:0.35rem;">walk me through them again</button>
+  </details>
+  <p id="sl-note" class="sl-keep" style="margin:0;opacity:0.75;"></p>
+
+  <script>
+(function () {
+  const root = document.currentScript.closest("[data-part]");
+  if (!root || root.dataset.slWired === "1") return;
+  root.dataset.slWired = "1";
+
+  const MOD_PARK = "scranton_lobby";
+  const AVATAR_PARK = "scranton_avatar";
+
+  const pathEl = root.querySelector("#sl-path");
+  const aliasEl = root.querySelector("#sl-alias");
+  const metaEl = root.querySelector("#sl-meta");
+  const ibEl = root.querySelector("#sl-ib");
+  const listEl = root.querySelector("#sl-roster");
+  const aviEl = root.querySelector("#sl-avi");
+  const postsEl = root.querySelector("#sl-posts");
+  const scriptsEl = root.querySelector("#sl-scripts");
+  const addressesEl = root.querySelector("#sl-addresses");
+  const trustEl = root.querySelector("#sl-trust");
+  const trustMeEl = root.querySelector("#sl-trust-me");
+  const trustListEl = root.querySelector("#sl-trust-list");
+  const trustInput = root.querySelector("#sl-trust-input");
+  const trustHops = root.querySelector("#sl-trust-hops");
+  const filterEl = root.querySelector("#sl-filter");
+  const filterListEl = root.querySelector("#sl-filter-list");
+  const filterInput = root.querySelector("#sl-filter-input");
+  const onlyTrustedEl = root.querySelector("#sl-only-trusted");
+  const noteEl = root.querySelector("#sl-note");
+  const actions = root.querySelector("#sl-actions");
+  const wizardEl = root.querySelector("#sl-wizard");
+  const settingsEl = root.querySelector("#sl-settings");
+  const settingsBody = root.querySelector("#sl-settings-body");
+
+  let lastSurf = "";
+  let busy = false;
+  let myPub = "";
+  let showHidden = false;
+
+  function peelSurfPark(park) {
+    const segs = String(park || "")
+      .replace(/^\/+/, "")
+      .split("/")
+      .filter(Boolean);
+    let i = 0;
+    if (segs[i] && /^navi$/i.test(segs[i])) i += 1;
+    if (String(segs[i] || "").toLowerCase() !== "surf") return "";
+    return segs.slice(i + 1).filter((s) => !s.startsWith("-")).join("/");
+  }
+
+  function bodySurfPath() {
+    const nodes = document.body
+      ? document.body.querySelectorAll("[data-path]")
+      : [];
+    for (const el of nodes) {
+      if (el === root || root.contains(el)) continue;
+      const p = (el.getAttribute("data-path") || "").trim();
+      if (p) return p.replace(/^\/+/, "");
+    }
+    return "";
+  }
+
+  function lobbyApi() {
+    return navi?.mod?.scranton_lobby?.lobby || null;
+  }
+
+  function avatarApi() {
+    return navi?.mod?.scranton_avatar || null;
+  }
+
+  async function ensureAvatar() {
+    if (avatarApi()?.paintRosterRow) return avatarApi();
+    try {
+      if (typeof navi?.callin === "function") {
+        await navi.callin({ path: AVATAR_PARK, method: "GET" });
+      }
+    } catch (e) {
+      console.warn("[surfroster] avatar:", e?.message || e);
+    }
+    return avatarApi();
+  }
+
+  function setMounted(on) {
+    root.setAttribute("data-mounted", on ? "1" : "0");
+  }
+
+  async function ensureMod() {
+    if (lobbyApi()) {
+      setMounted(true);
+      void ensureAvatar();
+      return { ok: true, already: true };
+    }
+    // Hostpark park: navi pins the eframe+bin from the host and mounts it.
+    if (typeof navi?.callin === "function") {
+      await navi.callin({ path: MOD_PARK, method: "GET" });
+    } else if (typeof navi === "function") {
+      await navi(MOD_PARK);
+    } else {
+      throw new Error("navi unavailable");
+    }
+    if (!lobbyApi()) {
+      throw new Error("mounted but navi.mod.scranton_lobby.lobby missing");
+    }
+    setMounted(true);
+    await ensureAvatar();
+    return { ok: true, already: false };
+  }
+
+  function shortPathFromRaw(raw) {
+    const s = String(raw || "").trim().replace(/^\/+/, "").replace(/^navi:/i, "");
+    if (!s) return "";
+    const lobby = lobbyApi();
+    if (lobby?.parseLobbyPathFromSurf) {
+      const hit = lobby.parseLobbyPathFromSurf(s);
+      if (hit?.path) return hit.path;
+    }
+    const m = s.match(/(?:^|\/)scranton\/lobby\/v1\/(.+)$/i);
+    if (m) return m[1];
+    return s;
+  }
+
+  function syncPathFromContext() {
+    if (pathEl.value.trim()) return;
+    const fromSurf = shortPathFromRaw(lastSurf || lobbyApi()?.lastSurfPath || bodySurfPath());
+    if (fromSurf) {
+      pathEl.value = fromSurf;
+      return;
+    }
+    const here = lobbyApi()?.hereIb || "";
+    const fromHere = shortPathFromRaw(here);
+    if (fromHere) pathEl.value = fromHere;
+  }
+
+  function pathArg() {
+    syncPathFromContext();
+    return String(pathEl.value || "").trim();
+  }
+
+  async function syncPrefs() {
+    const lobby = lobbyApi();
+    if (!lobby) return;
+    await lobby.loadPrefs?.();
+    if (!aliasEl.value.trim() && lobby.alias) aliasEl.value = lobby.alias;
+  }
+
+  async function applyAliasIfEdited() {
+    const lobby = lobbyApi();
+    if (!lobby) return;
+    const want = String(aliasEl.value || "").trim();
+    const cur = String(lobby.alias || "").trim();
+    if (want === cur) return;
+    if (!want) {
+      if (cur) await lobby.setAlias("-");
+      return;
+    }
+    await lobby.setAlias(want);
+  }
+
+  function setNote(msg) {
+    noteEl.textContent = msg || "";
+  }
+
+  function setBusy(on) {
+    busy = !!on;
+    for (const btn of actions.querySelectorAll("button")) {
+      btn.disabled = busy;
+    }
+  }
+
+  async function paintMeta() {
+    const lobby = lobbyApi();
+    const bits = [];
+    if (!lobby) {
+      setMounted(false);
+      metaEl.textContent = "scranton_lobby not mounted — use mount mod";
+      return;
+    }
+    setMounted(true);
+    bits.push("mod ok");
+    try {
+      myPub = await lobby.pubkey();
+      bits.push("key " + myPub.slice(0, 12) + "…");
+    } catch (e) {
+      bits.push("key ? (" + (e.message || e) + ")");
+    }
+    bits.push("here " + (lobby.hereIb || "(none)"));
+    bits.push(
+      typeof navi?.on !== "function"
+        ? "surfroster ?"
+        : lobby.follow
+          ? "following surfs"
+          : "surfroster listening (lobby addresses only)"
+    );
+    try {
+      const t = await lobby.tokensCount();
+      bits.push("tokens " + t.count + " @ " + t.host.replace(/^https?:\/\//, ""));
+    } catch {
+      bits.push("tokens ?");
+    }
+    metaEl.textContent = bits.join(" · ");
+  }
+
+  async function renderRoster(lobbyData, ib) {
+    listEl.replaceChildren();
+    const roster = lobbyData?.roster || {};
+    const keys = Object.keys(roster).sort();
+    const op = lobbyData?.creator || lobbyData?.op || "";
+    const canKick = myPub && op && myPub === op;
+    const appendN = Array.isArray(lobbyData?.append) ? lobbyData.append.length : 0;
+    if (!keys.length) {
+      setNote("empty roster @ " + ib + (appendN ? " · append " + appendN : ""));
+      if (aviEl) aviEl.replaceChildren();
+      return;
+    }
+    setNote(
+      keys.length +
+        " on roster @ " +
+        ib +
+        (appendN ? " · append " + appendN : "")
+    );
+    const avatar = avatarApi();
+    for (const pub of keys) {
+      const li = document.createElement("li");
+      li.style.wordBreak = "break-all";
+      li.style.marginBottom = "0.25rem";
+      const span = document.createElement("span");
+      let label = pub;
+      if (pub === op) label += " (OP)";
+      if (pub === myPub) label += " (you)";
+      span.textContent = label;
+      li.appendChild(span);
+      if (avatar?.paintRosterRow) {
+        void avatar.paintRosterRow(li, pub, { op, myPub, span });
+      }
+      const tb = await trustButton(pub, () => refresh());
+      if (tb) li.appendChild(tb);
+      if (canKick && pub !== myPub) {
+        const kickBtn = document.createElement("button");
+        kickBtn.type = "button";
+        kickBtn.textContent = "kick";
+        kickBtn.title = "OP only: remove this pubkey from the roster";
+        kickBtn.style.marginLeft = "0.5rem";
+        kickBtn.addEventListener("click", () => void runAct("kick", pub));
+        li.appendChild(kickBtn);
+      }
+      listEl.appendChild(li);
+    }
+    if (aviEl) {
+      if (avatar?.paintAviPanel) void avatar.paintAviPanel(aviEl, { onPublished: () => refresh() });
+      else aviEl.replaceChildren();
+    }
+  }
+
+  function noteLi(text) {
+    const li = document.createElement("li");
+    li.style.opacity = "0.65";
+    li.textContent = text;
+    return li;
+  }
+
+  let postsSeq = 0;
+  async function renderPosts(p) {
+    const seq = ++postsSeq;
+    const out = document.createDocumentFragment();
+    const lobby = lobbyApi();
+    if (!lobby?.postsFor || !p) {
+      postsEl.replaceChildren();
+      return;
+    }
+    let found;
+    try {
+      found = await lobby.postsFor(p);
+    } catch (e) {
+      if (seq === postsSeq) postsEl.replaceChildren(noteLi("posts: " + (e?.message || e)));
+      return;
+    }
+    const items = found.list.filter((x) => x.post);
+    if (!items.length) {
+      if (seq === postsSeq) postsEl.replaceChildren(noteLi("(none on this page)"));
+      return;
+    }
+    let hiddenN = 0;
+    for (const x of items) {
+      const hid = lobby.isHidden ? await lobby.isHidden(x.post?.author, x.kind).catch(() => null) : null;
+      if (hid?.hidden) hiddenN += 1;
+      if (hid?.hidden && !showHidden) continue;
+      const li = document.createElement("li");
+      li.style.wordBreak = "break-all";
+      li.style.marginBottom = "0.3rem";
+      const aff = await lobby.affordanceForPostKind(x.kind).catch(() => null);
+      const plugin = aff?.plugin || null;
+      const text = document.createElement("span");
+      if (!x.valid) {
+        text.style.opacity = "0.6";
+        text.textContent = x.kind + " · ✗ " + x.reason;
+      } else if (!plugin) {
+        const mod = aff?.descriptor?.interpreter?.mod;
+        text.textContent = x.kind + " · " + (mod ? "mount " + mod + " to read it" : "no affordance for this kind") + " (" + x.addr + ")";
+      } else {
+        text.textContent = plugin.describe ? plugin.describe(x, { path: p, lobby }) : x.kind;
+      }
+      text.title = x.addr;
+      li.appendChild(text);
+      if (x.valid && lobby.isTrusted) {
+        const t = await lobby.isTrusted(x.post?.author).catch(() => null);
+        if (t?.trusted) li.appendChild(trustedMark(t.via));
+      }
+      const gate = lobby.gateOf ? lobby.gateOf(x) : "";
+      if (gate) li.appendChild(gateMark(gate));
+      if (hid?.hidden) li.appendChild(hiddenMark(hid.why));
+      if (x.valid && plugin?.actions) {
+        const acts = await plugin.actions(x, { path: p, lobby });
+        for (const act of acts || []) li.appendChild(actionButton(act, li, () => renderPosts(p)));
+      }
+      const tb = await trustButton(x.post?.author, () => renderPosts(p));
+      if (tb) li.appendChild(tb);
+      const hb = hideButton(x.post?.author, () => renderPosts(p));
+      if (hb) li.appendChild(hb);
+      out.appendChild(li);
+    }
+    if (hiddenN) out.appendChild(hiddenToggle(hiddenN));
+    if (seq === postsSeq) postsEl.replaceChildren(out);
+  }
+
+  let scriptsSeq = 0;
+  async function renderScripts(p) {
+    const seq = ++scriptsSeq;
+    if (!scriptsEl) return;
+    const lobby = lobbyApi();
+    if (!lobby?.postsFor || !p) {
+      scriptsEl.replaceChildren();
+      return;
+    }
+    let found;
+    try {
+      found = await lobby.postsFor(p);
+    } catch (e) {
+      if (seq === scriptsSeq) scriptsEl.replaceChildren(noteLi("scripts: " + (e?.message || e)));
+      return;
+    }
+    const items = found.list.filter((x) => x.post && x.kind === "navi_script");
+    if (!items.length) {
+      if (seq === scriptsSeq) scriptsEl.replaceChildren(noteLi("(none on this page)"));
+      return;
+    }
+    const out = document.createDocumentFragment();
+    for (const x of items) {
+      const li = document.createElement("li");
+      li.style.wordBreak = "break-all";
+      li.style.marginBottom = "0.3rem";
+      const aff = await lobby.affordanceForPostKind("navi_script").catch(() => null);
+      const plugin = aff?.plugin || null;
+      const text = document.createElement("span");
+      if (!x.valid) {
+        text.style.opacity = "0.6";
+        text.textContent = "✗ " + x.reason;
+      } else if (!plugin) {
+        text.textContent = "mount scranton_lobby to read it (" + (x.post?.label || x.ib) + ")";
+      } else {
+        text.textContent = plugin.describe ? plugin.describe(x, { path: p, lobby }) : x.post?.label || x.ib;
+      }
+      text.title = x.addr;
+      li.appendChild(text);
+      if (x.valid && plugin?.actions) {
+        const acts = await plugin.actions(x, { path: p, lobby });
+        for (const act of acts || []) li.appendChild(actionButton(act, li, () => renderScripts(p)));
+      }
+      const tb = await trustButton(x.post?.author, () => renderScripts(p));
+      if (tb) li.appendChild(tb);
+      out.appendChild(li);
+    }
+    if (seq === scriptsSeq) scriptsEl.replaceChildren(out);
+  }
+
+  function smallMark(text, title, color) {
+    const s = document.createElement("span");
+    s.style.cssText = "margin-left:0.4rem;font-size:11px;color:" + (color || "#666") + ";";
+    s.textContent = text;
+    if (title) s.title = title;
+    return s;
+  }
+  function gateMark(from) {
+    return smallMark("· only when arriving from " + from, "applies itself on surf only when you come here from " + from + "; you can still apply it by hand", "#8a5a00");
+  }
+  function hiddenMark(why) {
+    return smallMark("· hidden (" + why + ")", "", "#999");
+  }
+
+  /** local trust / untrust for a roster or comment pubkey. `{ untrust: false }` = trust-only (no row untrust). */
+  async function trustButton(author, after, opts = {}) {
+    const lobby = lobbyApi();
+    if (!author || author === myPub || !lobby?.trustKey || !lobby?.isTrusted) return null;
+    const t0 = await lobby.isTrusted(author).catch(() => null);
+    if (t0?.trusted && opts.untrust === false) return null;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.style.marginLeft = "0.5rem";
+    const paint = async () => {
+      const t = await lobby.isTrusted(author).catch(() => null);
+      b.textContent = t?.trusted ? "untrust" : "trust";
+      b.title = t?.trusted
+        ? "stop treating this key as trusted (avi/name hide again)"
+        : "trust this pubkey — then their avi and name show";
+    };
+    void paint();
+    b.addEventListener("click", async () => {
+      const t = await lobby.isTrusted(author).catch(() => null);
+      await lobby.trustKey(author, !t?.trusted);
+      setNote((t?.trusted ? "untrusted " : "trusted ") + author.slice(0, 12) + "…");
+      if (trustEl.open) void renderTrust();
+      if (typeof after === "function") void after();
+    });
+    return b;
+  }
+
+  /** "hide author" on anyone else's post or row (local filter). */
+  function hideButton(author, after) {
+    const lobby = lobbyApi();
+    if (!author || author === myPub || !lobby?.hideKey) return null;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = "hide author";
+    b.title = "Fold away everything by " + author.slice(0, 12) + "… (only for you)";
+    b.style.marginLeft = "0.5rem";
+    b.addEventListener("click", async () => {
+      await lobby.hideKey(author, true);
+      setNote("hiding " + author.slice(0, 12) + "… (filter to undo)");
+      if (filterEl.open) void renderFilter();
+      void after();
+    });
+    return b;
+  }
+
+  function hiddenToggle(n) {
+    const li = noteLi("");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = showHidden ? "fold hidden" : "show " + n + " hidden";
+    b.addEventListener("click", () => {
+      showHidden = !showHidden;
+      void refresh();
+    });
+    li.appendChild(b);
+    return li;
+  }
+
+  function trustedMark(via) {
+    const s = document.createElement("span");
+    s.style.cssText = "margin-left:0.4rem;color:#1a7f37;font-size:11px;";
+    s.textContent = "✓ trusted";
+    s.title = "acts on its own for you (" + via + ")";
+    return s;
+  }
+
+  /** Plugin action: run → note; a { text, show } result also opens a <pre> under `host`. */
+  function actionButton(act, host, after) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = act.label;
+    if (act.title) b.title = act.title;
+    b.style.marginLeft = "0.5rem";
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      let rerender = true;
+      try {
+        const out = await act.run();
+        if (out && typeof out === "object") {
+          setNote(String(out.text || act.label + " ok"));
+          if (out.show != null) {
+            rerender = false;
+            const pre = document.createElement("pre");
+            pre.style.cssText = "max-height:14rem;overflow:auto;background:#f6f6f6;border:1px solid #ddd;padding:4px;margin:0.25rem 0;white-space:pre-wrap;font-size:11px;";
+            pre.textContent = String(out.show);
+            host.querySelector(":scope > pre")?.remove();
+            host.appendChild(pre);
+          }
+        } else {
+          setNote(String(out || act.label + " ok"));
+        }
+      } catch (e) {
+        setNote(act.label + ": " + (e?.message || e));
+      }
+      b.disabled = false;
+      if (rerender && after) void after();
+    });
+    return b;
+  }
+
+  async function renderTrust() {
+    const lobby = lobbyApi();
+    trustListEl.replaceChildren();
+    if (!lobby?.trustList) {
+      trustMeEl.textContent = "trust needs scranton_lobby ≥ 1.10.0";
+      return;
+    }
+    try {
+      trustMeEl.textContent = "your lobby key (give it to friends): " + (await lobby.lobbyKey()).publicKey;
+    } catch (e) {
+      trustMeEl.textContent = "your lobby key: ? (" + (e?.message || e) + ")";
+    }
+    const t = await lobby.trustList();
+    const rows = [
+      ...Object.entries(t.keys).map(([k, v]) => ({ kind: "key", id: k, text: "key " + k.slice(0, 16) + "…" + (v.label ? " (" + v.label + ")" : ""), title: k })),
+      ...Object.entries(t.identities).map(([id, v]) => ({ kind: "identity", id, text: "identity " + id + (Number(v?.hops) > 1 ? " · " + v.hops + " hops" : ""), title: id + "/frens" })),
+    ];
+    if (!rows.length) {
+      trustListEl.appendChild(noteLi("trusting nobody yet"));
+      return;
+    }
+    for (const r of rows) {
+      const li = document.createElement("li");
+      li.style.wordBreak = "break-all";
+      const span = document.createElement("span");
+      span.textContent = r.text;
+      span.title = r.title;
+      li.appendChild(span);
+      let frens = null;
+      if (r.kind === "identity") {
+        frens = await lobby.readFrens(r.id).catch((e) => ({ valid: false, reason: e?.message || String(e) }));
+        const f = frens;
+        const s = document.createElement("span");
+        s.style.cssText = "margin-left:0.4rem;font-size:11px;opacity:0.75;";
+        s.textContent = f.valid
+          ? "· " + f.keys.length + " fren(s)" + (f.identities?.length ? " · vouches for " + f.identities.join(", ") : "")
+          : f.exists === false ? "· no " + r.id + "/frens yet" : "· ✗ " + f.reason;
+        li.appendChild(s);
+      }
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "untrust";
+      b.style.marginLeft = "0.5rem";
+      b.addEventListener("click", async () => {
+        if (r.kind === "key") await lobby.trustKey(r.id, false);
+        else await lobby.trustIdentity(r.id, false);
+        setNote("untrusted " + r.kind + " " + r.id.slice(0, 16));
+        await renderTrust();
+      });
+      li.appendChild(b);
+      if (frens?.exists && lobby.frensEdit && myPub && (frens.editors || []).includes(myPub)) li.appendChild(frensEditor(frens));
+      trustListEl.appendChild(li);
+    }
+  }
+
+  /** You are a named editor of this identity's frens list: add / remove keys and vouched identities. */
+  function frensEditor(f) {
+    const lobby = lobbyApi();
+    const box = document.createElement("div");
+    box.style.cssText = "margin:0.25rem 0 0.4rem;padding:0.25rem 0.4rem;border-left:2px solid #1a7f37;font-size:11px;";
+    const head = document.createElement("div");
+    head.textContent = "you can edit " + f.ib + " (1 token per change)";
+    box.appendChild(head);
+    const edit = async (change, done) => {
+      try {
+        const out = await lobby.frensEdit(f.identity, change);
+        setNote(done + " · " + out.ib);
+      } catch (e) {
+        setNote("frens: " + (e?.message || e));
+      }
+      await renderTrust();
+    };
+    const items = [
+      ...(f.keys || []).map((k) => ({ text: k.slice(0, 16) + "…" + (f.labels?.[k] ? " (" + f.labels[k] + ")" : ""), title: k, change: { rm: k }, done: "removed fren" })),
+      ...(f.identities || []).map((id) => ({ text: "vouches for " + id, title: id, change: { rmIdentity: id }, done: "stopped vouching for " + id })),
+    ];
+    for (const it of items) {
+      const row = document.createElement("div");
+      row.textContent = it.text;
+      row.title = it.title;
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.textContent = "remove";
+      rm.style.cssText = "margin-left:0.4rem;font-size:11px;";
+      rm.addEventListener("click", () => void edit(it.change, it.done));
+      row.appendChild(rm);
+      box.appendChild(row);
+    }
+    const form = document.createElement("div");
+    form.style.cssText = "display:flex;gap:0.3rem;margin-top:0.2rem;";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.spellcheck = false;
+    input.placeholder = "lobby pubkey [label], or identity name";
+    input.style.cssText = "flex:1;min-width:0;font:inherit;";
+    const addKey = document.createElement("button");
+    addKey.type = "button";
+    addKey.textContent = "add fren";
+    addKey.addEventListener("click", () => {
+      const [k, ...label] = input.value.trim().split(/\s+/);
+      if (k) void edit({ add: k, label: label.join(" ") }, "added fren");
+    });
+    const vouch = document.createElement("button");
+    vouch.type = "button";
+    vouch.textContent = "vouch identity";
+    vouch.addEventListener("click", () => {
+      const id = input.value.trim();
+      if (id) void edit({ addIdentity: id }, "vouching for " + id);
+    });
+    form.append(input, addKey, vouch);
+    box.appendChild(form);
+    return box;
+  }
+
+  async function renderFilter() {
+    const lobby = lobbyApi();
+    filterListEl.replaceChildren();
+    if (!lobby?.hideList) {
+      filterListEl.appendChild(noteLi("filter needs scranton_lobby ≥ 1.11.0"));
+      return;
+    }
+    const h = await lobby.hideList();
+    onlyTrustedEl.checked = h.only_trusted;
+    const rows = [
+      ...Object.entries(h.keys).map(([k, v]) => ({ kind: "key", id: k, text: "author " + k.slice(0, 16) + "…" + (v.label ? " (" + v.label + ")" : "") })),
+      ...Object.keys(h.kinds).map((k) => ({ kind: "kind", id: k, text: "kind " + k })),
+    ];
+    if (!rows.length) filterListEl.appendChild(noteLi("hiding nothing"));
+    for (const r of rows) {
+      const li = document.createElement("li");
+      li.style.wordBreak = "break-all";
+      li.textContent = r.text;
+      li.title = r.id;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "unhide";
+      b.style.marginLeft = "0.5rem";
+      b.addEventListener("click", async () => {
+        if (r.kind === "key") await lobby.hideKey(r.id, false);
+        else await lobby.hideKind(r.id, false);
+        await renderFilter();
+        void refresh();
+      });
+      li.appendChild(b);
+      filterListEl.appendChild(li);
+    }
+  }
+
+  filterEl.addEventListener("toggle", () => {
+    if (filterEl.open) void renderFilter();
+  });
+  onlyTrustedEl.addEventListener("change", async () => {
+    const lobby = lobbyApi();
+    if (!lobby?.setOnlyTrusted) return setNote("mount scranton_lobby ≥ 1.11.0");
+    await lobby.setOnlyTrusted(onlyTrustedEl.checked);
+    setNote(onlyTrustedEl.checked ? "showing trusted authors only" : "showing everyone (minus hidden)");
+    void refresh();
+  });
+  filterEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-hide]");
+    if (!btn) return;
+    const lobby = lobbyApi();
+    const v = filterInput.value.trim();
+    if (!lobby?.hideKey || !v) return setNote(v ? "mount scranton_lobby ≥ 1.11.0" : "type a pubkey or post kind");
+    if (btn.dataset.hide === "key") await lobby.hideKey(v, true);
+    else await lobby.hideKind(v, true);
+    filterInput.value = "";
+    setNote("hiding " + btn.dataset.hide + " " + v.slice(0, 16));
+    await renderFilter();
+    void refresh();
+  });
+
+  trustEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-trust]");
+    if (!btn) return;
+    const lobby = lobbyApi();
+    const v = trustInput.value.trim();
+    if (!lobby?.trustKey || !v) return setNote(v ? "mount scranton_lobby ≥ 1.10.0" : "type a pubkey or identity");
+    try {
+      if (btn.dataset.trust === "key") await lobby.trustKey(v, true);
+      else await lobby.trustIdentity(v, true, Number(trustHops.value) || 1);
+      trustInput.value = "";
+      setNote("trusted " + btn.dataset.trust + " " + v.slice(0, 16));
+    } catch (err) {
+      setNote("trust: " + (err?.message || err));
+    }
+    await renderTrust();
+    void refresh();
+  });
+  trustEl.addEventListener("toggle", () => {
+    if (trustEl.open) void renderTrust();
+  });
+
+  // Settings: scranton's steps plus each affordance's. Unseen steps run as a wizard (the rest of
+  // surfroster is hidden meanwhile); the settings panel shows all of them and saves on change.
+  let wizard = null;
+  const fieldId = (step, f) => (step.affordance || "") + "|" + f.key;
+  function valuesOf(steps) {
+    const v = {};
+    for (const s of steps) for (const f of s.fields) v[fieldId(s, f)] = f.value;
+    return v;
+  }
+  function fieldShown(step, f, values) {
+    if (!Array.isArray(f.when)) return true;
+    return values[(step.affordance || "") + "|" + f.when[0]] === f.when[1];
+  }
+  function fieldEl(scope, step, f, values, onChange) {
+    const id = fieldId(step, f);
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "margin:0.3rem 0;font-size:12px;";
+    if (f.type === "toggle") {
+      const label = document.createElement("label");
+      const cb = Object.assign(document.createElement("input"), { type: "checkbox", checked: !!values[id] });
+      cb.addEventListener("change", () => onChange(step, f, cb.checked));
+      label.append(cb, " " + f.label);
+      wrap.appendChild(label);
+    } else if (f.type === "choice") {
+      wrap.appendChild(Object.assign(document.createElement("div"), { textContent: f.label }));
+      for (const o of f.options || []) {
+        const label = document.createElement("label");
+        label.style.cssText = "display:block;padding-left:0.75rem;";
+        const rb = Object.assign(document.createElement("input"), { type: "radio", name: "sl-" + scope + "-" + id, checked: values[id] === o.value });
+        rb.addEventListener("change", () => rb.checked && onChange(step, f, o.value));
+        label.append(rb, " " + (o.label || o.value));
+        wrap.appendChild(label);
+      }
+    } else if (f.type === "number") {
+      const label = document.createElement("label");
+      const input = Object.assign(document.createElement("input"), { type: "number", value: String(values[id] ?? ""), style: "width:6rem;font:inherit;margin-left:0.35rem;" });
+      if (f.min != null) input.min = String(f.min);
+      if (f.max != null) input.max = String(f.max);
+      input.addEventListener("change", () => onChange(step, f, Number(input.value)));
+      label.append(f.label, input);
+      wrap.appendChild(label);
+    }
+    if (f.help) wrap.appendChild(Object.assign(document.createElement("div"), { textContent: f.help, style: "opacity:0.65;font-size:11px;padding-left:0.75rem;" }));
+    return wrap;
+  }
+  function stepFields(scope, step, values, onChange) {
+    const box = document.createElement("div");
+    for (const f of step.fields) if (fieldShown(step, f, values)) box.appendChild(fieldEl(scope, step, f, values, onChange));
+    return box;
+  }
+
+  async function openWizard(steps) {
+    const lobby = lobbyApi();
+    if (!lobby || !steps?.length) return;
+    wizard = { steps, i: 0, values: valuesOf(await lobby.settingSteps()) };
+    root.setAttribute("data-wizard", "1");
+    wizardEl.hidden = false;
+    paintWizard();
+  }
+  function closeWizard() {
+    wizard = null;
+    root.setAttribute("data-wizard", "0");
+    wizardEl.hidden = true;
+    wizardEl.replaceChildren();
+    void refresh();
+  }
+  function paintWizard() {
+    const { steps, i, values } = wizard;
+    const step = steps[i];
+    const last = i === steps.length - 1;
+    const head = Object.assign(document.createElement("div"), {
+      textContent: "set up scranton · " + (i + 1) + " of " + steps.length,
+      style: "opacity:0.65;font-size:11px;margin:0 0 0.2rem;",
+    });
+    const title = Object.assign(document.createElement("div"), { textContent: step.label, style: "font-weight:700;" });
+    const help = Object.assign(document.createElement("div"), { textContent: step.help || "", style: "opacity:0.75;font-size:12px;margin:0.15rem 0 0.25rem;" });
+    const fields = stepFields("wiz", step, values, (s, f, v) => {
+      values[fieldId(s, f)] = v;
+      paintWizard();
+    });
+    const nav = document.createElement("div");
+    nav.style.cssText = "display:flex;gap:0.35rem;margin:0.5rem 0;";
+    const btn = (text, title, fn) => {
+      const b = Object.assign(document.createElement("button"), { type: "button", textContent: text, title });
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        try {
+          await fn();
+        } catch (e) {
+          setNote(e?.message || String(e));
+          b.disabled = false;
+        }
+      });
+      return b;
+    };
+    if (i > 0) nav.appendChild(btn("back", "", async () => {
+      wizard.i -= 1;
+      paintWizard();
+    }));
+    nav.appendChild(btn(last ? "done" : "next", "Save this step", async () => {
+      const lobby = lobbyApi();
+      const patch = {};
+      for (const f of step.fields) patch[f.key] = values[fieldId(step, f)];
+      await lobby.setSettings(patch, step.affordance || "");
+      await lobby.markSettingsSeen([step.id]);
+      if (last) closeWizard();
+      else {
+        wizard.i += 1;
+        paintWizard();
+      }
+    }));
+    nav.appendChild(btn("keep the defaults for the rest", "Skip the remaining steps; change them later under settings", async () => {
+      await lobbyApi().markSettingsSeen(steps.slice(i).map((s) => s.id));
+      closeWizard();
+    }));
+    wizardEl.replaceChildren(head, title, help, fields, nav);
+  }
+
+  async function paintSettings() {
+    const lobby = lobbyApi();
+    if (!lobby?.settingSteps) {
+      settingsBody.textContent = "scranton_lobby not mounted";
+      return;
+    }
+    const steps = await lobby.settingSteps();
+    const values = valuesOf(steps);
+    const out = [];
+    for (const step of steps) {
+      const fold = document.createElement("details");
+      fold.className = "sl-nested";
+      fold.open = settingsBody.querySelector("[data-step='" + step.id + "']")?.open === true;
+      fold.setAttribute("data-step", step.id);
+      fold.appendChild(Object.assign(document.createElement("summary"), { textContent: step.label }));
+      fold.appendChild(stepFields("set", step, values, async (s, f, v) => {
+        try {
+          await lobby.setSettings({ [f.key]: v }, s.affordance || "");
+          setNote("saved " + (s.affordance ? s.affordance + ":" : "") + f.key);
+        } catch (e) {
+          setNote(e?.message || String(e));
+        }
+        void paintSettings();
+      }));
+      out.push(fold);
+    }
+    settingsBody.replaceChildren(...out);
+  }
+  settingsEl.addEventListener("toggle", () => {
+    if (settingsEl.open) void paintSettings();
+  });
+  root.querySelector("#sl-settings-wizard").addEventListener("click", async () => {
+    const lobby = lobbyApi();
+    if (!lobby?.resetSettings) return;
+    await lobby.resetSettings();
+    settingsEl.open = false;
+    await openWizard(await lobby.settingsNeeded());
+  });
+
+  function fmtCell(col, v, mine) {
+    if (col === "by") return String(v || "?").slice(0, 10) + "…" + (mine ? " (you)" : "");
+    if (col === "at") {
+      const d = new Date(v);
+      return isNaN(d) ? String(v || "") : d.toLocaleString();
+    }
+    return String(v ?? "");
+  }
+
+  /** Field type "surf": a page path, surfed in this navi. */
+  function fieldCell(type, v) {
+    const s = String(v ?? "").trim();
+    if (type === "surf" && s && !/^[a-z][a-z0-9+.-]*:/i.test(s.replace(/^navi:/i, ""))) {
+      const page = s.replace(/^navi:/i, "").replace(/^\/+/, "");
+      const a = document.createElement("a");
+      a.href = "#";
+      a.textContent = page;
+      a.title = "surf " + page;
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (typeof navi?.callin === "function") void navi.callin("surf/" + page);
+      });
+      return a;
+    }
+    return document.createTextNode(s);
+  }
+
+  /** Address affordances (e.g. comments/<page>): a table of rows, an add box, delete on your own rows. */
+  let addressSeq = 0;
+  async function renderAddresses(p) {
+    const seq = ++addressSeq;
+    const out = document.createElement("div");
+    const lobby = lobbyApi();
+    if (!lobby?.readAddress || !p) {
+      addressesEl.replaceChildren();
+      return;
+    }
+    const list = (await lobby.affordances().catch(() => [])).filter((a) => a.address && a.descriptor);
+    let me = "";
+    try {
+      me = (await lobby.lobbyKey()).publicKey;
+    } catch {}
+    for (const a of list) {
+      const d = a.descriptor;
+      const box = document.createElement("details");
+      box.style.margin = "0.5rem 0";
+      const head = document.createElement("summary");
+      head.style.cssText = "cursor:pointer;font-weight:700;";
+      head.textContent = d.label || a.name;
+      const sub = document.createElement("div");
+      sub.style.cssText = "opacity:0.65;font-size:11px;margin:0.25rem 0;word-break:break-all;";
+      const acts = document.createElement("div");
+      box.append(head, sub, acts);
+      if (a.name === "comments") box.open = true;
+      out.appendChild(box);
+      let r;
+      try {
+        r = await lobby.readAddress(a.name, p);
+      } catch (e) {
+        sub.textContent = a.name + ": " + (e?.message || e);
+        continue;
+      }
+      sub.textContent = r.ib + (r.exists ? (r.valid ? " · " + r.rows.length + " row(s)" : " · ✗ " + r.reason) : " · none yet (the first add creates it, +1 token)");
+      if (r.pending?.length) sub.textContent += " · " + r.pending.length + " pending (scranton_lobby park sync)";
+      const plugin = a.plugin;
+      const ctx = { path: p, lobby, affordance: a };
+      if (r.valid && plugin?.actions) {
+        for (const act of (await plugin.actions(r, ctx).catch(() => [])) || []) acts.appendChild(actionButton(act, box, () => renderAddresses(p)));
+      }
+      const trustedBy = new Map();
+      if (lobby.isTrusted) {
+        for (const by of new Set(r.rows.map((row) => row.by))) {
+          const t = await lobby.isTrusted(by).catch(() => null);
+          if (t?.trusted) trustedBy.set(by, t.via);
+        }
+      }
+      const cols = Array.isArray(d.columns) && d.columns.length ? d.columns : [...Object.keys(d.fields || {}), "by", "at"];
+      const hiddenRows = new Map();
+      {
+        const hid = lobby.hideList ? await lobby.hideList().catch(() => null) : null;
+        for (const by of new Set(r.rows.map((row) => row.by))) {
+          if (by === me) continue;
+          if (hid?.keys?.[by]) hiddenRows.set(by, "author hidden");
+        }
+      }
+      const shownRows = r.rows.map((row, i) => [i, row]).filter(([, row]) => showHidden || !hiddenRows.has(row.by));
+      const hiddenCount = r.rows.filter((row) => hiddenRows.has(row.by)).length;
+      if (hiddenCount) sub.textContent += " · " + hiddenCount + " hidden";
+      if (shownRows.length) {
+        const table = document.createElement("table");
+        table.style.cssText = "border-collapse:collapse;width:100%;font-size:12px;margin:0 0 0.3rem;";
+        const tr0 = document.createElement("tr");
+        for (const c of [...cols, ""]) {
+          const th = document.createElement("th");
+          th.style.cssText = "text-align:left;border-bottom:1px solid #999;padding:2px 4px;";
+          th.textContent = c;
+          tr0.appendChild(th);
+        }
+        table.appendChild(tr0);
+        for (const [i, row] of shownRows) {
+          const tr = document.createElement("tr");
+          const mine = !!me && row.by === me;
+          if (row._pending) tr.style.opacity = "0.55";
+          for (const c of cols) {
+            const td = document.createElement("td");
+            td.style.cssText = "padding:2px 4px;vertical-align:top;word-break:break-word;";
+            const type = d.fields?.[c]?.type;
+            if (type) td.appendChild(fieldCell(type, row[c]));
+            else if (c === "by" && avatarApi()?.paintByCell) {
+              void avatarApi().paintByCell(td, row.by, { mine, myPub: me });
+            } else td.textContent = fmtCell(c, row[c], mine);
+            if (c === "by") {
+              td.title = row.by || "";
+              if (a.name !== "comments" && trustedBy.has(row.by)) td.appendChild(trustedMark(trustedBy.get(row.by)));
+              if (hiddenRows.has(row.by)) td.appendChild(hiddenMark(hiddenRows.get(row.by)));
+            }
+            tr.appendChild(td);
+          }
+          const td = document.createElement("td");
+          td.style.whiteSpace = "nowrap";
+          if (row._park) td.appendChild(Object.assign(document.createElement("span"), { textContent: row._park + " ", style: "font-size:11px;font-style:italic;" }));
+          if (plugin?.rowActions) {
+            for (const act of (await plugin.rowActions(row, i, r, ctx).catch(() => [])) || []) td.appendChild(actionButton(act, box, () => renderAddresses(p)));
+          }
+          if (a.name === "comments") {
+            const tb = await trustButton(row.by, () => renderAddresses(p), { untrust: false });
+            if (tb) td.appendChild(tb);
+          } else {
+            const tb = await trustButton(row.by, () => renderAddresses(p));
+            if (tb) td.appendChild(tb);
+            const hb = hideButton(row.by, () => renderAddresses(p));
+            if (hb) td.appendChild(hb);
+          }
+          if (mine) {
+            const del = document.createElement("button");
+            del.type = "button";
+            del.textContent = "delete";
+            del.title = "Remove your row (1 token)";
+            del.addEventListener("click", async () => {
+              del.disabled = true;
+              try {
+                await lobby.addressDelete(a.name, p, i);
+                setNote(a.name + ": deleted your row");
+              } catch (e) {
+                setNote(a.name + " delete: " + (e?.message || e));
+              }
+              void renderAddresses(p);
+            });
+            td.appendChild(del);
+          }
+          tr.appendChild(td);
+          table.appendChild(tr);
+        }
+        box.appendChild(table);
+      }
+      if (hiddenCount) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.textContent = showHidden ? "fold hidden" : "show " + hiddenCount + " hidden";
+        b.style.cssText = "font-size:11px;margin:0 0 0.3rem;";
+        b.addEventListener("click", () => {
+          showHidden = !showHidden;
+          void refresh();
+        });
+        box.appendChild(b);
+      }
+      if (r.exists && !r.valid) continue;
+      const fields = Object.entries(d.fields || {});
+      if (!fields.length) continue;
+      const form = document.createElement("div");
+      form.style.cssText = "display:flex;gap:0.35rem;";
+      const inputs = {};
+      for (const [f, spec] of fields) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = f + (spec?.min === 0 ? " (optional)" : spec?.max ? " (≤ " + spec.max + ")" : "");
+        if (spec?.max) input.maxLength = spec.max;
+        input.style.cssText = "flex:1;font:inherit;min-width:0;";
+        inputs[f] = input;
+        form.appendChild(input);
+      }
+      const add = document.createElement("button");
+      add.type = "button";
+      add.textContent = "add";
+      add.title = "Signed with your lobby key (1 token, +1 if this frame does not exist yet)";
+      add.addEventListener("click", async () => {
+        add.disabled = true;
+        try {
+          const vals = Object.fromEntries(Object.entries(inputs).map(([f, el]) => [f, el.value]));
+          setNote(a.name + ": created - hostparking...");
+          const out = await lobby.addressPush(a.name, p, vals);
+          setNote(a.name + ": " + (out.pending ? out.note : "hostparked" + (out.created ? " (new frame " + out.ib + ")" : "")));
+        } catch (e) {
+          setNote(a.name + " add: " + (e?.message || e));
+        }
+        void renderAddresses(p);
+      });
+      form.appendChild(add);
+      box.appendChild(form);
+    }
+    if (seq === addressSeq) addressesEl.replaceChildren(...out.childNodes);
+  }
+
+  async function refresh() {
+    const lobby = lobbyApi();
+    wirePark();
+    listEl.replaceChildren();
+    postsEl.replaceChildren();
+    if (scriptsEl) scriptsEl.replaceChildren();
+    ibEl.textContent = "";
+    if (!lobby) {
+      setMounted(false);
+      setNote("scranton_lobby not mounted — use mount mod");
+      await paintMeta();
+      return;
+    }
+    setMounted(true);
+    await ensureAvatar();
+    if (wizard) return;
+    const need = await lobby.settingsNeeded?.().catch(() => []);
+    if (need?.length) {
+      await openWizard(need);
+      return;
+    }
+    await syncPrefs();
+    syncPathFromContext();
+    const p = pathArg();
+    let ib = "";
+    try {
+      await applyAliasIfEdited();
+      if (p) ib = lobby.lobbyIb(p);
+      else ib = lobby.hereIb || "";
+      ibEl.textContent = ib ? "ib " + ib : "ib (none)";
+      if (!ib) {
+        void renderAddresses("");
+        setNote("set a path (or create/join first)");
+        await paintMeta();
+        return;
+      }
+      const page = p || shortPathFromRaw(ib);
+      void renderAddresses(page);
+      const tip = await lobby.getTip(ib);
+      if (!tip || tip.tombstone) {
+        setNote("no lobby tip at " + ib);
+        await paintMeta();
+        return;
+      }
+      await renderRoster(tip.frame?.data?.lobby || {}, ib);
+      await renderPosts(page);
+      await renderScripts(page);
+    } catch (e) {
+      setNote(e?.message || String(e));
+    }
+    await paintMeta();
+  }
+
+  async function runAct(act, kickPub) {
+    if (busy) return;
+    setBusy(true);
+    setNote(act + "…");
+    try {
+      if (act === "mount") {
+        const r = await ensureMod();
+        setNote(r.already ? "mod already mounted" : "mounted " + MOD_PARK);
+        await refresh();
+        return;
+      }
+
+      if (act === "enable-surf") {
+        const r = await ensureMod();
+        const lobby = lobbyApi();
+        await syncPrefs();
+        await applyAliasIfEdited();
+        await lobby.setFollow?.(true);
+        syncPathFromContext();
+        let p = pathArg();
+        const fromSurf = shortPathFromRaw(lastSurf || bodySurfPath());
+        if (fromSurf) {
+          pathEl.value = fromSurf;
+          p = fromSurf;
+        }
+        let out = null;
+        if (p) {
+          const tip = await lobby.getTip(lobby.lobbyIb(p));
+          if (!tip || tip.tombstone) {
+            out = await lobby.create(p);
+          } else {
+            out = await lobby.join(p);
+          }
+        }
+        setNote(
+          (r.already ? "mod ok" : "mounted") +
+            " · following surfs" +
+            (out?.action ? " · " + out.action : "") +
+            (out?.ib ? " · " + out.ib : p ? "" : " · set a path to join")
+        );
+        await refresh();
+        return;
+      }
+
+      let lobby = lobbyApi();
+      if (!lobby) {
+        await ensureMod();
+        lobby = lobbyApi();
+      }
+      if (!lobby) throw new Error("scranton_lobby not mounted");
+
+      await syncPrefs();
+      await applyAliasIfEdited();
+      const p = pathArg();
+      let out = null;
+      if (act === "create") {
+        if (!p) throw new Error("path required");
+        out = await lobby.create(p);
+      } else if (act === "join") {
+        if (!p) throw new Error("path required");
+        out = await lobby.join(p);
+      } else if (act === "leave") {
+        out = await lobby.leave(p || "");
+      } else if (act === "exit") {
+        await lobby.setFollow?.(false);
+        out = lobby.hereIb ? await lobby.leave("") : { action: "stopped following surfs" };
+      } else if (act === "kick") {
+        if (!p) throw new Error("path required");
+        if (!kickPub) throw new Error("pubkey required");
+        out = await lobby.kick(p, kickPub);
+      } else if (act === "refresh") {
+        await lobbyApi()?.refreshParked?.();
+        await refresh();
+        return;
+      } else {
+        throw new Error("unknown act " + act);
+      }
+      const msg = out?.action || "ok";
+      setNote(msg + (out?.ib ? " · " + out.ib : ""));
+      if (p && act !== "exit" && act !== "leave") {
+        /* keep path */
+      } else if (out?.ib) {
+        const short = shortPathFromRaw(out.ib);
+        if (short) pathEl.value = short;
+      }
+      await refresh();
+    } catch (e) {
+      setNote(e?.message || String(e));
+      await paintMeta();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  actions.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn || !actions.contains(btn)) return;
+    void runAct(btn.getAttribute("data-act"));
+  });
+
+  function onCallin(req) {
+    const park =
+      typeof req === "string" ? req : req?.path || req?.input || "";
+    const surfPath = peelSurfPark(park);
+    if (!surfPath) return;
+    lastSurf = surfPath;
+    const short = shortPathFromRaw(surfPath);
+    if (short) pathEl.value = short;
+    void refresh();
+    // The mod's own surf hook does the leave/join; redraw once it settles.
+    setTimeout(() => {
+      const chain = lobbyApi()?.surfChain;
+      if (chain) void chain.then(() => refresh(), () => refresh());
+    }, 0);
+  }
+
+  if (typeof navi?.on === "function") navi.on("callin", onCallin);
+  var parkWired = false;
+  function wirePark() {
+    if (parkWired || !lobbyApi()?.onPark) return;
+    parkWired = true;
+    let queued = false;
+    lobbyApi().onPark(() => {
+      if (queued) return;
+      queued = true;
+      setTimeout(() => {
+        queued = false;
+        void refresh();
+      }, 250);
+    });
+  }
+  void (async () => {
+    try {
+      if (!lobbyApi()) {
+        setNote("mounting scranton_lobby…");
+        await ensureMod();
+        setNote("mounted · ready");
+      } else {
+        setMounted(true);
+      }
+    } catch (e) {
+      setMounted(false);
+      setNote("auto-mount failed: " + (e?.message || e) + " — use mount mod");
+    }
+    await syncPrefs();
+    syncPathFromContext();
+    await refresh();
+  })();
+})();
+  </script>
+</div>

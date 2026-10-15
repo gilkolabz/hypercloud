@@ -1,0 +1,580 @@
+<div name="hypernetizenwarez" data-path="hypertext/hypernetizenwarez" data-part="htmf" style="max-height:100vh;overflow:auto;box-sizing:border-box;">
+<script>(function(){var path="/hypertext/hypernetizenwarez";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+    <style>
+        div[name="hypernetizenwarez"] {
+            font: 14px/1.45 system-ui, sans-serif;
+        }
+        div[name="hypernetizenwarez"] .muted { color: #555; }
+        div[name="hypernetizenwarez"] .err { color: #a30; }
+        div[name="hypernetizenwarez"] .ok { color: #070; }
+        div[name="hypernetizenwarez"] .mounted { color: #888; }
+        div[name="hypernetizenwarez"] .outdated { color: #860; }
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] {
+            border: 2px solid #000;
+            border-collapse: collapse;
+            margin-top: 0.75rem;
+            font: 12px/1.35 ui-monospace, monospace;
+            max-width: 924px;
+        }
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] th,
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] td {
+            border: 1px solid #000;
+            padding: 0.175rem 0.25rem;
+            vertical-align: top;
+            text-align: left;
+            word-break: break-word;
+        }
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] th[data-part="name-cell"],
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] td[data-part="name-cell"] {
+            max-width: 172px;
+            min-width: 172px;
+            width: 172px;
+        }
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] th[data-part="version-cell"],
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] td[data-part="version-cell"] {
+            max-width: 74px;
+            min-width: 74px;
+            width: 74px;
+        }
+        div[name="hypernetizenwarez"] table[data-part="warez-table"] th {
+            background: #eee;
+        }
+        div[name="hypernetizenwarez"] td[data-part="mount-cell"] {
+            white-space: nowrap;
+        }
+        div[name="hypernetizenwarez"] button[data-part="mount"],
+        div[name="hypernetizenwarez"] button[data-part="update"] {
+            font: inherit;
+            cursor: pointer;
+            padding: 0.2rem 0.45rem;
+        }
+    </style>
+
+    <h1>Hypernetizen Warez</h1>
+    <hr>
+    <p>Here you can find Hypernetizen approved mods and other things!</p>
+    <p class="muted">Index: <code>hypernetizen/warez</code> → hostpark parks <code>/{ib}^{gib}</code>. Mount: <code>/{ib}</code>.</p>
+    <div data-part="warez-result"><p class="muted">loading approved things…</p></div>
+    <hr>
+    <a href="/hypertext/welcome" hx-get="/hypertext/welcome" hx-swap="outerHTML" hx-target="closest div[name='hypernetizenwarez']" hx-push-url="true">back to welcome</a>
+
+    <script>
+        (function () {
+            const root =
+                (document.currentScript &&
+                    document.currentScript.closest(
+                        'div[name="hypernetizenwarez"]'
+                    )) ||
+                document.querySelector('div[name="hypernetizenwarez"]');
+            if (!root) return;
+
+            const part = (name) => root.querySelector(`[data-part="${name}"]`);
+            const resultEl = part("warez-result");
+            const WAREZ_TIP = "hypernetizen/warez";
+
+            const esc = (s) =>
+                String(s ?? "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+
+            function splitAddr(addr) {
+                const a = String(addr || "");
+                const i = a.lastIndexOf("^");
+                if (i <= 0) return { ib: a, gib: "" };
+                return { ib: a.slice(0, i), gib: a.slice(i + 1) };
+            }
+
+            function hostPathUrl(ibPath) {
+                const raw = String(ibPath || "")
+                    .trim()
+                    .replace(/^\/+/, "");
+                if (!raw) return "";
+                const enc = raw
+                    .split("/")
+                    .filter(Boolean)
+                    .map((seg) => encodeURIComponent(seg))
+                    .join("/");
+                if (
+                    typeof navi !== "undefined" &&
+                    navi &&
+                    typeof navi.resolveUrl === "function"
+                ) {
+                    try {
+                        const u = navi.resolveUrl("/" + enc);
+                        if (typeof u === "string" && u) return u;
+                    } catch {
+                        /* fall through */
+                    }
+                }
+                const origin = String(
+                    (typeof navi !== "undefined" && navi && navi.origin) ||
+                        globalThis.location?.origin ||
+                        ""
+                ).replace(/\/+$/, "");
+                return origin ? `${origin}/${enc}` : `/${enc}`;
+            }
+
+            async function getJson(url, headers) {
+                const res = await fetch(url, {
+                    headers: headers || {},
+                    cache: "no-store",
+                });
+                const text = await res.text();
+                if (!res.ok) {
+                    const err = new Error(`${res.status}: ${text.slice(0, 120)}`);
+                    err.status = res.status;
+                    throw err;
+                }
+                return {
+                    json: JSON.parse(text),
+                    addr:
+                        res.headers.get("x-foobarch-ib^gib") ||
+                        res.headers.get("x-flowerpot-ib^gib") ||
+                        null,
+                };
+            }
+
+            /** Hostpark index tip (frames[] of park ib^gib) — the one mod pots upsert. */
+            async function fetchWarezIndex() {
+                return getJson(hostPathUrl(WAREZ_TIP), {
+                    Accept: "application/json",
+                    "X-Navi-Park-Bypass": "1",
+                });
+            }
+
+            /** Hostpark eframe for pinned /{ib}^{gib} (or tip /{ib}). */
+            async function fetchEframe(frameAddr) {
+                const { ib, gib } = splitAddr(frameAddr);
+                const path = gib ? `${ib}^${gib}` : ib;
+                return getJson(hostPathUrl(path), {
+                    Accept: "application/eframe",
+                    "X-Navi-Park-Bypass": "1",
+                });
+            }
+
+            function warezCallout(msg) {
+                if (
+                    typeof navi !== "undefined" &&
+                    navi &&
+                    typeof navi.callout === "function"
+                ) {
+                    navi.callout(String(msg ?? ""));
+                }
+            }
+
+            function setCellResult(cell, ok, msg) {
+                const text = String(msg ?? "");
+                cell.textContent = ok ? "success!" : "error...!";
+                cell.className = ok ? "ok" : "err";
+                cell.setAttribute("data-part", "mount-status");
+                cell.title = text;
+                if (!ok) {
+                    warezCallout(
+                        "<hypertext/hypernetizenwarez> " +
+                            (text || "mount failed")
+                    );
+                }
+            }
+
+            function mountOk(msg) {
+                const s = String(msg ?? "");
+                return s.length > 0 && !/^error\b/i.test(s);
+            }
+
+            /** Unmount live key(s) then callin tip /{park} so bytes reload. */
+            async function remountPark(parkIb, liveKeys) {
+                const park = String(parkIb || "").trim().replace(/^\/+/, "");
+                if (!park) throw new Error("no park ib");
+                if (typeof navi === "undefined" || !navi) {
+                    throw new Error("navi unavailable");
+                }
+                const keys = [
+                    ...new Set(
+                        [...(liveKeys || []), park]
+                            .map((k) => String(k || "").trim())
+                            .filter(Boolean)
+                    ),
+                ];
+                const surf = navi.mod && navi.mod.surf;
+                for (const key of keys) {
+                    if (!navi.mod || !navi.mod[key]) continue;
+                    if (surf && typeof surf.unmount === "function") {
+                        const umsg = await surf.unmount(key);
+                        if (!mountOk(umsg)) {
+                            throw new Error(String(umsg || "unmount failed"));
+                        }
+                    } else if (typeof navi.unmount === "function") {
+                        await navi.unmount(navi.mod[key]);
+                    } else {
+                        throw new Error("navi.unmount / surf.unmount unavailable");
+                    }
+                }
+                if (typeof navi.callin === "function") {
+                    return await navi.callin({
+                        path: park,
+                        method: "GET",
+                        headers: { "X-Navi-Park-Bypass": "1" },
+                    });
+                }
+                if (typeof navi === "function") {
+                    return await navi(park);
+                }
+                throw new Error("navi.callin unavailable");
+            }
+
+            async function pinPark(parkIb, cell, liveKeys, row) {
+                cell.textContent = "remounting...";
+                cell.className = "muted";
+                try {
+                    const msg = await remountPark(parkIb, liveKeys);
+                    const s = String(msg ?? "");
+                    const ok = mountOk(s);
+                    if (ok && row) {
+                        cell.innerHTML = mountCellHtml(row);
+                    } else {
+                        setCellResult(cell, ok, s || "ok");
+                    }
+                } catch (e) {
+                    setCellResult(
+                        cell,
+                        false,
+                        e && e.message ? e.message : String(e)
+                    );
+                }
+            }
+
+            function mountState(name, version, naviName) {
+                if (typeof navi === "undefined" || !navi || !navi.mod) {
+                    return { state: "none" };
+                }
+                const keys = [naviName, name]
+                    .map((k) => (k != null ? String(k).trim() : ""))
+                    .filter(Boolean);
+                for (const key of keys) {
+                    const mod = navi.mod[key];
+                    if (!mod) continue;
+                    if (version == null || version === "") {
+                        return { state: "current", key };
+                    }
+                    const want = String(version);
+                    const candidates = [
+                        mod.version,
+                        mod.moduleInfo && mod.moduleInfo.version,
+                        mod.about && mod.about.version,
+                    ]
+                        .filter((v) => v != null && String(v) !== "")
+                        .map(String);
+                    if (!candidates.length) {
+                        return { state: "outdated", key };
+                    }
+                    if (candidates.includes(want)) {
+                        return { state: "current", key };
+                    }
+                    return { state: "outdated", key };
+                }
+                return { state: "none" };
+            }
+
+            function mountCellHtml(r) {
+                if (r.pending) {
+                    return '<span class="muted" data-part="mount-status">…</span>';
+                }
+                if (r.error) {
+                    return (
+                        '<span class="err" data-part="mount-status" title="' +
+                        esc(r.error) +
+                        '">error…!</span>'
+                    );
+                }
+                if (!r.parkIb) {
+                    return '<span class="err">no park</span>';
+                }
+                const st = mountState(r.name, r.version, r.naviName);
+                if (st.state === "current") {
+                    return (
+                        '<span data-part="mount-status" class="mounted">mounted</span>'
+                    );
+                }
+                if (st.state === "outdated") {
+                    return (
+                        '<button type="button" data-part="update" class="outdated" data-park="' +
+                        esc(r.parkIb) +
+                        '" data-live-key="' +
+                        esc(st.key || r.naviName || r.name || "") +
+                        '" data-navi-name="' +
+                        esc(r.naviName || "") +
+                        '" data-name="' +
+                        esc(r.name || "") +
+                        '" title="unmount + callin /' +
+                        esc(r.parkIb) +
+                        '">update</button>'
+                    );
+                }
+                return (
+                    '<button type="button" data-part="mount" data-park="' +
+                    esc(r.parkIb) +
+                    '" data-live-key="' +
+                    esc(r.naviName || r.name || "") +
+                    '" data-navi-name="' +
+                    esc(r.naviName || "") +
+                    '" data-name="' +
+                    esc(r.name || "") +
+                    '">mount now</button>'
+                );
+            }
+
+            function descriptionCell(description, requires) {
+                let html = esc(description || "");
+                if (Array.isArray(requires) && requires.length) {
+                    const parts = requires
+                        .map((r) => esc(String(r).split("/").pop() || r))
+                        .filter(Boolean);
+                    if (parts.length) {
+                        if (html) html += " ";
+                        html += "requires: " + parts.join(", ");
+                    }
+                }
+                return html || "—";
+            }
+
+            function rowFromFrame(frame) {
+                const { ib } = splitAddr(frame);
+                return {
+                    frame,
+                    parkIb: ib,
+                    name: ib,
+                    version: "",
+                    naviName: "",
+                    description: "",
+                    requires: [],
+                    pending: true,
+                };
+            }
+
+            function rowFromEframe(frame, tip) {
+                const data =
+                    tip && tip.data && typeof tip.data === "object"
+                        ? tip.data
+                        : tip || {};
+                const about =
+                    data.about && typeof data.about === "object"
+                        ? data.about
+                        : {};
+                const { ib } = splitAddr(frame);
+                const naviName =
+                    about.navi_name != null
+                        ? String(about.navi_name)
+                        : data.module && data.module.name
+                          ? String(data.module.name)
+                          : ib;
+                return {
+                    frame,
+                    parkIb: ib,
+                    name:
+                        about.name != null
+                            ? String(about.name)
+                            : ib,
+                    version:
+                        about.version != null ? String(about.version) : "",
+                    naviName,
+                    description:
+                        about.description != null
+                            ? String(about.description)
+                            : "",
+                    requires: Array.isArray(about.requires)
+                        ? about.requires.map(String)
+                        : [],
+                    pending: false,
+                };
+            }
+
+            function rowHtml(r, i) {
+                if (r.error && !r.pending) {
+                    return (
+                        '<tr data-row="' +
+                        i +
+                        '"><td data-part="name-cell"><a href="/' +
+                        esc(r.parkIb || splitAddr(r.frame).ib) +
+                        '">' +
+                        esc(r.name || splitAddr(r.frame).ib) +
+                        '</a></td><td data-part="version-cell" class="err">—</td><td class="err" data-part="desc-cell" title="' +
+                        esc(r.frame) +
+                        '">' +
+                        esc(r.error) +
+                        '</td><td data-part="mount-cell">' +
+                        mountCellHtml(r) +
+                        "</td></tr>"
+                    );
+                }
+                const verHtml = r.pending
+                    ? '<span class="muted">…</span>'
+                    : esc(r.version || "—");
+                const descHtml = r.pending
+                    ? '<span class="muted">…</span>'
+                    : descriptionCell(r.description, r.requires);
+                return (
+                    '<tr data-row="' +
+                    i +
+                    '">' +
+                    '<td data-part="name-cell"><a href="/' +
+                    esc(r.parkIb) +
+                    '">' +
+                    esc(r.name) +
+                    "</a></td>" +
+                    '<td data-part="version-cell">' +
+                    verHtml +
+                    "</td>" +
+                    '<td data-part="desc-cell">' +
+                    descHtml +
+                    "</td>" +
+                    '<td data-part="mount-cell">' +
+                    mountCellHtml(r) +
+                    "</td></tr>"
+                );
+            }
+
+            function patchRow(i, r) {
+                const tr = resultEl.querySelector('tr[data-row="' + i + '"]');
+                if (!tr) return;
+                const nameCell = tr.querySelector('[data-part="name-cell"]');
+                const verCell = tr.querySelector('[data-part="version-cell"]');
+                const descCell = tr.querySelector('[data-part="desc-cell"]');
+                const mountCell = tr.querySelector('[data-part="mount-cell"]');
+                if (nameCell) {
+                    nameCell.innerHTML =
+                        '<a href="/' +
+                        esc(r.parkIb) +
+                        '">' +
+                        esc(r.name || r.parkIb) +
+                        "</a>";
+                }
+                if (verCell) {
+                    verCell.className = r.error ? "err" : "";
+                    verCell.innerHTML = r.error
+                        ? "—"
+                        : esc(r.version || "—");
+                }
+                if (descCell) {
+                    if (r.error) {
+                        descCell.className = "err";
+                        descCell.title = r.frame || "";
+                        descCell.textContent = r.error;
+                    } else {
+                        descCell.className = "";
+                        descCell.removeAttribute("title");
+                        descCell.innerHTML = descriptionCell(
+                            r.description,
+                            r.requires
+                        );
+                    }
+                }
+                if (mountCell) mountCell.innerHTML = mountCellHtml(r);
+            }
+
+            function renderTable(rows) {
+                if (!rows.length) {
+                    resultEl.innerHTML = "";
+                    return;
+                }
+                const head =
+                    "<thead><tr>" +
+                    '<th data-part="name-cell">name</th>' +
+                    '<th data-part="version-cell">version</th>' +
+                    "<th>description + requirements</th>" +
+                    "<th>mount</th>" +
+                    "</tr></thead>";
+                const body = rows.map((r, i) => rowHtml(r, i)).join("");
+                resultEl.innerHTML =
+                    '<table data-part="warez-table">' +
+                    head +
+                    "<tbody>" +
+                    body +
+                    "</tbody></table>";
+            }
+
+            resultEl.addEventListener("click", (ev) => {
+                const btn = ev.target && ev.target.closest
+                    ? ev.target.closest(
+                          'button[data-part="mount"], button[data-part="update"]'
+                      )
+                    : null;
+                if (!btn || !resultEl.contains(btn)) return;
+                const cell = btn.closest('td[data-part="mount-cell"]');
+                const parkIb = btn.getAttribute("data-park") || "";
+                if (!cell || !parkIb) return;
+                const tr = btn.closest("tr[data-row]");
+                const rowIndex = tr
+                    ? parseInt(tr.getAttribute("data-row") || "", 10)
+                    : NaN;
+                const row =
+                    Number.isFinite(rowIndex) && resultEl._warezRows
+                        ? resultEl._warezRows[rowIndex]
+                        : {
+                              parkIb,
+                              name: btn.getAttribute("data-name") || parkIb,
+                              naviName:
+                                  btn.getAttribute("data-navi-name") || "",
+                              version: "",
+                          };
+                const liveKeys = [
+                    btn.getAttribute("data-live-key"),
+                    btn.getAttribute("data-navi-name"),
+                    btn.getAttribute("data-name"),
+                    parkIb,
+                ];
+                void pinPark(parkIb, cell, liveKeys, row);
+            });
+
+            async function loadWarez() {
+                try {
+                    const tip = await fetchWarezIndex();
+                    const frames = Array.isArray(tip.json?.frames)
+                        ? tip.json.frames.map(String)
+                        : [];
+                    if (!frames.length) {
+                        resultEl.innerHTML =
+                            '<p class="muted">no approved mods yet</p>';
+                        return;
+                    }
+                    const rows = frames.map(rowFromFrame);
+                    resultEl._warezRows = rows;
+                    renderTable(rows);
+                    await Promise.all(
+                        frames.map(async (frame, i) => {
+                            try {
+                                const { json: tipFrame } =
+                                    await fetchEframe(frame);
+                                rows[i] = rowFromEframe(frame, tipFrame);
+                            } catch (e) {
+                                rows[i] = {
+                                    frame,
+                                    parkIb: splitAddr(frame).ib,
+                                    name: rows[i].name,
+                                    version: "",
+                                    naviName: "",
+                                    description: "",
+                                    requires: [],
+                                    pending: false,
+                                    error:
+                                        e && e.message
+                                            ? e.message
+                                            : String(e),
+                                };
+                            }
+                            patchRow(i, rows[i]);
+                        })
+                    );
+                } catch (e) {
+                    resultEl.innerHTML =
+                        '<p class="err">failed: ' +
+                        esc(e && e.message ? e.message : e) +
+                        "</p>";
+                }
+            }
+
+            void loadWarez();
+        })();
+    </script>
+</div>

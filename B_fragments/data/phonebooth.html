@@ -1,0 +1,379 @@
+<div name="phonebooth" data-path="hypertext/phonebooth" data-part="htmf" style="overflow-y: auto; max-height: 400px; height: 100%; display: flex; flex-direction: column;">
+<script>(function(){var path="/hypertext/phonebooth";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+    <style>
+        div[name="phonebooth"] { font: 14px/1.45 system-ui, sans-serif; max-width: 42rem; }
+        div[name="phonebooth"] .muted { color: #555; }
+        div[name="phonebooth"] .row { margin: 0.5rem 0; }
+        div[name="phonebooth"] .found { color: #0a6; font-weight: 600; }
+        div[name="phonebooth"] button { margin: 0.15rem 0.25rem 0.15rem 0; cursor: pointer; }
+        div[name="phonebooth"] select,
+        div[name="phonebooth"] input[type="text"] {
+            font: inherit;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        div[name="phonebooth"] select { min-width: 16rem; }
+        div[name="phonebooth"] input[type="text"] { min-width: 12rem; }
+        div[name="phonebooth"] .status { margin-top: 0.35rem; min-height: 1.2em; }
+        /* vertical overflow scroll */
+        div[name="phonebooth"] {
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+    </style>
+
+    <h3><i>Phonebooth</i></h3>
+            <!--unsafe markup may appear--->
+    <div data-part="need-mod" hidden>
+        <p class="muted">u need the phonebook_client mod</p>
+    </div>
+    <div data-part="ready" hidden>
+        <p><strong>subscribe</strong></p>
+        <div class="row">
+            <label>
+                <select name="booth_frame_select" data-part="frame-select">
+                    <option value="">(loading…)</option>
+                </select>
+            </label>
+        </div>
+        <div class="row">
+            <label>
+                <input type="text" name="booth_subscribe_subject" data-part="subscribe-subject" placeholder="subject/ib(?)">
+            </label>
+            <button type="button" data-part="btn-subscribe">subscribe</button>
+        </div>
+        <p class="status muted" data-part="subscribe-status"></p>
+        <p class="row" data-part="faucet-row" hidden>
+            <button type="button" data-part="btn-faucet">check a faucet</button>
+            <span data-part="faucet-msg" class="muted"></span>
+        </p>
+
+        <hr>
+
+        <p><strong>ring</strong></p>
+        <div class="row">
+            <label>
+                <input type="text" name="booth_ring_subject" data-part="ring-subject" placeholder="subject/ib(?)">
+            </label>
+            <button type="button" data-part="btn-ring">ring</button>
+        </div>
+        <p class="status muted" data-part="ring-status"></p>
+    </div>
+        <!---unsafe markup may appear--->
+    <div data-part="ring">
+
+    </div>
+
+    <a href="/hypertext/welcome" hx-get="/hypertext/welcome" hx-swap="outerHTML" hx-target="div[name='phonebooth']" hx-push-url="true">Back to Welcome</a>
+  
+
+    <script>
+    (function () {
+        const root =
+            (document.currentScript &&
+                document.currentScript.closest('div[name="phonebooth"]')) ||
+            document.querySelector('div[name="phonebooth"]');
+        if (!root) return;
+
+        const part = (name) => root.querySelector(`[data-part="${name}"]`);
+
+        const needMod = part("need-mod");
+        const ready = part("ready");
+        const selectEl = part("frame-select");
+        const subSubjectEl = part("subscribe-subject");
+        const subBtn = part("btn-subscribe");
+        const subStatus = part("subscribe-status");
+        const faucetRow = part("faucet-row");
+        const faucetBtn = part("btn-faucet");
+        const faucetMsg = part("faucet-msg");
+        const ringSubjectEl = part("ring-subject");
+        const ringBtn = part("btn-ring");
+        const ringStatus = part("ring-status");
+        const ringHost = part("ring");
+
+        /** @type {{ label: string, frame: object, addr: string, alias: string }[]} */
+        let catalog = [];
+
+        function hasPhonebookClient() {
+            return !!(
+                typeof navi === "function" &&
+                navi.mod &&
+                navi.mod.phonebook_client
+            );
+        }
+
+        function client() {
+            return navi.mod.phonebook_client;
+        }
+
+        function looksLikeUsageToken(raw) {
+            const t = String(raw || "").trim();
+            if (!t || t.length < 32) return false;
+            if (/^Error fetching/i.test(t)) return false;
+            if (/^</.test(t) || /^\{/.test(t)) return false;
+            return /^[0-9a-f]+$/i.test(t);
+        }
+
+        function isIbgibFrame(obj) {
+            if (!obj || typeof obj !== "object") return false;
+            const types = Array.isArray(obj.types) ? obj.types.map(String) : [];
+            const parts = Array.isArray(obj.parts) ? obj.parts.map(String) : [];
+            if (types.includes("ibgib_frame") || parts.includes("ibgib_frame")) return true;
+            if (obj.kind === "ibgib_frame" || obj.part === "ibgib_frame") return true;
+            if (obj.frame && obj.frame.ib != null && obj.frame.gib != null) return true;
+            return false;
+        }
+
+        function extractFrame(obj) {
+            if (!obj || typeof obj !== "object") return null;
+            if (obj.frame && obj.frame.ib != null && obj.frame.gib != null) return obj.frame;
+            if (obj.ib != null && obj.gib != null) return obj;
+            if (obj.json && obj.json.ib != null && obj.json.gib != null) return obj.json;
+            if (obj.value && obj.value.ib != null && obj.value.gib != null) return obj.value;
+            return null;
+        }
+
+        function aliasOf(frame, envelope) {
+            return String(
+                envelope?.alias ||
+                    frame?.data?.alias ||
+                    frame?.alias ||
+                    ""
+            ).trim();
+        }
+
+        async function listEnvelopeKeys() {
+            return new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open("navi_shell", 1);
+                    req.onerror = () => resolve([]);
+                    req.onsuccess = () => {
+                        try {
+                            const db = req.result;
+                            if (!db.objectStoreNames.contains("items")) {
+                                resolve([]);
+                                return;
+                            }
+                            const tx = db.transaction(["items"], "readonly");
+                            const store = tx.objectStore("items");
+                            const r = store.getAllKeys();
+                            r.onerror = () => resolve([]);
+                            r.onsuccess = () => {
+                                const keys = (r.result || [])
+                                    .map((k) =>
+                                        typeof k === "string"
+                                            ? k
+                                            : k && k.key != null
+                                              ? String(k.key)
+                                              : String(k)
+                                    )
+                                    .filter((k) => k.startsWith("envelope/"));
+                                resolve(keys);
+                            };
+                        } catch {
+                            resolve([]);
+                        }
+                    };
+                } catch {
+                    resolve([]);
+                }
+            });
+        }
+
+        async function collectCatalog() {
+            const out = [];
+            const seen = new Set();
+
+            // 1) caniuseflowerpothere envelopes
+            try {
+                const keys = await listEnvelopeKeys();
+                for (const key of keys) {
+                    const env = await navi.storage.item.get(key);
+                    if (!env || typeof env !== "object") continue;
+                    if (!isIbgibFrame(env) && !(env.frame && env.frame.ib != null)) continue;
+                    const frame = extractFrame(env);
+                    if (!frame) continue;
+                    const addr = String(env.addr || `${frame.ib}^${frame.gib}`);
+                    if (seen.has(addr)) continue;
+                    seen.add(addr);
+                    const alias = aliasOf(frame, env);
+                    out.push({
+                        label: `envelope ${alias || addr}`,
+                        frame,
+                        addr,
+                        alias,
+                    });
+                }
+            } catch (e) {
+                console.warn("[phonebooth] envelope scan failed", e);
+            }
+
+            // 2) zip-manifest stash — ibgib_frames only
+            try {
+                const zipped =
+                    (await navi.storage.item.get("stagejockey-zip-manifest")) || [];
+                if (Array.isArray(zipped)) {
+                    for (const item of zipped) {
+                        if (!isIbgibFrame(item)) continue;
+                        const frame = extractFrame(item);
+                        if (!frame) continue;
+                        const addr = String(
+                            item.addr || `${frame.ib}^${frame.gib}`
+                        );
+                        if (seen.has(addr)) continue;
+                        seen.add(addr);
+                        const alias = aliasOf(frame, item);
+                        out.push({
+                            label: `zip ${alias || item.label || addr}`,
+                            frame,
+                            addr,
+                            alias,
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn("[phonebooth] zip-manifest scan failed", e);
+            }
+
+            return out;
+        }
+
+        function truncateLabel(s, max) {
+            const t = String(s ?? "");
+            const n = max == null ? 40 : Number(max);
+            if (t.length <= n) return t;
+            return t.slice(0, Math.max(0, n - 1)) + "…";
+        }
+
+        function populateDropdown() {
+            selectEl.innerHTML = "";
+            if (!catalog.length) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "(no local ibgib_frame manifests)";
+                selectEl.appendChild(opt);
+                return;
+            }
+            catalog.forEach((entry, i) => {
+                const opt = document.createElement("option");
+                opt.value = String(i);
+                opt.textContent = truncateLabel(entry.label, 40);
+                opt.title = entry.label;
+                selectEl.appendChild(opt);
+            });
+            const first = catalog[0];
+            if (first?.alias && !subSubjectEl.value.trim()) {
+                subSubjectEl.value = first.alias;
+            }
+        }
+
+        selectEl.addEventListener("change", () => {
+            const i = Number(selectEl.value);
+            const entry = catalog[i];
+            if (entry?.alias) subSubjectEl.value = entry.alias;
+        });
+
+        async function onSubscribe() {
+            subStatus.textContent = "…";
+            faucetRow.hidden = true;
+            try {
+                const i = Number(selectEl.value);
+                const entry = catalog[i];
+                if (!entry?.frame) {
+                    subStatus.textContent = "fail!";
+                    return;
+                }
+                const subject = subSubjectEl.value.trim();
+                if (!subject) {
+                    subStatus.textContent = "fail!";
+                    return;
+                }
+                const r = await client().subscribe(subject, entry.frame);
+                subStatus.textContent = "ok!";
+                if (r?.frame_addr || entry.frame?.ib) {
+                    console.log(
+                        "[phonebooth] subscribed",
+                        r?.frame_addr || `${entry.frame.ib}^${entry.frame.gib}`
+                    );
+                }
+            } catch (e) {
+                const msg = String(e && e.message ? e.message : e);
+                console.warn("[phonebooth] subscribe failed:", msg);
+                subStatus.textContent = "fail!";
+                if (/no phonebook usage tokens|no .*tokens/i.test(msg)) {
+                    faucetRow.hidden = false;
+                    faucetBtn.disabled = false;
+                    faucetMsg.textContent = "";
+                }
+            }
+        }
+
+        async function checkFaucet() {
+            faucetBtn.disabled = true;
+            faucetMsg.textContent = "…";
+            try {
+                let body;
+                if (navi.mod.surf && typeof navi.mod.surf.browse === "function") {
+                    body = await navi.mod.surf.browse("torus_faucet/token/phonebook");
+                } else {
+                    body = await navi("browse torus_faucet/token/phonebook");
+                }
+                if (!looksLikeUsageToken(body)) {
+                    faucetMsg.textContent = "no token (empty or error)";
+                    faucetBtn.disabled = false;
+                    return;
+                }
+                const c = client();
+                const existing = await c.getTokens();
+                await c.setTokens(existing.concat(String(body).trim()));
+                faucetRow.innerHTML =
+                    '<span class="found">you found a token!</span>';
+            } catch (e) {
+                faucetMsg.textContent = "failed";
+                faucetBtn.disabled = false;
+                console.warn("[phonebooth] faucet", e);
+            }
+        }
+
+        async function onRing() {
+            ringStatus.textContent = "…";
+            const subject = ringSubjectEl.value.trim();
+            if (!subject) {
+                ringStatus.textContent = "fail!";
+                return;
+            }
+            try {
+                const html = await client().ring(subject);
+                if (ringHost) {
+                    ringHost.innerHTML =
+                        "<!-- unsafe markup may appear -->\n" + html;
+                }
+                ringStatus.textContent = "ok!";
+            } catch (e) {
+                console.warn(
+                    "[phonebooth] ring failed:",
+                    e && e.message ? e.message : e
+                );
+                ringStatus.textContent = "fail!";
+            }
+        }
+
+        async function init() {
+            if (!hasPhonebookClient()) {
+                needMod.hidden = false;
+                ready.hidden = true;
+                return;
+            }
+            needMod.hidden = true;
+            ready.hidden = false;
+            catalog = await collectCatalog();
+            populateDropdown();
+            subBtn.addEventListener("click", () => void onSubscribe());
+            faucetBtn.addEventListener("click", () => void checkFaucet());
+            ringBtn.addEventListener("click", () => void onRing());
+        }
+
+        void init();
+    })();
+    </script>
+</div>

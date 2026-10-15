@@ -1,0 +1,619 @@
+<div
+  name="storagetest"
+  data-path="torus/testkit/storagetest"
+  data-part="htmf"
+  style="max-width:52rem;max-height:min(92vh,1400px);overflow:auto;box-sizing:border-box;font:14px/1.45 system-ui,sans-serif;"
+>
+  <style>
+    div[name="storagetest"] .muted { color: #555; }
+    div[name="storagetest"] .err { color: #a30; }
+    div[name="storagetest"] .ok { color: #070; }
+    div[name="storagetest"] .warn { color: #860; }
+    div[name="storagetest"] p { margin: 0.35rem 0; }
+    div[name="storagetest"] button {
+      font: inherit;
+      cursor: pointer;
+      padding: 0.1rem 0.28rem;
+      margin: 0.1rem 0.15rem 0.1rem 0;
+    }
+    div[name="storagetest"] [data-part="log"] {
+      font: 12px/1.35 ui-monospace, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      border: 1px solid #ccc;
+      padding: 0.4rem;
+      min-height: 12rem;
+      max-height: 28rem;
+      overflow: auto;
+    }
+    div[name="storagetest"] .spin {
+      display: inline-block;
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid #bbb;
+      border-top-color: #222;
+      border-radius: 50%;
+      vertical-align: -0.15rem;
+      margin-right: 0.4rem;
+      animation: storagetest-spin 0.7s linear infinite;
+    }
+    @keyframes storagetest-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <h1>storagetest</h1>
+  <p class="muted">
+    Timed navi.storage probes. Copy the log after a slow Chromium run.
+    Slow = hundreds of ms+ on a small space; hung = watchdog fired.
+  </p>
+  <p>
+    <button type="button" data-part="env">env</button>
+    <button type="button" data-part="all">run all</button>
+    <button type="button" data-part="tip-list">tip.list + get all</button>
+    <button type="button" data-part="frames">frames</button>
+    <button type="button" data-part="raw-idb">raw IndexedDB</button>
+    <button type="button" data-part="item">item.list</button>
+    <button type="button" data-part="bin">bin.list</button>
+    <button type="button" data-part="scratch">scratch write/mut8</button>
+    <button type="button" data-part="repeat">repeat get×20</button>
+    <button type="button" data-part="delim">delimiter gets</button>
+    <button type="button" data-part="copy">copy log</button>
+    <button type="button" data-part="clear">clear log</button>
+    <span data-part="busy" hidden><span class="spin"></span>running…</span>
+  </p>
+  <div data-part="status" class="muted"></div>
+  <div data-part="log"></div>
+
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="storagetest"]')) ||
+        document.querySelector('div[name="storagetest"]');
+      if (!root) return;
+
+      const STEP_MS = 20000;
+      const SCRATCH = "navi:storagetest:scratch";
+      const part = (name) => root.querySelector('[data-part="' + name + '"]');
+      const logEl = () => part("log");
+
+      const nowMs = () =>
+        typeof performance !== "undefined" && performance.now
+          ? performance.now()
+          : Date.now();
+
+      const stamp = () => {
+        try {
+          if (globalThis.navi && navi.stamp && typeof navi.stamp.time === "function") {
+            return navi.stamp.time();
+          }
+        } catch {
+          /* fall through */
+        }
+        return new Date().toISOString();
+      };
+
+      const line = (text, cls) => {
+        const el = logEl();
+        if (!el) return;
+        const row = document.createElement("div");
+        if (cls) row.className = cls;
+        row.textContent = text;
+        el.appendChild(row);
+        el.scrollTop = el.scrollHeight;
+      };
+
+      const setBusy = (on) => {
+        const el = part("busy");
+        if (el) el.hidden = !on;
+        const st = part("status");
+        if (st) st.textContent = on ? "running…" : "";
+      };
+
+      const withTimeout = (label, ms, fn) =>
+        new Promise((resolve, reject) => {
+          const t = setTimeout(() => {
+            reject(new Error("HUNG " + label + " after " + ms + "ms"));
+          }, ms);
+          Promise.resolve()
+            .then(fn)
+            .then(
+              (v) => {
+                clearTimeout(t);
+                resolve(v);
+              },
+              (e) => {
+                clearTimeout(t);
+                reject(e);
+              }
+            );
+        });
+
+      const timed = async (label, fn, ms) => {
+        const t0 = nowMs();
+        try {
+          const v = await withTimeout(label, ms || STEP_MS, fn);
+          const dt = Math.round(nowMs() - t0);
+          return { ok: true, dt, v };
+        } catch (e) {
+          const dt = Math.round(nowMs() - t0);
+          return {
+            ok: false,
+            dt,
+            err: e && e.message ? e.message : String(e),
+          };
+        }
+      };
+
+      const report = (label, r, extra) => {
+        const bit = extra ? "  " + extra : "";
+        if (r.ok) {
+          const cls = r.dt >= 500 ? "warn" : "ok";
+          line(label + "  " + r.dt + "ms" + bit, cls);
+        } else {
+          line(label + "  FAIL " + r.dt + "ms  " + r.err, "err");
+        }
+        return r;
+      };
+
+      const tipApi = () => {
+        const tip = globalThis.navi && navi.storage && navi.storage.tip;
+        if (!tip || typeof tip.list !== "function" || typeof tip.get !== "function") {
+          throw new Error("navi.storage.tip unavailable");
+        }
+        return tip;
+      };
+
+      const displayMode = () => {
+        try {
+          if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) {
+            return "standalone";
+          }
+          if (window.matchMedia && window.matchMedia("(display-mode: browser)").matches) {
+            return "browser";
+          }
+        } catch {
+          /* ignore */
+        }
+        if (navigator.standalone) return "ios-standalone";
+        return "unknown";
+      };
+
+      async function caseEnv() {
+        line("=== env  " + stamp());
+        line("ua  " + navigator.userAgent);
+        line("vendor  " + (navigator.vendor || ""));
+        line("display-mode  " + displayMode());
+        line("location  " + String(location.href || "").slice(0, 160));
+        line("navi  " + (globalThis.navi ? "yes" : "no"));
+        line(
+          "storage.tip  " +
+            !!(globalThis.navi && navi.storage && navi.storage.tip)
+        );
+        line(
+          "storage.item  " +
+            !!(globalThis.navi && navi.storage && navi.storage.item)
+        );
+        line(
+          "storage.bin  " +
+            !!(globalThis.navi && navi.storage && navi.storage.bin)
+        );
+        line(
+          "indexedDB  " +
+            (typeof indexedDB !== "undefined" ? "yes" : "no")
+        );
+        if (indexedDB && typeof indexedDB.databases === "function") {
+          const r = await timed("indexedDB.databases", () => indexedDB.databases());
+          const names = r.ok
+            ? (r.v || [])
+                .map((d) => (d && d.name ? d.name + " v" + (d.version || "?") : "?"))
+                .join(", ")
+            : "";
+          report("indexedDB.databases", r, names || "");
+        }
+      }
+
+      async function caseTipListGet() {
+        const tip = tipApi();
+        const listed = await timed("tip.list", () => tip.list());
+        const ibs = listed.ok && Array.isArray(listed.v) ? listed.v.map(String) : [];
+        report("tip.list", listed, "n=" + ibs.length);
+        if (!listed.ok) return;
+        const t0 = nowMs();
+        let got = 0;
+        let missing = 0;
+        let worst = 0;
+        let worstIb = "";
+        for (const ib of ibs) {
+          const r = await timed("tip.get " + ib, () => tip.get(ib), STEP_MS);
+          if (!r.ok) {
+            report("tip.get", r, ib);
+            return;
+          }
+          if (r.v && r.v.ib) got += 1;
+          else missing += 1;
+          if (r.dt > worst) {
+            worst = r.dt;
+            worstIb = ib;
+          }
+        }
+        const dt = Math.round(nowMs() - t0);
+        line(
+          "tip.get all sequential  " +
+            dt +
+            "ms  got=" +
+            got +
+            " missing=" +
+            missing +
+            " worst=" +
+            worst +
+            "ms " +
+            worstIb,
+          dt >= 500 || worst >= 200 ? "warn" : "ok"
+        );
+      }
+
+      async function caseFrames() {
+        const tip = tipApi();
+        if (!tip.frame || typeof tip.frame.list !== "function") {
+          line("tip.frame unavailable", "err");
+          return;
+        }
+        const all = await timed("tip.frame.list()", () => tip.frame.list());
+        const addrs = all.ok && Array.isArray(all.v) ? all.v.map(String) : [];
+        report("tip.frame.list()  (all gens)", all, "n=" + addrs.length);
+
+        const ibsR = await timed("tip.list (for per-ib frames)", () => tip.list());
+        const ibs = ibsR.ok && Array.isArray(ibsR.v) ? ibsR.v.map(String) : [];
+        report("tip.list", ibsR, "n=" + ibs.length);
+        if (!ibsR.ok) return;
+
+        let worst = 0;
+        let worstIb = "";
+        let sum = 0;
+        const t0 = nowMs();
+        for (const ib of ibs) {
+          const r = await timed("tip.frame.list " + ib, () => tip.frame.list(ib), STEP_MS);
+          if (!r.ok) {
+            report("tip.frame.list(ib)", r, ib);
+            return;
+          }
+          const n = Array.isArray(r.v) ? r.v.length : 0;
+          sum += n;
+          if (r.dt > worst) {
+            worst = r.dt;
+            worstIb = ib + " n=" + n;
+          }
+        }
+        const dt = Math.round(nowMs() - t0);
+        line(
+          "tip.frame.list(ib) each  " +
+            dt +
+            "ms  frames=" +
+            sum +
+            " worst=" +
+            worst +
+            "ms " +
+            worstIb,
+          dt >= 500 || worst >= 200 ? "warn" : "ok"
+        );
+
+        if (typeof tip.frame.get !== "function") {
+          line("tip.frame.get unavailable", "warn");
+          return;
+        }
+        const sample = addrs.slice(0, 8);
+        const t1 = nowMs();
+        let got = 0;
+        let miss = 0;
+        let worstG = 0;
+        let worstA = "";
+        for (const addr of sample) {
+          const r = await timed("tip.frame.get", () => tip.frame.get(addr), STEP_MS);
+          if (!r.ok) {
+            report("tip.frame.get", r, addr.slice(0, 48));
+            return;
+          }
+          if (r.v && r.v.ib) got += 1;
+          else miss += 1;
+          if (r.dt > worstG) {
+            worstG = r.dt;
+            worstA = addr.slice(0, 56);
+          }
+        }
+        const dg = Math.round(nowMs() - t1);
+        line(
+          "tip.frame.get sample n=" +
+            sample.length +
+            "  " +
+            dg +
+            "ms  got=" +
+            got +
+            " miss=" +
+            miss +
+            " worst=" +
+            worstG +
+            "ms " +
+            worstA,
+          dg >= 500 || worstG >= 200 ? "warn" : "ok"
+        );
+      }
+
+      async function caseRawIdb() {
+        if (typeof indexedDB === "undefined") {
+          line("raw IndexedDB: no indexedDB", "err");
+          return;
+        }
+        const openDb = () =>
+          new Promise((resolve, reject) => {
+            const req = indexedDB.open("navi_shell");
+            req.onerror = () => reject(req.error || new Error("open failed"));
+            req.onblocked = () => {
+              line("raw IndexedDB open blocked", "warn");
+            };
+            req.onsuccess = () => resolve(req.result);
+          });
+
+        const txn = (db, store, mode, exec) =>
+          new Promise((resolve, reject) => {
+            const tx = db.transaction(store, mode);
+            const req = exec(tx.objectStore(store));
+            let value;
+            req.onsuccess = () => {
+              value = req.result;
+            };
+            req.onerror = () => reject(req.error);
+            tx.oncomplete = () => resolve(value);
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () =>
+              reject(tx.error || new Error("aborted " + store));
+          });
+
+        let db = null;
+        const rOpen = await timed("indexedDB.open navi_shell", openDb);
+        report(
+          "indexedDB.open navi_shell",
+          rOpen,
+          rOpen.ok && rOpen.v
+            ? "v" + rOpen.v.version + " stores=" + Array.from(rOpen.v.objectStoreNames).join(",")
+            : ""
+        );
+        if (!rOpen.ok) return;
+        db = rOpen.v;
+        try {
+          const names = Array.from(db.objectStoreNames);
+          for (const store of names) {
+            if (store === "tip_frames" || store === "tips" || store === "bins") {
+              const keys = await timed(
+                "idb " + store + ".getAllKeys",
+                () => txn(db, store, "readonly", (s) => s.getAllKeys())
+              );
+              report(
+                "idb " + store + ".getAllKeys",
+                keys,
+                keys.ok ? "n=" + (keys.v || []).length : ""
+              );
+            }
+          }
+          if (names.indexOf("tip_frames") >= 0) {
+            const bodies = await timed(
+              "idb tip_frames.getAll (bodies)",
+              () => txn(db, "tip_frames", "readonly", (s) => s.getAll())
+            );
+            let bytes = 0;
+            if (bodies.ok && Array.isArray(bodies.v)) {
+              try {
+                bytes = JSON.stringify(bodies.v).length;
+              } catch {
+                bytes = -1;
+              }
+            }
+            report(
+              "idb tip_frames.getAll",
+              bodies,
+              bodies.ok
+                ? "n=" + (bodies.v || []).length + " json~" + bytes
+                : ""
+            );
+          }
+          const t0 = nowMs();
+          let opens = 0;
+          for (let i = 0; i < 12; i++) {
+            const extra = await openDb();
+            opens += 1;
+            try {
+              extra.close();
+            } catch {
+              /* ignore */
+            }
+          }
+          line(
+            "indexedDB.open×12 extra  " +
+              Math.round(nowMs() - t0) +
+              "ms  n=" +
+              opens,
+            Math.round(nowMs() - t0) >= 500 ? "warn" : "ok"
+          );
+        } finally {
+          try {
+            db.close();
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
+      async function caseItemList() {
+        const item = globalThis.navi && navi.storage && navi.storage.item;
+        if (!item || typeof item.list !== "function") {
+          line("storage.item.list unavailable", "warn");
+          return;
+        }
+        const all = await timed("item.list()", () => item.list());
+        report(
+          "item.list()",
+          all,
+          all.ok && Array.isArray(all.v) ? "n=" + all.v.length : ""
+        );
+        const pref = await timed("item.list navi:ibgib:tip:", () =>
+          item.list("navi:ibgib:tip:")
+        );
+        report(
+          "item.list navi:ibgib:tip:",
+          pref,
+          pref.ok && Array.isArray(pref.v) ? "n=" + pref.v.length : ""
+        );
+      }
+
+      async function caseBinList() {
+        const bin = globalThis.navi && navi.storage && navi.storage.bin;
+        if (!bin || typeof bin.list !== "function") {
+          line("storage.bin.list unavailable", "warn");
+          return;
+        }
+        const r = await timed("bin.list", () => bin.list());
+        report("bin.list", r, r.ok && Array.isArray(r.v) ? "n=" + r.v.length : "");
+      }
+
+      async function caseScratch() {
+        const tip = tipApi();
+        const payload = { probe: true, at: stamp(), n: 1 };
+        const setR = await timed("tip.set scratch", () =>
+          tip.set({
+            ib: SCRATCH,
+            gib: "",
+            data: { parts: ["storagetest"], scratch: payload },
+            rel8ns: { past: [], tjp: [], dna: [] },
+          })
+        );
+        report("tip.set " + SCRATCH, setR);
+        const get1 = await timed("tip.get scratch", () => tip.get(SCRATCH));
+        report(
+          "tip.get scratch",
+          get1,
+          get1.ok && get1.v && get1.v.gib
+            ? "gib=" + String(get1.v.gib).slice(0, 8)
+            : ""
+        );
+        if (typeof tip.mut8 === "function") {
+          const m = await timed("tip.mut8 scratch", () =>
+            tip.mut8(SCRATCH, { scratch: { ...payload, n: 2 } })
+          );
+          report("tip.mut8 scratch", m);
+        } else {
+          line("tip.mut8 unavailable", "warn");
+        }
+        if (tip.frame && typeof tip.frame.list === "function") {
+          const fl = await timed("tip.frame.list scratch", () =>
+            tip.frame.list(SCRATCH)
+          );
+          report(
+            "tip.frame.list scratch",
+            fl,
+            fl.ok && Array.isArray(fl.v) ? "n=" + fl.v.length : ""
+          );
+        }
+        if (typeof tip.del === "function") {
+          const d = await timed("tip.del scratch", () => tip.del(SCRATCH));
+          report("tip.del scratch", d);
+        }
+      }
+
+      async function caseRepeatGet() {
+        const tip = tipApi();
+        const seq = await timed("tip.get navi ×20 sequential", async () => {
+          for (let i = 0; i < 20; i++) await tip.get("navi");
+        });
+        report("tip.get navi ×20 sequential", seq);
+        const par = await timed("tip.get navi ×20 parallel", async () => {
+          await Promise.all(Array.from({ length: 20 }, () => tip.get("navi")));
+        });
+        report("tip.get navi ×20 parallel", par);
+      }
+
+      async function caseDelim() {
+        const tip = tipApi();
+        for (const ib of ["navi:mod", "navi/mod", "navi mod"]) {
+          const r = await timed("tip.get " + JSON.stringify(ib), () => tip.get(ib));
+          const hit =
+            r.ok && r.v && r.v.ib
+              ? "hit " + r.v.ib + (r.v.gib ? "^" + String(r.v.gib).slice(0, 8) : "")
+              : "miss";
+          report("tip.get " + ib, r, hit);
+        }
+      }
+
+      async function runCases(names) {
+        setBusy(true);
+        line("");
+        line("=== storagetest " + stamp());
+        try {
+          const map = {
+            env: caseEnv,
+            tips: caseTipListGet,
+            frames: caseFrames,
+            raw: caseRawIdb,
+            item: caseItemList,
+            bin: caseBinList,
+            scratch: caseScratch,
+            repeat: caseRepeatGet,
+            delim: caseDelim,
+          };
+          for (const name of names) {
+            line("--- " + name);
+            try {
+              await map[name]();
+            } catch (e) {
+              line(
+                name + " threw  " + (e && e.message ? e.message : String(e)),
+                "err"
+              );
+            }
+          }
+          line("=== done " + stamp(), "ok");
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      const ALL = [
+        "env",
+        "tips",
+        "frames",
+        "raw",
+        "item",
+        "bin",
+        "scratch",
+        "repeat",
+        "delim",
+      ];
+
+      part("env").addEventListener("click", () => runCases(["env"]));
+      part("all").addEventListener("click", () => runCases(ALL));
+      part("tip-list").addEventListener("click", () => runCases(["tips"]));
+      part("frames").addEventListener("click", () => runCases(["frames"]));
+      part("raw-idb").addEventListener("click", () => runCases(["raw"]));
+      part("item").addEventListener("click", () => runCases(["item"]));
+      part("bin").addEventListener("click", () => runCases(["bin"]));
+      part("scratch").addEventListener("click", () => runCases(["scratch"]));
+      part("repeat").addEventListener("click", () => runCases(["repeat"]));
+      part("delim").addEventListener("click", () => runCases(["delim"]));
+      part("clear").addEventListener("click", () => {
+        const el = logEl();
+        if (el) el.textContent = "";
+      });
+      part("copy").addEventListener("click", async () => {
+        const text = logEl() ? logEl().innerText : "";
+        try {
+          await navigator.clipboard.writeText(text);
+          const st = part("status");
+          if (st) st.textContent = "copied " + text.length + " chars";
+        } catch (e) {
+          line("copy fail: " + (e && e.message ? e.message : String(e)), "err");
+        }
+      });
+    })();
+  </script>
+</div>

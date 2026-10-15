@@ -1,0 +1,8 @@
+Intro to Foobarch
+
+not written yet.
+Hello world, it appears the introduction to Foobarch has not been found.
+
+Links:
+  [1] host catalog     → torus/host-catalog
+  [2] Back to Welcome  → hypertext/welcome

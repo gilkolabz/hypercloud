@@ -1,0 +1,7 @@
+# Private write-gate keys — never commit
+foobarch_owner.json
+*_owner.json
+hypertext/owner.json
+**/owner.json
+# Local usage-token reserve (bearer tokens)
+foobarch_token_reserve.json

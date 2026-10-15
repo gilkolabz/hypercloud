@@ -1,0 +1,25 @@
+<div name="welcome" data-path="hypertext/welcome" data-part="htmf">
+<script>(function(){var path="/hypertext/welcome";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+  <h1><i>Welcome to Foobarch</i></h1>
+  <hr>
+<form onsubmit="navi('surf ' + this.cmd.value);return false;">
+  <input name="cmd" placeholder="surf a path">
+  <button type="submit">surf</button>
+</form>
+<br>
+
+<a href="/hypertext/intro" hx-get="/hypertext/intro" hx-swap="outerHTML" hx-target="closest div[name='welcome']" hx-push-url="true">Intro</a>
+
+<a href="/hypertext/gadgets" hx-get="/hypertext/gadgets" hx-swap="outerHTML" hx-target="closest div[name='welcome']" hx-push-url="true">Gadgets</a>
+
+<a href="/hypertext/flowerpot_faq" hx-get="/hypertext/flowerpot_faq" hx-swap="outerHTML" hx-target="closest div[name='welcome']" hx-push-url="true">Flowerpot FAQ</a>
+
+
+<a href="/hypertext/bulletinboard" hx-get="/hypertext/bulletinboard" hx-swap="outerHTML" hx-target="closest div[name='welcome']" hx-push-url="true">Bulletin Board</a>
+
+
+<a href="/hypertext/hypernetizenwarez" hx-get="/hypertext/hypernetizenwarez" hx-swap="outerHTML" hx-target="closest div[name='welcome']" hx-push-url="true">Hypernetizen Warez</a>
+
+<a href="/hypertext/skellyrelay" hx-get="/hypertext/skellyrelay" hx-swap="outerHTML" hx-target="closest div[name='welcome']" hx-push-url="true">Skelly Relay</a>
+
+</div>

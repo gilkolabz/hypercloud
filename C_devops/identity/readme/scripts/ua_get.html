@@ -1,0 +1,312 @@
+<div
+  name="readme_ua_get"
+  data-path="readme/scripts/ua_get"
+  data-part="htmf"
+  style="max-width: 52rem; font: 14px/1.5 system-ui, sans-serif; box-sizing: border-box;"
+>
+  <style>
+    div[name="readme_ua_get"] h1,
+    div[name="readme_ua_get"] h2,
+    div[name="readme_ua_get"] h3 {
+      line-height: 1.25;
+      margin: 1.25rem 0 0.5rem;
+    }
+    div[name="readme_ua_get"] p,
+    div[name="readme_ua_get"] li {
+      margin: 0.5rem 0;
+    }
+    div[name="readme_ua_get"] pre {
+      background: #f4f4f4;
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+      overflow: auto;
+      font: 12px/1.4 ui-monospace, monospace;
+    }
+    div[name="readme_ua_get"] code {
+      font: 12px/1.35 ui-monospace, monospace;
+      background: #eee;
+      padding: 0.1rem 0.25rem;
+    }
+    div[name="readme_ua_get"] table {
+      border-collapse: collapse;
+      width: 100%;
+      font: 13px/1.4 system-ui, sans-serif;
+      margin: 0.75rem 0;
+    }
+    div[name="readme_ua_get"] th,
+    div[name="readme_ua_get"] td {
+      border: 1px solid #999;
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    div[name="readme_ua_get"] th {
+      background: #e8e8e8;
+    }
+    div[name="readme_ua_get"] .muted {
+      color: #555;
+    }
+  </style>
+
+  <h1>scripts/ua_get — shared User-Agent park handler</h1>
+  <p class="muted">
+    Foobarch hostpark pattern: one write-gated Lua script tip, many consumer
+    parks that carry their own menu in frame data.
+  </p>
+  <hr />
+
+  <h2>What is parked where</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ib</th>
+        <th>role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>scripts/ua_get</code></td>
+        <td>
+          Shared Lua bin (<code>text/x-lua</code>). Classifies the request,
+          reads <strong>this consumer park’s</strong> menu from
+          <code>req.tip.data</code>, serves the chosen bin. Gated and
+          write-protected under <code>policies/foobarch-shell</code>.
+        </td>
+      </tr>
+      <tr>
+        <td><code>readme/scripts/ua_get</code></td>
+        <td>This HTMF readme. Same gate + write-gate policy.</td>
+      </tr>
+      <tr>
+        <td><code>your/park</code></td>
+        <td>
+          Your content tip. Point <code>http.GET</code> at the Lua script; put
+          the per-park menu in <code>data.ua</code> (or
+          <code>http.GET.ua</code>).
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>How GET resolves</h2>
+  <ol>
+    <li>Request hits a consumer park (e.g. <code>testkit/text_editor</code>).</li>
+    <li>
+      That tip’s <code>http.GET</code> is
+      <code>{ "kind": "lua", "script": "scripts/ua_get" }</code> (live tip ib
+      or pinned <code>ib^gib</code>).
+    </li>
+    <li>
+      Host loads the Lua from <code>scripts/ua_get</code> and calls
+      <code>handle(req)</code>.
+    </li>
+    <li>
+      <code>req.tip</code> is the <strong>consumer</strong> frame (ib, addr,
+      data, rel8ns) — not the script tip.
+    </li>
+    <li>
+      Lua reads <code>req.headers</code> (lower-cased), classifies User-Agent,
+      picks a case from <code>data.ua.cases</code>, serves the matching bin.
+    </li>
+    <li>
+      <code>Accept: application/eframe</code> alone skips Lua entirely and
+      returns the consumer frame JSON (<code>Content-Type: application/eframe</code>).
+      Legacy <code>application/ibgib+json</code> still maps to eframe.
+    </li>
+  </ol>
+
+  <h2>Consumer frame shape</h2>
+  <p>Minimal browser + CLI split using extra <code>rel8ns</code> slots:</p>
+  <pre>{
+  "ib": "testkit/text_editor",
+  "gib": "…",
+  "data": {
+    "parts": ["network_proposal", "ibgib_frame", "manifest", "json"],
+    "park": "defer",
+    "gate": true,
+    "content_type": "text/html; charset=utf-8",
+    "default_method": "GET",
+    "http": {
+      "GET": { "kind": "lua", "script": "scripts/ua_get" },
+      "PUT": { "kind": "commit" }
+    },
+    "ua": {
+      "default": "default",
+      "cases": {
+        "default": { "kind": "bin" },
+        "chrome":  { "kind": "bin" },
+        "firefox": { "kind": "bin" },
+        "safari":  { "kind": "bin" },
+        "edge":    { "kind": "bin" },
+        "cli":     { "kind": "bin", "rel8n": "ua_cli" },
+        "curl":    { "kind": "bin", "rel8n": "ua_cli" }
+      }
+    },
+    "n": 1
+  },
+  "rel8ns": {
+    "bin": ["bin &lt;html sha&gt;"],
+    "ua_cli": ["bin &lt;plaintext sha&gt;"],
+    "policy": ["policies/torus^…"],
+    "past": ["…"]
+  }
+}</pre>
+
+  <h3>Where each case gets its bytes</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>case action</th>
+        <th>bin used</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>{ "kind": "bin" }</code></td>
+        <td><code>rel8ns.bin[0]</code> on the consumer tip (default HTML)</td>
+      </tr>
+      <tr>
+        <td><code>{ "kind": "bin", "rel8n": "ua_cli" }</code></td>
+        <td><code>rel8ns.ua_cli[0]</code></td>
+      </tr>
+      <tr>
+        <td><code>{ "kind": "bin", "rel8n": "ua_edge" }</code></td>
+        <td><code>rel8ns.ua_edge[0]</code> — any named slot you add</td>
+      </tr>
+      <tr>
+        <td><code>{ "kind": "bin", "bin": "abc…" }</code></td>
+        <td>explicit sha in the case (no rel8n key)</td>
+      </tr>
+      <tr>
+        <td><code>{ "kind": "body", "body": "…" }</code></td>
+        <td>inline UTF-8 body</td>
+      </tr>
+      <tr>
+        <td><code>{ "kind": "park_request", "path": "/other/park" }</code></td>
+        <td>internal re-dispatch to another hostpark</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Case names alone do not pick different bins. You must set
+    <code>rel8n</code>, <code>bin</code>, <code>body</code>, or
+    <code>path</code> on each case that should differ.
+  </p>
+
+  <h2><code>data.ua</code> fields</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>field</th>
+        <th>meaning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>default</code></td>
+        <td>Case id when nothing matches (usually <code>"default"</code>)</td>
+      </tr>
+      <tr>
+        <td><code>cases</code></td>
+        <td>Map of case id → action table</td>
+      </tr>
+      <tr>
+        <td><code>map</code></td>
+        <td>Optional rename: detected id → case id</td>
+      </tr>
+      <tr>
+        <td><code>passthru_header</code></td>
+        <td>Default <code>x-navi-ua-passthru</code></td>
+      </tr>
+      <tr>
+        <td><code>case_header</code></td>
+        <td>Default <code>x-navi-ua-case</code></td>
+      </tr>
+      <tr>
+        <td><code>passthru</code></td>
+        <td>Case used when passthru header is truthy</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    Menu may live at <code>data.ua</code> or nested under
+    <code>data.http.GET.ua</code>. Lua checks <code>data.ua</code> first.
+  </p>
+
+  <h2>Classifier ids (Lua output)</h2>
+  <p>
+    <code>edge</code>, <code>ie</code>, <code>chrome</code>,
+    <code>firefox</code>, <code>safari</code>, <code>opera</code>,
+    <code>cli</code>, <code>curl</code>, <code>bot</code>,
+    <code>unknown</code>
+  </p>
+  <p class="muted">
+    Edge is checked before Chrome (Edge UA contains Chrome/Safari tokens).
+    <code>cli</code> covers navi_shell, undici, node-fetch, wget, etc.
+  </p>
+
+  <h2>Request header overrides</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>header</th>
+        <th>effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>X-Navi-Ua-Passthru: 1</code></td>
+        <td>Skip classify; use <code>ua.passthru</code> or <code>ua.default</code></td>
+      </tr>
+      <tr>
+        <td><code>X-Navi-Ua-Case: cli</code></td>
+        <td>Force that case id (unknown → default)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>Response headers include <code>X-Navi-Ua-Detected</code>, <code>X-Navi-Ua-Case</code>, <code>X-Navi-Ua-Script</code>.</p>
+
+  <h2>Fail-open behavior</h2>
+  <ul>
+    <li>Missing <code>data.ua</code> → serve <code>rel8ns.bin</code></li>
+    <li>Unknown case → <code>ua.default</code>, then <code>rel8ns.bin</code></li>
+    <li>Missing bin sha → 404 text, not a Lua crash</li>
+  </ul>
+
+  <h2>Write protection</h2>
+  <ul>
+    <li>
+      <code>scripts/ua_get</code> and consumer tips link
+      <code>rel8ns.policy</code> to their identity policy
+      (<code>policies/foobarch-shell</code>, <code>policies/torus</code>, …).
+    </li>
+    <li>Mut8 requires signed commit (<code>proposal-write-v1</code>) + usage token.</li>
+    <li><code>data.gate: true</code> wins delimiter races on that ib (bypass: <code>X-Navi-Gate-Passthru: 1</code>).</li>
+  </ul>
+
+  <h2>Publishing</h2>
+  <pre># Lua script (foobarch identity)
+FOOBARCH_HOST=https://foobarch.net
+node C_devops/identity/_publish.mjs --yes scripts/ua_get
+
+# This readme HTMF (foobarch identity)
+node C_devops/identity/_publish.mjs --yes readme/scripts/ua_get
+
+# Consumer park with ua menu — hand mut8 or extend publish helper
+# when a tip needs multiple rel8ns bins (bin + ua_cli + …)</pre>
+
+  <h2>Source files</h2>
+  <ul>
+    <li>Lua: <code>C_devops/identity/scripts/ua_get.lua</code></li>
+    <li>This page: <code>C_devops/identity/readme/scripts/ua_get.html</code></li>
+    <li>Catalog: <code>C_devops/identity/_lib.mjs</code> → <code>ASSETS</code></li>
+  </ul>
+
+  <hr />
+  <p class="muted">
+    Live script:
+    <a href="/scripts/ua_get">/scripts/ua_get</a>
+    (raw Lua bytes). Frame JSON:
+    <code>Accept: application/eframe</code>.
+  </p>
+</div>

@@ -1,0 +1,88 @@
+<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-foobarch-usage-budgets"
+  data-path="torus/docs/foobarch-usage-budgets"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Foobarch usage tokens and budgets</h1>
+    <p>Usage tokens are one-shot write tickets for foobarch (hostparkinator_5000). A mint <strong>batch</strong> is one <strong>budget</strong> (shared lead on every token). Navis keep header tokens in a local stash (<code>navi.tokens</code>); tips can also <strong>carry</strong> or <strong>point at</strong> a reserve so clients write without holding a token.</p>
+
+    <h2>What costs a token</h2>
+    <ul>
+      <li>Commit / tombstone on foobarch (<code>PUT</code>, <code>PATCH</code>, any tip-declared <code>commit</code>/<code>tombstone</code>): one token, unless the tip pays from a reserve.</li>
+      <li><code>relay connect</code>: one token per WebSocket connection. Host restarts and <code>remount_host</code> drop sockets, so each relayed navi pays again on reconnect.</li>
+      <li>Free: reads, and HTTP callins through relay parks.</li>
+    </ul>
+
+    <h2>The navi stash (<code>navi.tokens</code>)</h2>
+    <p>Local tip <code>tokens</code>: <code>data.hosts[origin].unused</code> (one token per line), optional <code>paths[path].unused</code> sub-budgets. Calls are serialized; <code>host</code> defaults to the relay host, else <code>navi.origin</code>.</p>
+    <pre><code>await navi.tokens.count(host?, path?)
+await navi.tokens.look(host?, path?)              // first token, kept
+await navi.tokens.take(host?, path?)              // first token, removed; throws err.code "NO_TOKENS" when empty
+await navi.tokens.giveBack(host, token, path?)    // refund
+await navi.tokens.add(host, tokens, path?)        // array or whitespace string → { added, count }</code></pre>
+    <p>Filling it: users request tokens on <a href="/hypertext/intro" hx-get="/hypertext/intro" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hypertext/intro</a> (Approver approves, tokens are claimed into the stash). Operators: <code>relay tokens add &lt;token…&gt;</code>, <code>relay tokens file &lt;path&gt;</code> (delete the file after), <code>relay tokens</code> for the count.</p>
+
+    <h2>Spend pattern for mods</h2>
+    <p>The host consumes a token <strong>only after the commit is saved</strong>. Refusals (bad envelope, policy or genesis-gate denial, stale parent) spend nothing. The token is dead only on <code>401 invalid usage token</code> or <code>403 usage token already consumed</code>.</p>
+    <pre><code>const token = await navi.tokens.take(host);
+let res, text;
+try {
+  res = await fetch(`${host}/${ib}`, { method: "PUT", headers: { "Content-Type": "application/json", "X-Foobarch-Usage-Token": token, ...signHeaders }, body });
+  text = await res.text();
+} catch (e) {
+  await navi.tokens.giveBack(host, token);
+  throw e;
+}
+if (!res.ok) {
+  if (!/consumed|invalid usage token/i.test(text)) await navi.tokens.giveBack(host, token);
+  throw new Error(`PUT ${ib} → ${res.status}: ${text.slice(0, 300)}`);
+}</code></pre>
+    <p>Keep tokens in <code>navi.tokens</code>. Leave the mint password with the operator. Never print whole tokens; the 16-hex lead is fine for logs.</p>
+
+    <h2>Mint shape</h2>
+    <p>Mint N tokens → one shared <strong>16-hex lead</strong> + unique <strong>48-hex</strong> suffix each (64 hex). Response <code>{ tokens }</code>; lead = <code>tokens[i].slice(0, 16)</code>. Operator only.</p>
+    <pre><code>POST /foobarch/tokens
+X-Foobarch-Usage-Password: …
+{"count": N}</code></pre>
+
+    <h2>Mutation payment (precedence)</h2>
+    <p>For <strong>commit / tombstone</strong> kinds (any verb). <strong>Reads unpaid.</strong></p>
+    <ol>
+      <li><code>X-Foobarch-Usage-Token</code> if present</li>
+      <li>else <code>data.foobarch.tokens</code> on that tip (the new frame drops the head token)</li>
+      <li>else <code>rel8ns["foobarch.token_reserve"]</code> / <code>data.foobarch.token_reserve</code>: spend <strong>two</strong> from the reserve (content mut8 + host index mut8)</li>
+    </ol>
+    <p>Naive clients can use a tip that already links a reserve and never see a usage token.</p>
+
+    <h2>Product pattern (reserves)</h2>
+    <ol>
+      <li>Mint a budget (one lead).</li>
+      <li>Park a <strong>reserve tip</strong> under an <strong>obscure ib</strong>; store tokens in <code>data.foobarch.tokens</code>.</li>
+      <li>Hand the operator the reserve ib (or a bootstrap tip that links it), not the usage password.</li>
+      <li>Work frames <code>rel8ns</code> to that reserve; clients mut8 frames; the budget depletes on the reserve.</li>
+      <li>Refill by mint + append. A proxy for realtime is optional later; tip lineage is enough for v1 shared state.</li>
+    </ol>
+    <p>Do not publish reserve ibs on public catalogs. Different roles/products → different reserves / leads.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a></li>
+      <li><a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi modules guide</a></li>
+      <li><a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model reiteration</a>: briefs may plan per-role reserves</li>
+    </ul>
+  </article>
+</div>

@@ -1,0 +1,6 @@
+Hypernetizen Warez (text)
+
+Static fallback. Prefer Accept text/plain on hypertext/hypernetizenwarez —
+ua_get park_requests scripts/hypertext/hypernetizenwarez_text for the live list.
+
+  [1] back to welcome → hypertext/welcome

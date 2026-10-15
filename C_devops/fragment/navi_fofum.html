@@ -1,0 +1,221 @@
+<div
+  name="navi_fofum"
+  data-path="torus/testkit/fofum"
+  data-part="htmf"
+>
+  <label>
+    username
+    <br />
+    <input
+      type="text"
+      name="username"
+      data-part="username"
+      autocomplete="username"
+      spellcheck="false"
+      size="32"
+    />
+  </label>
+  <br /><br />
+
+  <label>
+    password
+    <br />
+    <input
+      type="password"
+      name="password"
+      data-part="password"
+      autocomplete="current-password"
+      size="32"
+    />
+  </label>
+  <br /><br />
+
+  <label>
+    usage_password
+    <br />
+    <input
+      type="password"
+      name="usage_password"
+      data-part="usage_password"
+      autocomplete="off"
+      size="32"
+    />
+  </label>
+  <br /><br />
+
+  <label>
+    token_a
+    <br />
+    <input
+      type="text"
+      name="token_a"
+      data-part="token_a"
+      spellcheck="false"
+      size="48"
+      placeholder="optional / prove"
+    />
+  </label>
+  <br /><br />
+
+  <label>
+    token_b
+    <br />
+    <input
+      type="text"
+      name="token_b"
+      data-part="token_b"
+      spellcheck="false"
+      size="48"
+      placeholder="optional / prove"
+    />
+  </label>
+  <br /><br />
+
+  <div data-part="actions">
+    <button type="button" data-part="create">create</button>
+    <button type="button" data-part="login">login</button>
+    <button type="button" data-part="logout">logout</button>
+    <button type="button" data-part="validate">validate</button>
+    <button type="button" data-part="whoami">whoami</button>
+    <button type="button" data-part="prove">prove</button>
+    <br /><br />
+    <button type="button" data-part="admin_auth">admin auth</button>
+    <button type="button" data-part="admin_info">admin info</button>
+    <button type="button" data-part="admin_users">admin users</button>
+    <button type="button" data-part="admin_delete">admin delete</button>
+    <br /><br />
+    <button type="button" data-part="help">help</button>
+    <span data-part="status"></span>
+  </div>
+  <br />
+
+  <label>
+    result
+    <br />
+    <textarea
+      name="result"
+      data-part="result"
+      spellcheck="false"
+      rows="14"
+      cols="56"
+      readonly
+    ></textarea>
+  </label>
+
+  <script>
+    (function () {
+      const root = document.currentScript.closest('div[name="navi_fofum"]');
+      if (!root) return;
+
+      const part = (name) => root.querySelector(`[data-part="${name}"]`);
+      const statusEl = part("status");
+      const resultEl = part("result");
+
+      const val = (name) => String(part(name)?.value || "").trim();
+
+      const setStatus = (text) => {
+        statusEl.textContent = text || "";
+      };
+
+      const setResult = (text) => {
+        resultEl.value = text == null ? "" : String(text);
+      };
+
+      const run = async (line) => {
+        const navi = globalThis.navi;
+        if (!navi || typeof navi !== "function") {
+          throw new Error("navi unavailable — mount fofum_client first");
+        }
+        if (!navi.mod?.fofum_client) {
+          throw new Error("fofum_client not mounted");
+        }
+        setStatus(`… ${line}`);
+        const out = await navi(line);
+        setResult(out == null ? "(empty)" : String(out));
+        setStatus("ok");
+        return out;
+      };
+
+      const on = (name, fn) => {
+        part(name)?.addEventListener("click", async () => {
+          try {
+            await fn();
+          } catch (err) {
+            setStatus(String(err?.message || err));
+            setResult(String(err?.message || err));
+          }
+        });
+      };
+
+      on("help", () => run("fofum"));
+
+      on("create", () => {
+        const u = val("username");
+        const p = val("password");
+        const usage = val("usage_password");
+        if (!u || !p || !usage) {
+          setStatus("need username password usage_password");
+          return;
+        }
+        return run(`fofum create ${u} ${p} ${usage}`);
+      });
+
+      on("login", () => {
+        const u = val("username");
+        const p = val("password");
+        if (!u || !p) {
+          setStatus("need username password");
+          return;
+        }
+        return run(`fofum login ${u} ${p}`);
+      });
+
+      on("logout", () => {
+        const t = val("token_a");
+        return run(t ? `fofum logout --token ${t}` : "fofum logout");
+      });
+
+      on("validate", () => {
+        const t = val("token_a");
+        return run(t ? `fofum validate --token ${t}` : "fofum validate");
+      });
+
+      on("whoami", () => {
+        const t = val("token_a");
+        return run(t ? `fofum whoami --token ${t}` : "fofum whoami");
+      });
+
+      on("prove", () => {
+        const a = val("token_a");
+        const b = val("token_b");
+        if (!a || !b) {
+          setStatus("need token_a token_b");
+          return;
+        }
+        return run(`fofum prove ${a} ${b}`);
+      });
+
+      on("admin_auth", () => {
+        const usage = val("usage_password");
+        if (!usage) {
+          setStatus("need usage_password");
+          return;
+        }
+        return run(`fofum admin auth ${usage}`);
+      });
+
+      on("admin_info", () => run("fofum admin info"));
+
+      on("admin_users", () => run("fofum admin users"));
+
+      on("admin_delete", () => {
+        const u = val("username");
+        if (!u) {
+          setStatus("need username");
+          return;
+        }
+        return run(`fofum admin delete ${u}`);
+      });
+    })();
+  </script>
+</div>

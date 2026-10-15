@@ -1,0 +1,7 @@
+flowerpot is a frenly vm and db hosted by gilkolabz
+it uses ibgib, learn more at ibgib.com
+
+Links:
+  [1] ibgib.com (external) → https://ibgib.com
+  [2] Flowerpot FAQ        → hypertext/flowerpot_faq
+  [3] back to welcome      → hypertext/welcome

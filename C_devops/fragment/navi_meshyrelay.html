@@ -1,0 +1,1702 @@
+<div
+  name="meshyrelay"
+  data-path="torus/testkit/meshyrelay"
+  data-part="htmf"
+  style="--mr-glass:rgba(255,255,255,0.42);--mr-glass2:rgba(210,235,255,0.55);--mr-ink:#0c2a3a;--mr-accent:#1a8cff;--mr-ok:#0a9f6e;--mr-warn:#c47a12;max-width:28rem;box-sizing:border-box;font:13px/1.4 'Segoe UI',Tahoma,sans-serif;color:var(--mr-ink);"
+>
+  <style>
+    @keyframes mr-shine {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    @keyframes mr-pulse {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+    div[name="meshyrelay"] {
+      position: relative;
+      padding: 0.75rem 0.85rem 0.9rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.55), rgba(180, 220, 255, 0.35)),
+        radial-gradient(120% 80% at 10% 0%, rgba(120, 210, 255, 0.45), transparent 55%),
+        radial-gradient(90% 70% at 100% 100%, rgba(90, 220, 180, 0.28), transparent 50%),
+        linear-gradient(180deg, #b8d8f0, #7eb0d8 55%, #5a96c4);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.75) inset,
+        0 -1px 0 rgba(20, 60, 90, 0.18) inset,
+        0 10px 28px rgba(20, 60, 100, 0.28);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    div[name="meshyrelay"]::before {
+      content: "";
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        105deg,
+        transparent 35%,
+        rgba(255, 255, 255, 0.35) 48%,
+        transparent 62%
+      );
+      background-size: 220% 100%;
+      animation: mr-shine 7s linear infinite;
+      opacity: 0.45;
+    }
+    div[name="meshyrelay"] > * { position: relative; z-index: 1; }
+    div[name="meshyrelay"] h1 {
+      margin: 0 0 0.15rem;
+      font: 700 1.15rem/1.2 "Segoe UI Semibold", "Segoe UI", sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #06314a;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    }
+    div[name="meshyrelay"] .mr-sub {
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      opacity: 0.78;
+    }
+    div[name="meshyrelay"] .mr-panel {
+      background: var(--mr-glass);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 10px;
+      padding: 0.45rem 0.5rem;
+      margin: 0.4rem 0;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
+    }
+    div[name="meshyrelay"] .mr-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+      margin: 0.25rem 0;
+    }
+    div[name="meshyrelay"] label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+    }
+    div[name="meshyrelay"] input[type="text"],
+    div[name="meshyrelay"] input[type="color"],
+    div[name="meshyrelay"] select,
+    div[name="meshyrelay"] textarea {
+      font: inherit;
+      border: 1px solid rgba(30, 80, 120, 0.28);
+      border-radius: 6px;
+      padding: 0.18rem 0.35rem;
+      background: rgba(255, 255, 255, 0.72);
+      color: inherit;
+      min-width: 0;
+    }
+    div[name="meshyrelay"] input[type="text"] { flex: 1; min-width: 5.5rem; }
+    div[name="meshyrelay"] select { flex: 1; min-width: 6rem; }
+    div[name="meshyrelay"] textarea {
+      width: 100%;
+      min-height: 2.4rem;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    div[name="meshyrelay"] button {
+      font: 600 0.78rem/1.2 "Segoe UI", sans-serif;
+      cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 999px;
+      padding: 0.28rem 0.7rem;
+      color: #04324a;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(170, 210, 240, 0.75));
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 2px 6px rgba(20, 70, 110, 0.22);
+    }
+    div[name="meshyrelay"] button:hover {
+      filter: brightness(1.05);
+    }
+    div[name="meshyrelay"] button:active {
+      transform: translateY(1px);
+    }
+    div[name="meshyrelay"] button.mr-primary {
+      color: #fff;
+      text-shadow: 0 1px 1px rgba(0, 40, 70, 0.35);
+      background: linear-gradient(180deg, #5ec0ff, #1a7fd4 55%, #0d5fa8);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+    div[name="meshyrelay"] .mr-status {
+      font-size: 0.75rem;
+      min-height: 1.1rem;
+      opacity: 0.9;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    div[name="meshyrelay"] .mr-ok { color: var(--mr-ok); }
+    div[name="meshyrelay"] .mr-err { color: #a02828; }
+    div[name="meshyrelay"] .mr-member {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.28rem 0.35rem;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.28);
+      margin: 0.2rem 0;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    div[name="meshyrelay"] .mr-emoji {
+      font-size: 0.85rem;
+      line-height: 1;
+      width: 1.1rem;
+      text-align: center;
+      flex: 0 0 auto;
+    }
+    div[name="meshyrelay"] .mr-emoji-scroll {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.2rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+      padding: 0.2rem 0.15rem;
+      margin: 0.15rem 0 0.35rem;
+      max-width: 100%;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      scrollbar-width: thin;
+    }
+    div[name="meshyrelay"] .mr-emoji-scroll::-webkit-scrollbar {
+      height: 6px;
+    }
+    div[name="meshyrelay"] .mr-emoji-scroll::-webkit-scrollbar-thumb {
+      background: rgba(30, 90, 130, 0.35);
+      border-radius: 999px;
+    }
+    div[name="meshyrelay"] .mr-emoji-btn {
+      flex: 0 0 auto;
+      scroll-snap-align: center;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      border-radius: 8px;
+      font-size: 1.15rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.35);
+      box-shadow: none;
+      cursor: pointer;
+    }
+    div[name="meshyrelay"] .mr-emoji-btn:hover {
+      filter: brightness(1.06);
+      border-color: rgba(26, 140, 255, 0.45);
+    }
+    div[name="meshyrelay"] .mr-emoji-btn.mr-emoji-on {
+      border-color: var(--mr-accent);
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 0 0 1px rgba(26, 140, 255, 0.35);
+    }
+    div[name="meshyrelay"] .mr-emoji-field {
+      width: 3rem;
+      flex: 0 0 auto !important;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+    div[name="meshyrelay"] .mr-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    div[name="meshyrelay"] .mr-meta {
+      font-size: 0.68rem;
+      opacity: 0.75;
+      flex: 0 0 auto;
+    }
+    div[name="meshyrelay"] .mr-badge {
+      display: inline-block;
+      min-width: 0.85rem;
+      padding: 0.05rem 0.3rem;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #fff;
+      background: #e23a3a;
+      animation: mr-pulse 1.6s ease-in-out infinite;
+    }
+    div[name="meshyrelay"] .mr-feed,
+    div[name="meshyrelay"] .mr-log {
+      max-height: 7.5rem;
+      overflow: auto;
+      font: 11px/1.35 ui-monospace, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: rgba(8, 30, 45, 0.08);
+      border-radius: 8px;
+      padding: 0.35rem;
+    }
+    div[name="meshyrelay"] .mr-feed {
+      white-space: normal;
+      max-height: 9.5rem;
+    }
+    div[name="meshyrelay"] .mr-feed-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.2rem;
+      margin: 0.12rem 0;
+      line-height: 1.4;
+    }
+    div[name="meshyrelay"] .mr-feed-row.mr-feed-fresh {
+      font-weight: 650;
+    }
+    div[name="meshyrelay"] .mr-feed-meta {
+      opacity: 0.72;
+      flex: 0 0 auto;
+    }
+    div[name="meshyrelay"] .mr-who {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.2rem;
+      max-width: 100%;
+    }
+    div[name="meshyrelay"] .mr-feed-emoji {
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+    div[name="meshyrelay"] .mr-feed-name {
+      font-family: "Segoe UI Semibold", "Segoe UI", sans-serif;
+      font-size: 0.88rem;
+      line-height: 1.2;
+    }
+    div[name="meshyrelay"] .mr-feed-text {
+      opacity: 0.92;
+    }
+    div[name="meshyrelay"] .mr-me {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      margin: 0.2rem 0 0.55rem;
+      padding: 0.5rem 0.65rem;
+      border-radius: 12px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(180, 220, 255, 0.4));
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+    }
+    div[name="meshyrelay"] .mr-me[hidden] {
+      display: none !important;
+    }
+    div[name="meshyrelay"] .mr-me-emoji {
+      font-size: 2.15rem;
+      line-height: 1;
+      flex: 0 0 auto;
+      filter: drop-shadow(0 1px 1px rgba(20, 60, 90, 0.25));
+    }
+    div[name="meshyrelay"] .mr-me-name {
+      font: 700 1.45rem/1.15 "Segoe UI Semibold", "Segoe UI", sans-serif;
+      letter-spacing: 0.02em;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    div[name="meshyrelay"] .mr-me-meta {
+      margin-left: auto;
+      font-size: 0.72rem;
+      opacity: 0.72;
+      text-align: right;
+      flex: 0 0 auto;
+      line-height: 1.25;
+    }
+    div[name="meshyrelay"] .mr-mesh-label {
+      flex: 1;
+      min-width: 8rem;
+    }
+    div[name="meshyrelay"] .mr-mesh-label select {
+      width: 100%;
+    }
+    div[name="meshyrelay"] .mr-head {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin: 0.15rem 0 0.25rem;
+    }
+    div[name="meshyrelay"] .mr-sec-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.4rem;
+      margin: 0 0 0.35rem;
+      border-radius: 8px;
+      font: 700 0.78rem/1.2 "Segoe UI", sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: left;
+    }
+    div[name="meshyrelay"] .mr-sec-toggle .mr-meta {
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 650;
+      margin-left: auto;
+    }
+    div[name="meshyrelay"] .mr-sec-toggle.mr-sec-on {
+      color: #fff;
+      text-shadow: 0 1px 1px rgba(0, 40, 70, 0.35);
+      background: linear-gradient(180deg, #5ec0ff, #1a7fd4 55%, #0d5fa8);
+      border-color: rgba(255, 255, 255, 0.45);
+    }
+    div[name="meshyrelay"] .mr-sec-body[hidden] {
+      display: none !important;
+    }
+    div[name="meshyrelay"] .mr-offer {
+      font-size: 0.75rem;
+      margin: 0.25rem 0;
+    }
+    div[name="meshyrelay"] .mr-when-offline[hidden],
+    div[name="meshyrelay"] .mr-when-online[hidden],
+    div[name="meshyrelay"] [hidden] {
+      display: none !important;
+    }
+    div[name="meshyrelay"] .mr-link-host {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex: 1;
+      min-width: 0;
+    }
+    div[name="meshyrelay"] .mr-link-host label {
+      flex: 1;
+      min-width: 0;
+    }
+    div[name="meshyrelay"] .mr-link-host input[type="text"] {
+      flex: 1;
+      width: 100%;
+    }
+    div[name="meshyrelay"] .mr-bubble {
+      flex: 0 0 auto;
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 50%;
+      opacity: 0;
+      transform: scale(0.6);
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      background:
+        radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95), transparent 42%),
+        radial-gradient(circle at 70% 75%, rgba(20, 120, 70, 0.45), transparent 55%),
+        linear-gradient(160deg, #b8ffd0, #2ecc71 45%, #0a8f4a);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.65) inset,
+        0 1px 2px rgba(255, 255, 255, 0.8) inset,
+        0 2px 6px rgba(20, 120, 70, 0.45),
+        0 0 10px rgba(80, 220, 140, 0.55);
+    }
+    div[name="meshyrelay"] .mr-bubble.mr-on {
+      opacity: 1;
+      transform: scale(1);
+    }
+  </style>
+
+  <h1>meshyrelay</h1>
+  <p class="mr-sub">connect · advertise · ping the mesh</p>
+  <div data-part="me" class="mr-me" hidden>
+    <span data-part="me-emoji" class="mr-me-emoji" aria-hidden="true"></span>
+    <span data-part="me-name" class="mr-me-name"></span>
+    <span data-part="me-meta" class="mr-me-meta"></span>
+  </div>
+  <div class="mr-row" data-part="mesh-bar" hidden>
+    <label class="mr-mesh-label">mesh
+      <select data-part="mesh-active" title="active mesh (view + messaging)"></select>
+    </label>
+    <button type="button" data-part="btn-mesh-default" title="make active mesh the default for new admits">set default</button>
+    <span data-part="mesh-default-label" class="mr-meta"></span>
+  </div>
+  <div data-part="mod-offer" class="mr-offer" hidden></div>
+  <div data-part="status" class="mr-status">…</div>
+
+  <div class="mr-panel" data-sec="feed">
+    <button type="button" class="mr-sec-toggle mr-sec-on" data-part="sec-feed" aria-expanded="true">
+      feed <span data-part="feed-new" class="mr-meta"></span>
+    </button>
+    <div class="mr-sec-body" data-part="body-feed">
+      <div data-part="feed" class="mr-feed">(activity shows up here)</div>
+    </div>
+  </div>
+
+  <div class="mr-panel" data-sec="link">
+    <button type="button" class="mr-sec-toggle" data-part="sec-link" aria-expanded="false">link</button>
+    <div class="mr-sec-body" data-part="body-link" hidden>
+      <div class="mr-row mr-when-offline">
+        <span class="mr-meta">host <span data-part="origin-host">(navi.origin)</span></span>
+        <label>token <input type="text" data-part="token" placeholder="empty = open" autocomplete="off"></label>
+        <button type="button" data-part="btn-connect" class="mr-primary">connect</button>
+      </div>
+      <div class="mr-row">
+        <div class="mr-link-host">
+          <label>alias <input type="text" data-part="alias" placeholder="my-navi" autocomplete="off"></label>
+          <span data-part="link-bubble" class="mr-bubble" title="relay connected" aria-hidden="true"></span>
+        </div>
+        <button type="button" data-part="btn-advert" class="mr-primary">advertise</button>
+        <button type="button" data-part="btn-disconnect" class="mr-when-online" hidden>disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mr-panel" data-sec="identity">
+    <button type="button" class="mr-sec-toggle" data-part="sec-identity" aria-expanded="false">identity</button>
+    <div class="mr-sec-body" data-part="body-identity" hidden>
+      <div class="mr-row">
+        <label>emoji <input type="text" data-part="emoji" class="mr-emoji-field" maxlength="8" autocomplete="off"></label>
+        <label>color <input type="color" data-part="color"></label>
+        <label>kind
+          <select data-part="kind">
+            <option value="client">client</option>
+            <option value="server">server</option>
+          </select>
+        </label>
+        <label>device
+          <select data-part="device">
+            <option value="desktop">desktop</option>
+            <option value="mobile">mobile</option>
+          </select>
+        </label>
+      </div>
+      <div data-part="emoji-scroll" class="mr-emoji-scroll" role="listbox" aria-label="pick emoji"></div>
+      <div class="mr-row">
+        <label>weight
+          <select data-part="fontWeight">
+            <option value="400">400</option>
+            <option value="600">600</option>
+            <option value="700">700</option>
+          </select>
+        </label>
+        <label>style
+          <select data-part="fontStyle">
+            <option value="normal">normal</option>
+            <option value="italic">italic</option>
+          </select>
+        </label>
+        <label>deco
+          <select data-part="textDecoration">
+            <option value="none">none</option>
+            <option value="underline">underline</option>
+          </select>
+        </label>
+        <label><input type="checkbox" data-part="allowRenew" checked> allow renew</label>
+      </div>
+      <div class="mr-row">
+        <label><input type="checkbox" data-part="autoAdmit" checked> auto-admit joins</label>
+        <label>on ping/join
+          <select data-part="admitMode">
+            <option value="default">add to default mesh</option>
+            <option value="new">create new mesh</option>
+          </select>
+        </label>
+      </div>
+      <div class="mr-row">
+        <button type="button" data-part="btn-save-profile">update + telegraph</button>
+        <span data-part="mesh-id" class="mr-meta"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mr-panel" data-sec="ping">
+    <button type="button" class="mr-sec-toggle" data-part="sec-ping" aria-expanded="false">ping</button>
+    <div class="mr-sec-body" data-part="body-ping" hidden>
+      <div class="mr-row">
+        <input type="text" data-part="peer" placeholder="peer alias" autocomplete="off">
+        <button type="button" data-part="btn-ping" class="mr-primary">ping</button>
+      </div>
+      <div data-part="members"></div>
+    </div>
+  </div>
+
+  <div class="mr-panel" data-sec="message">
+    <button type="button" class="mr-sec-toggle" data-part="sec-message" aria-expanded="false">message</button>
+    <div class="mr-sec-body" data-part="body-message" hidden>
+      <div class="mr-row">
+        <select data-part="msg-to"></select>
+      </div>
+      <textarea data-part="msg-body" placeholder="say something to the mesh…"></textarea>
+      <div class="mr-row">
+        <button type="button" data-part="btn-msg" class="mr-primary">send</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mr-panel" data-sec="tip">
+    <button type="button" class="mr-sec-toggle" data-part="sec-tip" aria-expanded="false">tip / bin</button>
+    <div class="mr-sec-body" data-part="body-tip" hidden>
+      <div class="mr-row">
+        <select data-part="tip-to"></select>
+      </div>
+      <div class="mr-row">
+        <input type="text" data-part="tip-ib" list="meshyrelay-ib-list" placeholder="ib or prefix (navi:… / flowerpot/…)" autocomplete="off">
+        <datalist id="meshyrelay-ib-list" data-part="ib-list"></datalist>
+      </div>
+      <div class="mr-row">
+        <button type="button" data-part="btn-tip" class="mr-primary">send one</button>
+        <button type="button" data-part="btn-tip-prefix">send prefix</button>
+      </div>
+      <label class="mr-row"><input type="checkbox" data-part="ib-autofill" checked> ib autofill</label>
+    </div>
+  </div>
+
+  <div class="mr-panel" data-sec="log">
+    <button type="button" class="mr-sec-toggle" data-part="sec-log" aria-expanded="false">delta log</button>
+    <div class="mr-sec-body" data-part="body-log" hidden>
+      <div data-part="log" class="mr-log"></div>
+      <div class="mr-row"><button type="button" data-part="btn-refresh-log">refresh</button></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="meshyrelay"]')) ||
+        document.querySelector('div[name="meshyrelay"]');
+      if (!root || root.dataset.meshyBound === "1") return;
+      root.dataset.meshyBound = "1";
+
+      const MANAGER_SUBJECT =
+        "flowerpot/hypercloud/testkit/mods/legacy/meshyrelay_manager.js";
+      const MANAGER_MANIFEST =
+        "flowerpot/hypercloud/testkit/mods/meshyrelay_manager";
+      const LOG_IB = "navi:meshyrelay:log";
+
+      const part = (n) => root.querySelector('[data-part="' + n + '"]');
+      const val = (n) => String((part(n) && part(n).value) || "").trim();
+      const setVal = (n, v) => {
+        const el = part(n);
+        if (el) el.value = v == null ? "" : String(v);
+      };
+      const setCheck = (n, on) => {
+        const el = part(n);
+        if (el) el.checked = !!on;
+      };
+
+      const getMgr = () => globalThis.navi?.mod?.meshyrelay_manager || null;
+
+      const setStatus = (text, cls) => {
+        const el = part("status");
+        if (!el) return;
+        el.textContent = text == null ? "" : String(text);
+        el.className = "mr-status" + (cls ? " " + cls : "");
+      };
+
+      const flowerpotBase = () => {
+        try {
+          const origin = String(globalThis.location?.origin || "").replace(/\/$/, "");
+          if (origin) return origin + "/flowerpot";
+        } catch {
+          /* ignore */
+        }
+        return "https://foobarch.net/flowerpot";
+      };
+
+      const bareRoute = (ib) =>
+        String(ib || "")
+          .replace(/^flowerpot\//i, "")
+          .replace(/^\/+/, "");
+
+      const verParts = (v) =>
+        String(v || "")
+          .trim()
+          .split(/[^\d]+/)
+          .filter(Boolean)
+          .map((n) => parseInt(n, 10) || 0);
+      /** >0 if a newer than b */
+      const verCmp = (a, b) => {
+        const A = verParts(a);
+        const B = verParts(b);
+        const n = Math.max(A.length, B.length);
+        for (let i = 0; i < n; i++) {
+          const d = (A[i] || 0) - (B[i] || 0);
+          if (d) return d;
+        }
+        return 0;
+      };
+
+      /** Full sidecar JSON — about.version must match subject.addr bytes. */
+      const fetchWarezManifest = async () => {
+        try {
+          const url = flowerpotBase() + "/" + bareRoute(MANAGER_MANIFEST);
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) return null;
+          return await res.json();
+        } catch {
+          return null;
+        }
+      };
+
+      /**
+       * Mount pinned subject.addr from sidecar when present — tip-latest can
+       * drift ahead of the advertised about.version (partial pots).
+       */
+      const mountManager = async (opts) => {
+        const navi = globalThis.navi;
+        if (!navi?.mount) throw new Error("navi.mount unavailable");
+        const subjectIb = (opts && opts.subjectIb) || MANAGER_SUBJECT;
+        const addr = opts && opts.addr ? String(opts.addr).trim() : "";
+        const expectVer = opts && opts.expectVer ? String(opts.expectVer) : "";
+        const path = bareRoute(subjectIb);
+        let url = flowerpotBase() + "/" + path;
+        if (addr) url += "?addr=" + encodeURIComponent(addr);
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status + " fetching manager");
+        const code = await res.text();
+        const found = code.match(/VERSION\s*=\s*["']([^"']+)/);
+        const codeVer = found ? found[1] : "";
+        if (expectVer && codeVer && verCmp(expectVer, codeVer) !== 0) {
+          throw new Error(
+            "warez sidecar v" +
+              expectVer +
+              " but subject bytes are v" +
+              codeVer +
+              " — re-pot meshyrelay_manager"
+          );
+        }
+        const key = "meshyrelay_manager";
+        try {
+          const surf = navi.mod?.surf?.commands;
+          if (surf?.unmount?.execute) await surf.unmount.execute(key);
+          else if (typeof navi.unmount === "function") await navi.unmount(key);
+        } catch {
+          /* ignore */
+        }
+        await navi.mount(code);
+        const mgr = getMgr();
+        if (!mgr) throw new Error("mount did not register meshyrelay_manager");
+        if (expectVer && mgr.version && verCmp(expectVer, mgr.version) !== 0) {
+          throw new Error(
+            "mounted v" + mgr.version + " but expected v" + expectVer
+          );
+        }
+        return mgr;
+      };
+
+      const ensureManager = async () => {
+        const offer = part("mod-offer");
+        let mgr = getMgr();
+        const man = await fetchWarezManifest();
+        const about = man?.about || null;
+        const warezVer = about?.version ? String(about.version) : "";
+        const subjectAddr = man?.subject?.addr ? String(man.subject.addr) : "";
+        const subjectIb = man?.subject?.ib || MANAGER_SUBJECT;
+        const mountOpts = {
+          subjectIb,
+          addr: subjectAddr,
+          expectVer: warezVer,
+        };
+        if (!mgr) {
+          if (offer) {
+            offer.hidden = false;
+            offer.replaceChildren();
+            const span = document.createElement("span");
+            span.textContent =
+              "manager not mounted" +
+              (warezVer ? " (warez v" + warezVer + ")" : "") +
+              " — ";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = "mount from warez";
+            btn.addEventListener("click", async () => {
+              try {
+                setStatus("mounting meshyrelay_manager…");
+                await mountManager(mountOpts);
+                offer.hidden = true;
+                setStatus(
+                  "meshyrelay_manager mounted v" + (getMgr()?.version || "?"),
+                  "mr-ok"
+                );
+                bindManagerChanges(getMgr());
+                await refreshAll({ open: true, meta: true });
+              } catch (err) {
+                setStatus(String(err?.message || err), "mr-err");
+              }
+            });
+            offer.append(span, btn);
+          }
+          return null;
+        }
+        // Only offer update when warez advertises a NEWER version.
+        if (
+          warezVer &&
+          mgr.version &&
+          verCmp(warezVer, mgr.version) > 0 &&
+          offer
+        ) {
+          offer.hidden = false;
+          offer.replaceChildren();
+          const span = document.createElement("span");
+          span.textContent =
+            "update available v" + mgr.version + " → v" + warezVer + " — ";
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "update manager";
+          btn.addEventListener("click", async () => {
+            try {
+              setStatus("updating meshyrelay_manager…");
+              await mountManager(mountOpts);
+              offer.hidden = true;
+              setStatus(
+                "updated to v" + (getMgr()?.version || warezVer),
+                "mr-ok"
+              );
+              bindManagerChanges(getMgr());
+              await refreshAll({ open: true, meta: true });
+            } catch (err) {
+              setStatus(String(err?.message || err), "mr-err");
+            }
+          });
+          offer.append(span, btn);
+        } else if (offer) {
+          offer.hidden = true;
+          offer.replaceChildren();
+        }
+        return getMgr();
+      };
+
+      const memberStyle = (m) =>
+        "color:" +
+        (m.color || "#0c2a3a") +
+        ";font-weight:" +
+        (m.fontWeight || "600") +
+        ";font-style:" +
+        (m.fontStyle || "normal") +
+        ";text-decoration:" +
+        (m.textDecoration || "none") +
+        ";letter-spacing:" +
+        (m.letterSpacing || "0.02em");
+
+      const expLabel = (iso) => {
+        if (!iso) return "";
+        const t = Date.parse(iso);
+        if (!Number.isFinite(t)) return "";
+        const ms = t - Date.now();
+        if (ms < 0) return "expired";
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        if (h > 48) return Math.floor(h / 24) + "d left";
+        if (h > 0) return h + "h " + m + "m";
+        return Math.max(1, m) + "m left";
+      };
+
+      const fillMemberSelects = (members) => {
+        const list = Object.values(members || {});
+        for (const selName of ["msg-to", "tip-to"]) {
+          const sel = part(selName);
+          if (!sel) continue;
+          const cur = sel.value;
+          sel.replaceChildren();
+          const mesh = document.createElement("option");
+          mesh.value = "*";
+          mesh.textContent =
+            selName === "msg-to" ? "✦ mesh (everyone)" : "✦ mesh (everyone)";
+          sel.appendChild(mesh);
+          for (const m of list) {
+            const opt = document.createElement("option");
+            opt.value = m.alias;
+            opt.textContent = (m.emoji || "🛰️") + " " + m.alias;
+            sel.appendChild(opt);
+          }
+          if (cur === "*") sel.value = "*";
+          else if (cur && list.some((m) => m.alias === cur)) sel.value = cur;
+          else sel.value = "*";
+        }
+      };
+
+      const renderMembers = (snap) => {
+        const box = part("members");
+        if (!box) return;
+        box.replaceChildren();
+        const members = Object.values(snap?.members || {}).sort((a, b) =>
+          String(a.alias).localeCompare(String(b.alias))
+        );
+        if (!members.length) {
+          const empty = document.createElement("div");
+          empty.className = "mr-meta";
+          empty.textContent = "no mesh members yet — ping an alias";
+          box.appendChild(empty);
+          fillMemberSelects({});
+          return;
+        }
+        for (const m of members) {
+          const row = document.createElement("div");
+          row.className = "mr-member";
+          const em = document.createElement("span");
+          em.className = "mr-emoji";
+          em.textContent = m.emoji || "🛰️";
+          const name = document.createElement("span");
+          name.className = "mr-name";
+          name.style.cssText = memberStyle(m);
+          name.textContent = m.alias;
+          const meta = document.createElement("span");
+          meta.className = "mr-meta";
+          meta.textContent =
+            (m.kind || "?") + "/" + (m.device || "?") + " · " + expLabel(m.expiresAt);
+          row.append(em, name, meta);
+          if (m.unread > 0) {
+            const badge = document.createElement("span");
+            badge.className = "mr-badge";
+            badge.textContent = String(m.unread);
+            row.appendChild(badge);
+          }
+          const pingBtn = document.createElement("button");
+          pingBtn.type = "button";
+          pingBtn.textContent = "ping";
+          pingBtn.title = "ping peer · refresh identity / mesh";
+          pingBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const mgr = getMgr();
+            if (!mgr) return;
+            try {
+              setStatus("pinging " + m.alias + "…");
+              const out = await mgr.ping(m.alias);
+              setStatus(
+                "ping ok " +
+                  m.alias +
+                  " (" +
+                  (out?.ms ?? "?") +
+                  "ms)" +
+                  (out?.rejoined ? " · rejoined mesh" : ""),
+                "mr-ok"
+              );
+              setVal("peer", m.alias);
+              const mt = part("msg-to");
+              if (mt) mt.value = m.alias;
+              await refreshAll();
+            } catch (err) {
+              setStatus(String(err?.message || err), "mr-err");
+            }
+          });
+          const renew = document.createElement("button");
+          renew.type = "button";
+          renew.textContent = "renew";
+          renew.title = "ask peer to renew advert";
+          renew.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const mgr = getMgr();
+            if (!mgr) return;
+            try {
+              setStatus("asking " + m.alias + " to renew…");
+              await mgr.askRenew(m.alias);
+              setStatus("renew ok", "mr-ok");
+              await refreshAll();
+            } catch (err) {
+              setStatus(String(err?.message || err), "mr-err");
+            }
+          });
+          row.append(pingBtn, renew);
+          row.addEventListener("click", async (e) => {
+            if (e.target === renew || e.target === pingBtn) return;
+            const mgr = getMgr();
+            if (mgr && m.unread) {
+              await mgr.clearUnread(m.alias);
+              await refreshAll();
+            }
+            setVal("peer", m.alias);
+            const mt = part("msg-to");
+            if (mt) mt.value = m.alias;
+          });
+          box.appendChild(row);
+        }
+        fillMemberSelects(snap.members);
+      };
+
+      let membersByAlias = {};
+      let selfProfile = null;
+
+      const rememberMembers = (members, profile) => {
+        if (members && typeof members === "object") {
+          membersByAlias = {};
+          for (const m of Object.values(members)) {
+            const a = String(m?.alias || "").trim();
+            if (a) membersByAlias[a] = m;
+          }
+        }
+        if (profile && typeof profile === "object") selfProfile = profile;
+      };
+
+      const styleForAlias = (alias) => {
+        const a = String(alias || "").trim();
+        if (!a) return null;
+        if (selfProfile && String(selfProfile.alias || "") === a) return selfProfile;
+        return membersByAlias[a] || null;
+      };
+
+      const renderWho = (alias) => {
+        const wrap = document.createElement("span");
+        wrap.className = "mr-who";
+        const m = styleForAlias(alias);
+        if (!m) {
+          wrap.textContent = alias || "";
+          return wrap;
+        }
+        const em = document.createElement("span");
+        em.className = "mr-feed-emoji";
+        em.textContent = m.emoji || "🛰️";
+        const name = document.createElement("span");
+        name.className = "mr-feed-name";
+        name.style.cssText = memberStyle(m);
+        name.textContent = m.alias || alias;
+        wrap.append(em, " ", name);
+        return wrap;
+      };
+
+      const paintMe = (p) => {
+        const box = part("me");
+        if (!box) return;
+        const alias = String(p?.alias || "").trim();
+        if (!alias) {
+          box.hidden = true;
+          return;
+        }
+        box.hidden = false;
+        const em = part("me-emoji");
+        const name = part("me-name");
+        const meta = part("me-meta");
+        if (em) em.textContent = p.emoji || "🛰️";
+        if (name) {
+          name.textContent = alias;
+          name.style.cssText = memberStyle(p);
+        }
+        if (meta) {
+          const bits = [
+            (p.kind || "client") + "/" + (p.device || "desktop"),
+            expLabel(p.expiresAt),
+          ].filter(Boolean);
+          meta.textContent = bits.join("\n");
+        }
+      };
+
+      const paintMeshes = (snap) => {
+        const bar = part("mesh-bar");
+        const sel = part("mesh-active");
+        const defLabel = part("mesh-default-label");
+        const meshes = Array.isArray(snap?.meshes) ? snap.meshes : [];
+        const active = String(snap?.activeMeshId || "");
+        const def = String(snap?.defaultMeshId || "");
+        if (bar) bar.hidden = meshes.length < 1;
+        if (!sel) return;
+        const cur = sel.value;
+        sel.replaceChildren();
+        for (const m of meshes) {
+          const opt = document.createElement("option");
+          opt.value = m.id;
+          const mark = m.id === def ? " ★" : "";
+          opt.textContent =
+            (m.label || m.id.slice(0, 8)) +
+            " (" +
+            (m.memberCount || 0) +
+            ")" +
+            mark;
+          sel.appendChild(opt);
+        }
+        if (active && meshes.some((m) => m.id === active)) sel.value = active;
+        else if (cur && meshes.some((m) => m.id === cur)) sel.value = cur;
+        if (defLabel) {
+          const d = meshes.find((m) => m.id === def);
+          defLabel.textContent = d
+            ? "default · " + (d.label || d.id.slice(0, 8))
+            : meshes.length
+              ? "no default"
+              : "";
+        }
+      };
+
+      const applyPrefsToForm = (prefs) => {
+        if (!prefs) return;
+        setCheck("autoAdmit", prefs.autoAdmit !== false);
+        const mode = part("admitMode");
+        if (mode) mode.value = prefs.admitMode === "new" ? "new" : "default";
+      };
+
+      const renderFeed = (feed, unseenIds, members, profile) => {
+        const el = part("feed");
+        const badge = part("feed-new");
+        if (!el) return;
+        rememberMembers(members, profile);
+        const unseen = new Set(unseenIds || []);
+        const rows = (feed || []).slice().reverse();
+        el.replaceChildren();
+        if (!rows.length) {
+          el.textContent = "(empty)";
+        } else {
+          for (const f of rows) {
+            const row = document.createElement("div");
+            const fresh = !!(f.id && unseen.has(f.id));
+            row.className = "mr-feed-row" + (fresh ? " mr-feed-fresh" : "");
+            const meta = document.createElement("span");
+            meta.className = "mr-feed-meta";
+            meta.textContent =
+              (fresh ? "● " : "") +
+              String(f.at || "").slice(11, 19) +
+              "  [" +
+              (f.type || "?") +
+              "] ";
+            row.appendChild(meta);
+            if (f.alias) row.appendChild(renderWho(f.alias));
+            if (f.text) {
+              const text = document.createElement("span");
+              text.className = "mr-feed-text";
+              text.textContent = " · " + f.text;
+              row.appendChild(text);
+            }
+            el.appendChild(row);
+          }
+        }
+        if (badge) {
+          const n = unseen.size;
+          badge.textContent = n ? n + " new" : "";
+        }
+      };
+
+      const renderLog = async () => {
+        const el = part("log");
+        if (!el) return;
+        try {
+          const tip = globalThis.navi?.storage?.tip;
+          if (!tip?.get) {
+            el.textContent = "(no tip api)";
+            return;
+          }
+          // Walk a few recent frames via tip + past if available.
+          const lines = [];
+          let cur = await tip.get(LOG_IB);
+          for (let i = 0; i < 40 && cur; i++) {
+            const ev = cur.data?.event;
+            if (ev) {
+              lines.push(
+                String(ev.at || "").slice(11, 19) +
+                  "  " +
+                  (ev.kind || "?") +
+                  "  " +
+                  JSON.stringify(ev).slice(0, 160)
+              );
+            }
+            const past = Array.isArray(cur.rel8ns?.past) ? cur.rel8ns.past[0] : "";
+            if (!past || typeof tip.frame?.get !== "function") break;
+            try {
+              cur = await tip.frame.get(past);
+            } catch {
+              break;
+            }
+          }
+          el.textContent = lines.join("\n") || "(empty)";
+        } catch (err) {
+          el.textContent = String(err?.message || err);
+        }
+      };
+
+      const applyProfileToForm = (p) => {
+        if (!p) return;
+        setVal("alias", p.alias || "");
+        setVal("emoji", p.emoji || "🛰️");
+        setVal("color", p.color || "#1a6b8a");
+        setVal("kind", p.kind || "client");
+        setVal("device", p.device || "desktop");
+        setVal("fontWeight", p.fontWeight || "600");
+        setVal("fontStyle", p.fontStyle || "normal");
+        setVal("textDecoration", p.textDecoration || "none");
+        setCheck("allowRenew", p.allowRenew !== false);
+        const mesh = part("mesh-id");
+        if (mesh) mesh.textContent = p.meshId ? "mesh " + p.meshId.slice(0, 8) + "…" : "";
+        syncEmojiScroll(p.emoji || "🛰️");
+        paintMe(p);
+      };
+
+      const EMOJI_PICKS = [
+        "🛰️", "📡", "🛸", "🚀", "🌌", "🪐", "⭐", "🌟", "✨", "💫",
+        "🌙", "☀️", "⚡", "🔥", "❄️", "🌊", "🌀", "🔮", "💎", "🧿",
+        "🤖", "👾", "👽", "👻", "💀", "🧠", "👁️", "🫀", "🐝", "🦋",
+        "🦊", "🐺", "🐱", "🐶", "🐻", "🐼", "🐸", "🐙", "🦈", "🐉",
+        "🌸", "🌺", "🍀", "🍄", "🌵", "🍋", "🍇", "☕", "🍵", "🧃",
+        "🎮", "🕹️", "💻", "📱", "⌚", "🔑", "🗝️", "📦", "🗂️", "📎",
+        "💬", "📢", "🔔", "🎵", "🎶", "🎧", "📷", "🎥", "🗺️", "🧭",
+        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "🩷",
+        "😀", "😎", "🤓", "🧐", "😏", "😇", "🥳", "😴", "🤯", "🫡",
+      ];
+
+      const syncEmojiScroll = (cur) => {
+        const box = part("emoji-scroll");
+        if (!box) return;
+        const want = String(cur || "").trim();
+        box.querySelectorAll(".mr-emoji-btn").forEach((btn) => {
+          const on = btn.dataset.emoji === want;
+          btn.classList.toggle("mr-emoji-on", on);
+          btn.setAttribute("aria-selected", on ? "true" : "false");
+        });
+      };
+
+      const buildEmojiScroll = () => {
+        const box = part("emoji-scroll");
+        if (!box || box.dataset.ready === "1") return;
+        box.dataset.ready = "1";
+        box.replaceChildren();
+        for (const em of EMOJI_PICKS) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "mr-emoji-btn";
+          btn.dataset.emoji = em;
+          btn.textContent = em;
+          btn.title = em;
+          btn.setAttribute("role", "option");
+          btn.addEventListener("click", () => {
+            setVal("emoji", em);
+            syncEmojiScroll(em);
+            paintMe({
+              alias: val("alias"),
+              emoji: em,
+              color: val("color") || "#1a6b8a",
+              fontWeight: val("fontWeight") || "600",
+              fontStyle: val("fontStyle") || "normal",
+              textDecoration: val("textDecoration") || "none",
+              letterSpacing: "0.02em",
+              kind: val("kind") || "client",
+              device: val("device") || "desktop",
+              expiresAt: selfProfile?.expiresAt || "",
+            });
+          });
+          box.appendChild(btn);
+        }
+        const input = part("emoji");
+        if (input) {
+          input.addEventListener("input", () => syncEmojiScroll(val("emoji")));
+        }
+        syncEmojiScroll(val("emoji") || "🛰️");
+      };
+
+      const refreshIbList = async () => {
+        const mgr = getMgr();
+        const dl = part("ib-list");
+        const autofill = part("ib-autofill");
+        if (!mgr || !dl) return;
+        if (autofill && !autofill.checked) {
+          dl.replaceChildren();
+          return;
+        }
+        try {
+          const ibs = await mgr.listIbs(val("tip-ib"));
+          dl.replaceChildren();
+          for (const ib of ibs || []) {
+            const opt = document.createElement("option");
+            opt.value = ib;
+            dl.appendChild(opt);
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+
+      const setLinkBubble = (on) => {
+        const el = part("link-bubble");
+        if (!el) return;
+        el.classList.toggle("mr-on", !!on);
+        el.title = on ? "relay connected" : "relay not connected";
+      };
+
+      const setLinkMode = (connected) => {
+        setLinkBubble(!!connected);
+        root.querySelectorAll(".mr-when-offline").forEach((el) => {
+          el.hidden = !!connected;
+        });
+        root.querySelectorAll(".mr-when-online").forEach((el) => {
+          el.hidden = !connected;
+        });
+      };
+
+      const fillRelayFields = async (snap) => {
+        if (snap?.profile?.alias && snap.profile.alias !== "-") {
+          setVal("alias", snap.profile.alias);
+        }
+        const originEl = part("origin-host");
+        try {
+          const origin =
+            (typeof navi !== "undefined" && navi?.origin) ||
+            (typeof location !== "undefined" && location.origin) ||
+            "";
+          if (originEl) originEl.textContent = String(origin || "(navi.origin)");
+          const item = globalThis.navi?.storage?.item;
+          if (!item?.get) return;
+          const prefs = await item.get("relay");
+          if (prefs && typeof prefs === "object") {
+            if (prefs.alias && prefs.alias !== "-" && !val("alias")) {
+              setVal("alias", String(prefs.alias));
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+
+      const refreshLinkBubble = async () => {
+        try {
+          const mgr = getMgr();
+          if (mgr && typeof mgr.snapshot === "function") {
+            // Cache only — never navi("relay status") (callouts + lag).
+            const snap = await mgr.snapshot({ light: true });
+            if (typeof snap.connected === "boolean") {
+              setLinkMode(snap.connected);
+              return;
+            }
+          }
+          setLinkMode(false);
+        } catch {
+          setLinkMode(false);
+        }
+      };
+
+      const advertStatusBit = (snap) => {
+        if (snap?.hasPark) {
+          const left = expLabel(snap.profile?.expiresAt);
+          if (!left || left === "expired") return "advert live";
+          return "advert " + left;
+        }
+        const left = expLabel(snap.profile?.expiresAt);
+        return left ? "advert " + left : "";
+      };
+
+      const refreshAll = async (opts) => {
+        const mgr = await ensureManager();
+        if (!mgr) {
+          setStatus("mount meshyrelay_manager to begin");
+          setLinkMode(false);
+          return;
+        }
+        // Default: cache snapshot. meta:true only after connect/advert/disconnect.
+        const wantMeta = !!(opts && opts.meta);
+        const snap =
+          opts && opts.open
+            ? await mgr.openUi(wantMeta ? { meta: true } : {})
+            : wantMeta
+              ? await mgr.snapshot({ meta: true })
+              : await mgr.snapshot({ light: true });
+        applyProfileToForm(snap.profile);
+        applyPrefsToForm(snap.prefs);
+        paintMeshes(snap);
+        setCheck("ib-autofill", snap.prefs?.ibAutofill !== false);
+        renderMembers(snap);
+        renderFeed(snap.feed, snap.unseenIds, snap.members, snap.profile);
+        setLinkMode(!!snap.connected);
+        if (wantMeta || (opts && opts.open)) {
+          await fillRelayFields(snap);
+          if (!snap.connected && !isSecOpen("link")) {
+            setSec("link", { open: true });
+          }
+        }
+        const advert = advertStatusBit(snap);
+        const newBits = [];
+        if (snap.unseenCount) newBits.push(snap.unseenCount + " feed");
+        if (snap.memberUnread) newBits.push(snap.memberUnread + " unread");
+        setStatus(
+          "v" +
+            (mgr.version || "?") +
+            (snap.profile?.alias ? " · @" + snap.profile.alias : "") +
+            (snap.connected ? " · linked" : " · offline") +
+            (advert ? " · " + advert : "") +
+            (newBits.length ? " · " + newBits.join(", ") + " waiting" : ""),
+          "mr-ok"
+        );
+        if (opts && opts.open && typeof mgr.markFeedSeen === "function") {
+          setTimeout(() => {
+            void mgr.markFeedSeen();
+          }, 400);
+        }
+      };
+
+      const paintHint = (hint) => {
+        if (!hint || typeof hint !== "object") return false;
+        if (hint.profile) {
+          rememberMembers(hint.members, hint.profile);
+          paintMe(hint.profile);
+        } else if (hint.members) {
+          rememberMembers(hint.members, hint.profile);
+        }
+        if (hint.meshes || hint.activeMeshId || hint.defaultMeshId) {
+          paintMeshes(hint);
+        }
+        if (hint.prefs) applyPrefsToForm(hint.prefs);
+        if (hint.feed) {
+          renderFeed(hint.feed, hint.unseenIds || [], hint.members, hint.profile);
+        }
+        if (hint.members) {
+          renderMembers({
+            members: hint.members,
+            memberUnread: hint.memberUnread || 0,
+            prefs: hint.prefs,
+            profile: hint.profile,
+          });
+        }
+        if (typeof hint.connected === "boolean") setLinkMode(hint.connected);
+        return true;
+      };
+
+      let unsubChange = null;
+      const bindManagerChanges = (mgr) => {
+        try {
+          if (typeof unsubChange === "function") unsubChange();
+        } catch {
+          /* ignore */
+        }
+        unsubChange = null;
+        if (!mgr?.onChange) return;
+        unsubChange = mgr.onChange((hint) => {
+          // Immediate paint from in-memory hint — never relay status / tip.mut8.
+          if (paintHint(hint)) return;
+          void refreshAll();
+        });
+      };
+
+      const SEC_IDS = ["feed", "link", "identity", "ping", "message", "tip", "log"];
+      const isSecOpen = (name) => {
+        const body = part("body-" + name);
+        return !!(body && !body.hidden);
+      };
+      const setSec = (name, opts) => {
+        const body = part("body-" + name);
+        const btn = part("sec-" + name);
+        if (!body || !btn) return;
+        let open;
+        if (opts && typeof opts.open === "boolean") open = opts.open;
+        else open = !!body.hidden; // toggle
+        body.hidden = !open;
+        btn.classList.toggle("mr-sec-on", open);
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open && name === "identity") buildEmojiScroll();
+        if (open && name === "log") void renderLog();
+      };
+      for (const id of SEC_IDS) {
+        part("sec-" + id)?.addEventListener("click", () => setSec(id));
+      }
+      buildEmojiScroll();
+
+      part("btn-connect")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return setStatus("mount manager first", "mr-err");
+        try {
+          setStatus("connecting…");
+          const out = await mgr.connect(
+            val("token") || undefined,
+            val("alias") || undefined
+          );
+          setStatus(String(out || "connected"), "mr-ok");
+          setLinkMode(true);
+          await refreshAll({ meta: true });
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+          setLinkMode(false);
+        }
+      });
+
+      part("btn-disconnect")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return setStatus("mount manager first", "mr-err");
+        try {
+          setStatus("disconnecting…");
+          const out = await mgr.disconnect();
+          setStatus(String(out || "disconnected"), "mr-ok");
+          setLinkMode(false);
+          await refreshAll({ meta: true });
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("btn-advert")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return setStatus("mount manager first", "mr-err");
+        try {
+          setStatus("advertising…");
+          if (typeof mgr.ensureConnected === "function") {
+            await mgr.ensureConnected();
+          }
+          const out = await mgr.advertise(val("alias"));
+          setStatus(String(out || "advertised"), "mr-ok");
+          await refreshAll({ meta: true });
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("btn-ping")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return setStatus("mount manager first", "mr-err");
+        try {
+          setStatus("pinging…");
+          const out = await mgr.ping(val("peer"));
+          setStatus(
+            "ping ok " +
+              out.alias +
+              " (" +
+              out.ms +
+              "ms)" +
+              (out.rejoined ? " · rejoined mesh" : ""),
+            "mr-ok"
+          );
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("btn-save-profile")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return setStatus("mount manager first", "mr-err");
+        try {
+          await mgr.updateProfile({
+            alias: val("alias"),
+            emoji: val("emoji") || "🛰️",
+            color: val("color") || "#1a6b8a",
+            kind: val("kind") || "client",
+            device: val("device") || "desktop",
+            fontWeight: val("fontWeight") || "600",
+            fontStyle: val("fontStyle") || "normal",
+            textDecoration: val("textDecoration") || "none",
+            allowRenew: !!(part("allowRenew") && part("allowRenew").checked),
+          });
+          const prefsOn = !!(part("ib-autofill") && part("ib-autofill").checked);
+          const autoAdmit = !!(part("autoAdmit") && part("autoAdmit").checked);
+          const admitMode = val("admitMode") === "new" ? "new" : "default";
+          if (typeof mgr.updatePrefs === "function") {
+            await mgr.updatePrefs({
+              ibAutofill: prefsOn,
+              allowRenew: !!(part("allowRenew") && part("allowRenew").checked),
+              autoAdmit,
+              admitMode,
+            });
+          } else if (typeof mgr.commands?.meshyrelay_manager?.execute === "function") {
+            await mgr.commands.meshyrelay_manager.execute(
+              "prefs",
+              JSON.stringify({
+                ibAutofill: prefsOn,
+                allowRenew: !!(part("allowRenew") && part("allowRenew").checked),
+                autoAdmit,
+                admitMode,
+              })
+            );
+          }
+          setStatus("profile updated · telegraphing…", "mr-ok");
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("mesh-active")?.addEventListener("change", async () => {
+        const mgr = getMgr();
+        const id = val("mesh-active");
+        if (!mgr || !id || typeof mgr.setActiveMesh !== "function") return;
+        try {
+          await mgr.setActiveMesh(id);
+          setStatus("mesh active · " + id.slice(0, 8), "mr-ok");
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("btn-mesh-default")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        const id = val("mesh-active");
+        if (!mgr || !id || typeof mgr.setDefaultMesh !== "function") return;
+        try {
+          await mgr.setDefaultMesh(id);
+          setStatus("default mesh · " + id.slice(0, 8), "mr-ok");
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      const isMeshSelect = (v) => {
+        const t = String(v || "").trim().toLowerCase();
+        return !t || t === "*" || t === "mesh" || t === "all";
+      };
+
+      /** Expand ✦ mesh to real peer aliases (never send literal * to the manager). */
+      const expandMeshTargets = (selName) => {
+        const sel = part(selName);
+        const picked = val(selName);
+        const self = val("alias").toLowerCase();
+        if (!isMeshSelect(picked)) return [picked];
+        const peers = [...(sel?.options || [])]
+          .map((o) => String(o.value || "").trim())
+          .filter(
+            (v) =>
+              v &&
+              !isMeshSelect(v) &&
+              v.toLowerCase() !== self
+          );
+        return [...new Set(peers)];
+      };
+
+      part("btn-msg")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return;
+        try {
+          const body = val("msg-body");
+          if (!body) return setStatus("type a message first", "mr-err");
+          const targets = expandMeshTargets("msg-to");
+          if (!targets.length) {
+            return setStatus("no mesh members — ping someone first", "mr-err");
+          }
+          const results = [];
+          for (const a of targets) {
+            try {
+              await mgr.sendMsg(a, body);
+              results.push({ ok: true, alias: a });
+            } catch (err) {
+              results.push({
+                ok: false,
+                alias: a,
+                error: String(err?.message || err),
+              });
+            }
+          }
+          const okN = results.filter((r) => r.ok).length;
+          const fail = results.filter((r) => !r.ok);
+          if (okN) setVal("msg-body", "");
+          if (!okN) {
+            setStatus(
+              fail[0]?.error || "msg failed — peer offline",
+              "mr-err"
+            );
+          } else if (fail.length) {
+            setStatus(
+              "sent " +
+                okN +
+                "/" +
+                results.length +
+                " · failed: " +
+                fail.map((r) => r.alias).join(", "),
+              "mr-err"
+            );
+          } else {
+            const mesh = isMeshSelect(val("msg-to")) || targets.length > 1;
+            setStatus(
+              "sent to " + (mesh ? "mesh" : targets[0]) + " · " + okN + "/" + results.length,
+              "mr-ok"
+            );
+          }
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("btn-tip")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr) return;
+        try {
+          const ib = val("tip-ib");
+          if (!ib) return setStatus("enter an ib", "mr-err");
+          const exists = await mgr.tipExists(ib);
+          if (!exists) {
+            setStatus("tip not found locally: " + ib, "mr-err");
+            return;
+          }
+          const targets = expandMeshTargets("tip-to");
+          if (!targets.length) {
+            return setStatus("no mesh members — ping someone first", "mr-err");
+          }
+          let sent = 0;
+          for (const a of targets) {
+            await mgr.sendTip(a, ib);
+            sent += 1;
+          }
+          setStatus("sent " + sent + " tip xfer(s)", "mr-ok");
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("btn-tip-prefix")?.addEventListener("click", async () => {
+        const mgr = getMgr();
+        if (!mgr || typeof mgr.sendTips !== "function") {
+          return setStatus("update manager for prefix send", "mr-err");
+        }
+        const prefix = val("tip-ib");
+        if (!prefix) return setStatus("enter a prefix (e.g. navi: or flowerpot/)", "mr-err");
+        try {
+          const targets = expandMeshTargets("tip-to");
+          if (!targets.length) {
+            return setStatus("no mesh members — ping someone first", "mr-err");
+          }
+          setStatus("sending prefix " + prefix + "…");
+          let sent = 0;
+          let tips = 0;
+          for (const a of targets) {
+            const out = await mgr.sendTips(a, prefix);
+            sent += out.sent || 0;
+            tips = out.tips || tips;
+          }
+          setStatus(
+            "prefix ok · " +
+              sent +
+              " sent (" +
+              tips +
+              " tips × " +
+              targets.length +
+              " peers)",
+            "mr-ok"
+          );
+          await refreshAll();
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      });
+
+      part("tip-ib")?.addEventListener("input", () => void refreshIbList());
+      part("ib-autofill")?.addEventListener("change", () => void refreshIbList());
+      part("btn-refresh-log")?.addEventListener("click", () => void renderLog());
+
+      void (async () => {
+        try {
+          await ensureManager();
+          await refreshAll({ open: true, meta: true });
+          await refreshIbList();
+          await renderLog();
+          bindManagerChanges(getMgr());
+          const onGone = () => {
+            try {
+              if (typeof unsubChange === "function") unsubChange();
+            } catch {
+              /* ignore */
+            }
+            unsubChange = null;
+            try {
+              getMgr()?.closeUi?.();
+            } catch {
+              /* ignore */
+            }
+          };
+          window.addEventListener("pagehide", onGone);
+          root.addEventListener(
+            "htmx:beforeCleanupElement",
+            onGone,
+            { once: true }
+          );
+          // Light poll only — never relay status on a timer.
+          setInterval(() => {
+            if (getMgr()) void refreshAll();
+          }, 30000);
+        } catch (err) {
+          setStatus(String(err?.message || err), "mr-err");
+        }
+      })();
+    })();
+  </script>
+</div>

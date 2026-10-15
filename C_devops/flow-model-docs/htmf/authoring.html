@@ -1,0 +1,154 @@
+<div
+  name="flow-model-authoring"
+  data-path="torus/devops/flow-model/authoring"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Authoring guide</h1>
+    <p>How to build something in the flow model inside foobarch / navi (current tip/park/callin).</p>
+    <h2>Preconditions</h2>
+    <ul>
+    <li>foobarch origin available (e.g. foobarch.net or local)</li>
+    <li>navi_shell in the browser shell</li>
+    <li>hostpark for publishing product artifacts (default)</li>
+    <li>a project workspace (IDE folder and/or hostpark logical root)</li>
+    </ul>
+    <h2>Scaffold (minimal)</h2>
+    <pre><code class="text">
+    {project}/
+      readme.md
+      devguide.md          # spectrum, why-decisions, citations
+      config.json          # default modules + flow (mirror to config tip)
+      modules/
+        {project}_registry.js
+        {project}_init.js
+        {project}_manager.js
+      flow/
+        {name}.json
+      ui/
+        {product}_skin.css   # shared L3 look (normative)
+        {screens}.html
+      launch/                # cold-start bookmarks (also load the skin)
+      assets/                # optional — banners, icons, product art (not screen roles)
+      schema/                # optional
+      data/                  # seeds, programs, indexes — optional early
+    </code></pre>
+    <p>Register publish paths in the project hostpark / identity catalog. Include the skin CSS in the same catalog as UI.</p>
+    <h2>Recommended build order</h2>
+    <ol>
+    <li>L0–L1 — schema + registry + park commands as needed. Prove facts with no DOM.</li>
+    <li>One flow + Manager + 1–2 screens — entry and one transition.</li>
+    <li>Launch fragment — session tip override + mount init + bootstrap command.</li>
+    <li>More routes / policy as the journey grows.</li>
+    <li>Resting modules when page inline script is not enough.</li>
+    <li>Variants as separate flows/HTML/launches when divergence is real.</li>
+    <li>Programs / instances / builder when fork fan-out hurts.</li>
+    <li>Linker / graph when launch combos outgrow memory.</li>
+    </ol>
+    <p>Do not start with a generic flow engine or a mega Manager. Do not design against shell units.</p>
+    <h2>Authoring a flow</h2>
+    <ol>
+    <li>List route keys (screen roles).</li>
+    <li>Point each key at a hostpark HTML transport URL (<code>/</code> + logical path, e.g. <code>/opry/…/ui/list.html</code>). <strong>Do not</strong> prefix <code>/flowerpot/</code>.</li>
+    <li>Set <code>entry</code>.</li>
+    <li>Write <code>policy</code> for real user outcomes (not speculative).</li>
+    <li>Add <code>meta</code> only for soft shared-host flags.</li>
+    <li>Hostpark-push; point config or a launch at the logical route; plant body tips under the <strong>same bare ib</strong> for local-first.</li>
+    </ol>
+    <h2>Authoring a screen</h2>
+    <ul>
+    <li>HTML fragment suitable for surf into <code>document.body</code></li>
+    <li>Prefer <code>data-part</code> / <code>data-*</code> over document-global <code>id</code> where collisions matter</li>
+    <li>Call Manager via <code>navi.mod.<managerName></code> (live object) or park callin if you exposed commands</li>
+    <li>Do not hard-code next URLs; use route keys</li>
+    <li>Do not auto-navigate on mount unless the product explicitly wants a redirect screen</li>
+    <li><strong>Load the product skin</strong> — do not duplicate shared CSS in every fragment</li>
+    </ul>
+    <h2>Authoring a product skin (normative L3)</h2>
+    <p>Shared look across all screens and launches is an L3 hostpark CSS artifact, not flow/Manager work.</p>
+    <ol>
+    <li>Create <code>{root}/ui/{product}_skin.css</code> (CSS variables + page helpers).</li>
+    <li>Hostpark-push at the bare logical route; plant tip at the same ib.</li>
+    <li>Put the route in config (<code>flowerpot.skin_css</code>) and in each program’s <code>layers.L3</code>.</li>
+    <li>At the top of every <code>ui/*.html</code> and <code>launch/*.html</code>, ensure one head link via <code>navi.resolveUrl</code> and <code>data-flow-skin</code> (head survives surf).</li>
+    </ol>
+    <p>Do <strong>not</strong> invent a flow route for CSS. Do <strong>not</strong> put skin ownership in init/Manager beyond optional reseed of the CSS tip. See <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>.</p>
+    <h2>Authoring a launch</h2>
+    <pre><code class="html">
+    &lt;script&gt;
+    (async function () {
+      const FLOW = "torus/example/notes/flow/notes_list_direct.json";
+      // wait for navi + storage + surf …
+      await navi("mount torus/example/notes/modules/notes_init.js");
+      // tip sugar OK; prefer tip.set when you also store pot addr / meta
+      await navi.storage.item.set("notes:session:flow_artifact", FLOW);
+      // park leaf = live register().name (example assumes name "notes_init")
+      await navi("notes_init bootstrap");
+    })();
+    &lt;/script&gt;
+    </code></pre>
+    <p>Init module must export <code>commands</code> that include the bootstrap verb, with both GET and POST <code>kind: "mod"</code> on the planted park tip (mount does this).</p>
+    <p>Optional: also set a session tip for <code>program_id</code> for composed runtimes / PWA identity.</p>
+    <h2>Authoring a resting module</h2>
+    <p>Follow <code>navi_modules_guide.md</code>: <code>export const register</code>, single-segment <code>name</code>, <code>commands</code> for callin verbs, cleanup in <code>onUnmount</code>.</p>
+    <p>Keep modules journey-agnostic. Accept inputs; return facts; let Manager move. Park tip will be <code>navi:<name></code> — not <code>navi:mod:<name></code>.</p>
+    <h2>Declaring composition (when ready)</h2>
+    <ol>
+    <li>Catalog features / fragments with typed ids.</li>
+    <li>Declare instances with <code>why</code> and compose lists (or hand-authored <code>source_rel</code>).</li>
+    <li>Declare programs that compose family instances + spine flow.</li>
+    <li>Point launches at programs in a launch index.</li>
+    <li>Optionally generate instance HTML/flow/launch via a builder.</li>
+    </ol>
+    <h2>Publishing checklist</h2>
+    <ul>
+    <li>Local (or IDE) file exists for each new artifact</li>
+    <li>Path registered in manifest / catalog (and <a href="/torus/host-catalog" hx-get="/torus/host-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus host catalog</a> when new product routes appear)</li>
+    <li><strong>Every</strong> fsdevops <code>put</code> / <code>append</code> / <code>hostpark-push</code> carries <code>goal=&lt;why&gt;</code> — see <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a></li>
+    <li>Upload / hostpark script appended a hostpark addr</li>
+    <li>Launch or config points at the new flow if it should be reachable</li>
+    <li>Pointer / config / artifact tips planted (bodies under the <strong>same bare ib</strong> as hostpark) — local-first</li>
+    <li>Linker / graph updated if humans need to find it</li>
+    <li><code>devguide.md</code> notes level + why; longer work also in <code>devops/goals.json</code></li>
+    </ul>
+    <h2>Notes-shaped example (illustrative only)</h2>
+    <p>A tiny notes product in this model might publish:</p>
+    <ul>
+    <li><code>notes_registry</code> — notes CRUD in tip space</li>
+    <li><code>notes_manager</code> — load flow, <code>go</code>, create/open policy</li>
+    <li><code>notes_init</code> — <code>commands.bootstrap</code> mounts stack, plants flow tip, <code>go(entry)</code></li>
+    <li><code>flow/notes_list_direct.json</code> — entry <code>list</code></li>
+    <li><code>flow/notes_editor_first.json</code> — entry <code>edit</code> with empty draft policy</li>
+    <li><code>ui/list.html</code>, <code>ui/edit.html</code>, <code>ui/create.html</code></li>
+    <li><code>launch/launch.html</code>, <code>launch/launch_editor_first.html</code> — bootstrap (not flow routes)</li>
+    <li><code>ui/list.html</code>, <code>ui/edit.html</code>, <code>ui/create.html</code> — flow screens</li>
+    </ul>
+    <p>Same Manager and registry; two shoppable journeys via session tip + launch.</p>
+    <h2>Related</h2>
+    <ul>
+    <li><a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a></li>
+    <li><a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a></li>
+    <li><a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a></li>
+    <li><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a></li>
+    <li><a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a></li>
+    <li><a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a></li>
+    </ul>
+  </article>
+</div>

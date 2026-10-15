@@ -1,0 +1,15 @@
+Skelly Relay
+
+Snapshot this navi (export) or pull a snapshot from a relay alias (import), then reboot.
+
+The browser HTMF drives skelly + relay connect/advertise/import via buttons.
+On native REPL, use callins instead (examples):
+
+  skelly help
+  relay status
+  relay connect
+  relay advertise <alias>
+  skelly export | skelly import <alias> | …
+
+Links:
+  [1] back to welcome → hypertext/welcome

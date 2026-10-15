@@ -1,0 +1,128 @@
+# torus/scripts/link_phrase — wrap matched innerText in an HTMF as an <a>, via parsehtm claim when mounted.
+# Set before run: globalThis.NAVI_LINK_PHRASE = { path, match, href, which?: 0, slot?: "CS" }
+# Then: scripter run torus/scripts/link_phrase
+# Or: await navi.script([ await (await fetch(navi.resolveUrl("torus/scripts/link_phrase"))).text() ])  — better use scripter (strips # lines).
+const job = Object.assign({ path: "", match: "", href: "", which: 0, slot: "" }, (typeof globalThis !== "undefined" && globalThis.NAVI_LINK_PHRASE) || {});
+const pathWant = String(job.path || "").trim().replace(/^\/+/, "");
+const needle = String(job.match || "");
+const href = String(job.href || "").trim();
+const which = Math.max(0, Math.floor(Number(job.which) || 0));
+if (!pathWant || !needle || !href) throw new Error('NAVI_LINK_PHRASE = { path: "data-path", match: "inner text", href: "https://… or /park" }');
+if (!navi.mod.parsehtm) {
+  try { await navi("mount parsehtm"); } catch (e) { navi.callout("[link_phrase] mount parsehtm: " + (e.message || e)); }
+}
+if (!navi.mod.supermouse_plugin_stagejockey) {
+  try { await navi("mount stagejockey"); } catch (e) { navi.callout("[link_phrase] mount stagejockey: " + (e.message || e)); }
+}
+const hosts = [...document.querySelectorAll("[data-path]")].filter((el) => {
+  const p = String(el.getAttribute("data-path") || "").replace(/^\/+/, "");
+  if (!(p === pathWant || p.endsWith("/" + pathWant))) return false;
+  if (job.slot) return !!el.closest("[data-stage-slot=\"" + String(job.slot) + "\"]");
+  return true;
+});
+if (!hosts.length) throw new Error("no [data-path] matching " + pathWant + (job.slot ? " in slot " + job.slot : ""));
+const host = hosts[0];
+const root = host;
+const full = String(root.textContent || "");
+let from = 0;
+let start = -1;
+for (let i = 0; i <= which; i++) {
+  const at = full.indexOf(needle, from);
+  if (at < 0) throw new Error("match " + JSON.stringify(needle) + " occurrence " + i + " not in " + pathWant);
+  start = at;
+  from = at + needle.length;
+}
+const end = start + needle.length;
+const rangeProbe = (function () {
+  const r = document.createRange();
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let acc = 0;
+  let startNode = null, startOff = 0, endNode = null, endOff = 0, last = null, n;
+  while ((n = walker.nextNode())) {
+    const len = String(n.textContent || "").length;
+    if (!len) continue;
+    last = n;
+    if (!startNode && start < acc + len) { startNode = n; startOff = start - acc; }
+    if (!endNode && end <= acc + len) { endNode = n; endOff = end - acc; break; }
+    acc += len;
+  }
+  if (!startNode || !endNode) return null;
+  r.setStart(startNode, startOff);
+  r.setEnd(endNode, endOff);
+  return r;
+})();
+if (!rangeProbe) throw new Error("could not map text offsets");
+const inside = rangeProbe.startContainer && rangeProbe.startContainer.parentElement && rangeProbe.startContainer.parentElement.closest("a");
+if (inside) {
+  inside.setAttribute("href", href);
+  navi.callout("[link_phrase] already a link — set href " + href);
+} else {
+  const escAttr = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const escText = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const markup = "<a href=\"" + escAttr(href) + "\">" + escText(needle) + "</a>";
+  rangeProbe.deleteContents();
+  rangeProbe.insertNode(document.createTextNode(markup));
+  const newEnd = start + markup.length;
+  const context = {
+    types: ["phrase", "text", "htm-element"],
+    kind: "phrase",
+    label: needle,
+    path: pathWant,
+    element: host,
+    hostElement: host,
+    textRoot: root,
+    textSpan: { start: start, end: newEnd, text: markup },
+  };
+  const claim = (navi.mod.parsehtm && navi.mod.parsehtm.scrollbufferPlugin && navi.mod.parsehtm.scrollbufferPlugin.claims || []).find((c) => c.id === "parsehtm");
+  const sb = navi.mod.supermouse_plugin_stagejockey && navi.mod.supermouse_plugin_stagejockey.scrollbuffer;
+  const api = {
+    navi: navi,
+    jockey: navi.mod.supermouse_plugin_stagejockey && navi.mod.supermouse_plugin_stagejockey.jockey,
+    scrollbuffer: sb,
+    stage: navi.mod.stagedir && navi.mod.stagedir.stage,
+    selection: null,
+    context: context,
+    position: 1,
+    claim: claim,
+    terminate: function () {},
+  };
+  let ran = false;
+  if (sb && claim && typeof sb.executeEntry === "function") {
+    const ok = await sb.executeEntry({ position: 1, pluginId: "parsehtm", claimId: "parsehtm", claim: claim, context: context, boundType: "phrase", text: "parsehtm" });
+    ran = !!ok;
+    navi.callout("[link_phrase] executeEntry parsehtm → " + ok);
+  }
+  if (!ran && claim && typeof claim.execute === "function") {
+    await claim.execute(context, api);
+    ran = true;
+    navi.callout("[link_phrase] parsehtm.execute (no scrollbuffer)");
+  }
+  if (!ran) {
+    const tpl = document.createElement("template");
+    tpl.innerHTML = markup;
+    const walker2 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let acc = 0, sn = null, so = 0, en = null, eo = 0, last = null, n;
+    while ((n = walker2.nextNode())) {
+      const len = String(n.textContent || "").length;
+      if (!len) continue;
+      last = n;
+      if (!sn && start < acc + len) { sn = n; so = start - acc; }
+      if (!en && newEnd <= acc + len) { en = n; eo = newEnd - acc; break; }
+      acc += len;
+    }
+    if (!sn || !en) throw new Error("fallback: offsets lost");
+    const r2 = document.createRange();
+    r2.setStart(sn, so);
+    r2.setEnd(en, eo);
+    r2.deleteContents();
+    r2.insertNode(tpl.content);
+    navi.callout("[link_phrase] fallback wrap (parsehtm not mounted)");
+  }
+}
+const stage = navi.mod.stagedir && navi.mod.stagedir.stage;
+if (stage && typeof stage.rememberPresentation === "function") {
+  const prior = typeof stage.presentationFor === "function" ? stage.presentationFor(host) : null;
+  stage.rememberPresentation(host, Object.assign({}, prior && typeof prior === "object" ? prior : {}, { type: host.getAttribute("data-part") || (prior && prior.type) || "htmf", value: host.outerHTML, path: String(host.getAttribute("data-path") || pathWant).replace(/^\/+/, "") }));
+  if (typeof stage.persist === "function") await stage.persist();
+}
+navi.callout("[link_phrase] done " + JSON.stringify(needle) + " → " + href);

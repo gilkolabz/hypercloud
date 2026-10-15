@@ -1,0 +1,26 @@
+# hq01/skellyimport — import AppData\.navi_shell\user_files skelly sets via savefs
+# Snippets separated by blank lines (scripter format). Paths have spaces → JS API.
+
+navi.callout("[skellyimport] importing skelly_set_1 + skelly_set_2 via savefs")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01.json")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01 (1).json")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01 (2).json")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01 (3).json")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01 (4).json")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01 (5).json")
+
+await navi.storage.file.savefs("user_files/skelly_set_1/skelly-export-2026-09-01(1).json")
+
+await navi.storage.file.savefs("user_files/skelly_set_2/skelly-export-chromium.json")
+
+await navi.storage.file.savefs("user_files/skelly_set_2/skelly-export-incog-chromium.json")
+
+await navi.storage.file.savefs("user_files/skelly_set_2/skelly-export-incog-firefox.json")
+
+navi.callout("[skellyimport] done — 10 files")

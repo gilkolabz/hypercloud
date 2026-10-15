@@ -1,0 +1,25 @@
+# hq01/skelly-import-all — mount skelly, then one import per savefs tip
+
+await navi("mount flowerpot/hypercloud/testkit/mods/legacy/skelly.js")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01.json")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (1).json")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (2).json")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (3).json")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (4).json")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01 (5).json")
+
+await navi.mod.skelly.import("user_files/skelly_set_1/skelly-export-2026-09-01(1).json")
+
+await navi.mod.skelly.import("user_files/skelly_set_2/skelly-export-chromium.json")
+
+await navi.mod.skelly.import("user_files/skelly_set_2/skelly-export-incog-chromium.json")
+
+await navi.mod.skelly.import("user_files/skelly_set_2/skelly-export-incog-firefox.json")
+
+navi.callout("[skelly-import-all] done")

@@ -1,0 +1,14 @@
+Phonebooth
+
+Browser UI needs phonebook_client mounted (subscribe / ring / faucet).
+
+On native REPL, mount the mod then use its commands:
+
+  mount flowerpot/hypercloud/testkit/mods/legacy/phonebook_client.js
+  phonebook_client help
+
+(or browse the warez list: hypertext/hypernetizenwarez)
+
+Links:
+  [1] Hypernetizen Warez → hypertext/hypernetizenwarez
+  [2] Back to Welcome    → hypertext/welcome

@@ -1,0 +1,57 @@
+<div
+  name="flow-model-readme"
+  data-path="torus/devops/flow-model/readme"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">program-manifest</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Flow model documentation</h1>
+    <p>The flow model is how foobarch / navi_shell products express user journeys: which screen comes next, what context carries forward, and how alternative journeys stay publishable and swappable without forking core logic.</p>
+    <p>Assumes current navi_shell: tip+bin storage, park callin, <code>navi:mod</code> remount, <strong>hostpark</strong> as default push host, <strong>local-first</strong> plant/park-check. Shell units / entry-plug are out of scope for flow products (one session per navi window).</p>
+    <h2>Who this is for</h2>
+    <p>Anyone publishing modules, HTML fragments, flow JSON, and launches onto hostpark and running them inside the navi shell.</p>
+    <h2>Doc map</h2>
+    <table>
+      <thead>
+        <tr><th>Page</th><th>Summary</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a></td><td>What the flow model is and is not</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a></td><td>foobarch shell, tips/parks, surf, hostpark push</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a></td><td>Flow JSON: entry, routes, policy, meta</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a></td><td>Thin Manager, session tips, navigation contract</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a></td><td>Features → artifacts → instances → programs → launches</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a></td><td>Variance records, swapping, shopping, builders</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">program-manifest</a></td><td>Manifest schema, feature_imps/excludes, artifact contracts</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a></td><td>After shopping: client survey → brief → features; program networks</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a></td><td>Typed ids, logical routes, hostpark addr vs tip frame</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a></td><td>L0–Ln placement of concerns</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a></td><td>How to author a program</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a></td><td>Required <code>goal=</code> on put / hostpark-push; goals vs ops ledgers</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a></td><td>Principles and anti-patterns</td></tr>
+        <tr><td><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a></td><td>Shared vocabulary (navi_shell terms win)</td></tr>
+      </tbody>
+    </table>
+    <h2>Documentation</h2>
+    <p>See <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a> for navi_shell, hostparking, style guides, and modules reference.</p>
+    <h2>Devops tooling</h2>
+    <p><a href="/torus/testkit/mod/fsdevopstracker/readme" hx-get="/torus/testkit/mod/fsdevopstracker/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">fsdevopstracker readme</a> — index projects, goals/sprints, mirror, hostpark-push. Normative why-strings: <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>.</p>
+  </article>
+</div>

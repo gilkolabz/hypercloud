@@ -1,0 +1,11 @@
+Welcome to Foobarch (text)
+
+Surf paths from a browser; from navi_shell.exe REPL use: browse <path>
+
+Links:
+  [1] Intro                 → hypertext/intro
+  [2] Gadgets               → hypertext/gadgets
+  [3] Flowerpot FAQ         → hypertext/flowerpot_faq
+  [4] Bulletin Board        → hypertext/bulletinboard
+  [5] Hypernetizen Warez    → hypertext/hypernetizenwarez
+  [6] Skelly Relay          → hypertext/skellyrelay

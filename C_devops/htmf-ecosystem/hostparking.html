@@ -1,0 +1,84 @@
+﻿<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-hostparking"
+  data-path="torus/docs/hostparking"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Hostparking</h1>
+    <p><strong>Hostparking</strong> puts a named route on a foobarch host so a plain HTTP GET of that name returns the bytes parked there. The host holds the tip and answers from it. The live host is <code>https://foobarch.net</code>.</p>
+    <p>The browser shell does the same thing locally. <code>navi.park.check</code> resolves a planted tip for a path before the network is asked. Hostparking is that win on the server: anyone who can reach the host reads the current generation of the route.</p>
+
+    <h2>A route is a tip</h2>
+    <p>The public name is an <strong>ib</strong>, a path such as <code>torus/docs/hostparking</code>. <code>GET /{ib}</code> follows that name to the <strong>current tip</strong>.</p>
+    <p>Each publish is one <strong>generation</strong>. The generation's identity is the content hash of its frame, the <strong>gib</strong>. The address of one generation is <code>ib^gib</code>. <code>GET /{ib}</code> returns whatever generation is current. <code>GET /{ib}^{gib}</code> pins that generation, so a later publish leaves the pinned address where it was.</p>
+    <p>A name the host has never stored answers <code>404</code> with <code>no tip for {ib}</code>. A pinned generation the host does not have answers <code>no frame {addr}</code>.</p>
+
+    <h2>What a GET returns</h2>
+    <p>The tip's frame says what the route does. For a document, image, script, or other file, <code>data.method.GET</code> is <code>{ "kind": "bin" }</code>. The host returns the bytes linked from <code>rel8ns.bin</code>, with the content type stored beside those bytes.</p>
+    <p>The frame and the bytes are separate objects.</p>
+    <ul>
+      <li><code>data</code> is the meaning: which methods exist, what kind each method is, the content type, and whether the route joins path resolve.</li>
+      <li><code>rel8ns.bin</code> is a list of <code>bin &lt;sha256&gt;</code> links. The host stores those bytes once, by hash. Two generations that share the same bytes share the same bin.</li>
+      <li><code>rel8ns.past</code> points at the previous <code>ib^gib</code>. That is the lineage of the name.</li>
+    </ul>
+    <p>Other method kinds are behavior, or a package, rather than "return this file":</p>
+    <ul>
+      <li><code>mod</code> is a navi module. A normal GET still has a body. <code>Accept: application/navi-mod</code> asks for the frame and the module bytes together, so a shell can plant the tip and mount it. <code>Accept: application/eframe</code> asks for the frame alone. <code>Accept: application/navi-module</code> asks for the raw module bytes.</li>
+      <li><code>frame</code> and <code>manifest</code> return the frame itself.</li>
+      <li><code>proxy</code>, <code>relay</code>, <code>redirect</code>, and <code>lua</code> make the route do work. See <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi park addressing</a>.</li>
+    </ul>
+    <p>A verb the frame does not declare answers <code>405</code>.</p>
+
+    <h2>Publishing is a commit</h2>
+    <p>A publish is a signed write of a new generation. The client authors the frame. The host stores that frame as written. The gib is the hash of the frame, so the generation id is the content.</p>
+    <ol>
+      <li>The first write of an ib is <code>firstGen</code>. There is no parent.</li>
+      <li>A later write is <code>mut8</code>. <code>rel8ns.past</code> points at the previous <code>ib^gib</code>. The name stays. The current tip moves.</li>
+    </ol>
+    <p>The write is a <code>PUT</code> or <code>PATCH</code> of the envelope to <code>/{ib}</code>. A read spends nothing. A commit spends one usage token, unless the tip pays from a reserve it already links. Artifact publish and shared runtime state are different jobs. See <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch usage budgets</a>.</p>
+
+    <h2>Who may write</h2>
+    <p>A route that should stay under known authors sits on a <strong>write gate</strong>.</p>
+    <ol>
+      <li>A <strong>schema</strong> is seeded once: a <code>keys.v1</code> gate, ed25519, m-of-n.</li>
+      <li>A <strong>policy</strong> tip names the authorized public keys and the threshold. It links the schema and locks to itself.</li>
+      <li>Each asset commit is signed by a key that policy accepts. The frame's <code>rel8ns</code> point at the policy. A signature the policy rejects is not stored.</li>
+    </ol>
+    <p>The gate decides who can move the tip. <code>declare</code> is a separate, human notice about license and reuse. See <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>.</p>
+
+    <h2>History</h2>
+    <p>Older generations stay reachable through <code>past</code>.</p>
+    <ul>
+      <li><code>GET /foobarch/tip/{ib}</code> returns the current tip and its frame.</li>
+      <li><code>GET /foobarch/frame/{ib}^{gib}</code> returns one generation.</li>
+      <li><code>GET /foobarch/span/{ib}</code> returns the past chain in order. <code>dir</code> is <code>reverse</code>, <code>forward</code>, or <code>all</code>. <code>limit</code> and <code>offset</code> page it. <code>addrsOnly</code> returns addresses without full frames. This matches <code>navi.storage.tip.span</code>. One span read mirrors a lineage; walking <code>past</code> one generation at a time takes a request per step.</li>
+    </ul>
+    <p>A tombstone ends a route: the name stops resolving, and a later first write can reclaim it. Hard delete of a tip is an admin act, separate from a tombstone.</p>
+
+    <h2>Park versus address</h2>
+    <p>An ib is already an address. The <code>park</code> field only says whether this tip competes for prefixes of longer paths.</p>
+    <ul>
+      <li>Absent: fetch the name itself. The tip is not a candidate for longer paths.</li>
+      <li><code>"capture"</code>: this tip wins, including when a longer park also matches, and it keeps the remainder.</li>
+      <li><code>"defer"</code>: this tip yields to a longer matching prefix.</li>
+    </ul>
+    <p>A document fetched at its exact name often omits <code>park</code>. A module or a shell surface that should answer <code>/{ib}/…</code> sets <code>capture</code> or <code>defer</code>. See <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi park addressing</a>.</p>
+
+    <h2>Artifacts and live facts</h2>
+    <p>Hostparking publishes the artifact readers fetch: the page, the module, the image, the schema. Live shared facts (a ledger, a session row, a score) are ordinary tip commits on a route that already exists. Those commits are paid by a usage token on the request, or by a reserve the frame already links, so a client can write without holding a token. See <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch usage budgets</a>.</p>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

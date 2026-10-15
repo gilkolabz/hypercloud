@@ -1,0 +1,87 @@
+<div
+  name="flow-model-ux-spectrum"
+  data-path="torus/devops/flow-model/ux-spectrum"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>UX spectrum</h1>
+    <p>UX sits on a spectrum from programmatic soundness to presentation richness. The flow model asks you to place each concern on a level so modules stay resting and composable.</p>
+    <p>Levels are per-project labels. The numbers below are a common template, not a rigid global enum — rename in your <code>devguide.md</code>, but keep the progression.</p>
+    <h2>Template levels</h2>
+    <ul>
+    <li>L0 — Data & contracts — Schemas, seed JSON, derived maps</li>
+    <li>L1 — Logic / registry — CRUD, lookup, facts; tip APIs; park commands if needed; no DOM</li>
+    <li>L2 — Device affordances — Camera, OCR, sensors, files</li>
+    <li>L3 — HTML pages — One fragment per screen role</li>
+    <li>L4 — Flow + Manager — Active flow JSON; <code>go</code>; policy; session tips</li>
+    <li>L5 — Resting UI capability — Page helpers / small modules invoked on demand</li>
+    <li>L6 — Document / media presentation — Sheets, overlays, paper frames, players</li>
+    <li>L7 — Enrichment — AI parse, optional sync, fancy motion</li>
+    </ul>
+    <p>When adding a feature: name the level, name what it depends on, update the project’s spectrum list.</p>
+    <h2>Placement rules of thumb</h2>
+    <ul>
+    <li>If it is a fact about data, it is L1 (or L0).</li>
+    <li>If it is which screen next, it is L4 (flow/Manager).</li>
+    <li>If it is how one screen looks, it is L3 (and maybe L5/L6).</li>
+    <li>If it is the <strong>shared look</strong> across screens and launches, it is still <strong>L3</strong>: one hostparked <strong>product skin</strong> CSS — not Manager, not a flow route, not L4.</li>
+    <li>If it is optional behavior on a shared host, prefer flow <code>meta</code> + L5 module over forking L3.</li>
+    <li>If it is device I/O, L2 — Manager navigates to a screen that uses it; the device module does not own the journey.</li>
+    </ul>
+    <h3>Product skin (normative)</h3>
+    <p>Every flow product should ship a shared L3 skin so screens and launches do not copy-paste <code>&lt;style&gt;</code> blocks.</p>
+    <ul>
+    <li><strong>What</strong> — One CSS file: tokens + layout helpers for the product’s HTMF fragments</li>
+    <li><strong>Where</strong> — Prefer <code>{root}/ui/{product}_skin.css</code>. Decorative banners/fonts stay under <code>assets/</code></li>
+    <li><strong>Publish</strong> — Hostpark bare logical route; plant tip at the same ib for local-first</li>
+    <li><strong>Config</strong> — <code>flowerpot.skin_css</code> points at that route</li>
+    <li><strong>Load</strong> — Each UI/launch fragment ensures a single <code>&lt;link data-flow-skin&gt;</code> in <code>document.head</code> via <code>navi.resolveUrl(skin)</code> — head survives surf</li>
+    <li><strong>Not</strong> — Not a flow <code>routes</code> entry; not a navi module; Manager does not own look</li>
+    </ul>
+    <p><strong>One skin per session.</strong> Head survives surf, so later screens must no-op when a product skin is already present. A skin <em>variant</em> (second CSS + new <code>data-flow-skin</code> id) must either cover <strong>every</strong> route in that journey, or shared screens must be <strong>skin-preserving</strong> (guard on a product prefix such as <code>link[data-flow-skin^="tipunch"]</code>; inject default only on cold first paint).</p>
+    <p><strong>Anti-pattern:</strong> fork look on launch/jobs only; leave area/punch/report injecting the default under a different <code>data-flow-skin</code> id. Both sheets sit in <code>head</code>; the second wins the cascade and look falls apart mid-journey. Flow <code>meta.skin</code> is documentation unless you wire it — the real contract is fragment <code>ensureFlowSkin</code>.</p>
+    <p>Example (ti_punch): <code>opry/devops/ti_punch/ui/tipunch_skin.css</code> — listed in program <code>layers.L3</code> and loaded by every <code>ui/*</code> + <code>launch/*</code> fragment.</p>
+    <h2>Spectrum and composition</h2>
+    <p>Composition hierarchy (features → … → launches) applies across levels:</p>
+    <ul>
+    <li>L3/L6 fragments slot into hosts</li>
+    <li>L4 flows patch meta/routes; session tips select the active flow</li>
+    <li>L1/L2/L5 modules register as parks (<code>navi:<name></code>) with Manager at runtime</li>
+    </ul>
+    <p>Presentation extends outward from soundness; it should not collapse lower layers into one blob.</p>
+    <h2>Anti-patterns by level</h2>
+    <ul>
+    <li>L1 opens DOM / surfs — Logic lost its voice; journey leaks downward</li>
+    <li>L3 embeds three other screens’ HTML — Can’t swap; Manager can’t navigate</li>
+    <li>Fat L4 module with all templates — Becomes the only edit surface; variants die</li>
+    <li>L5 auto-listens to L1 events and navigates — Event spaghetti; bypasses policy</li>
+    <li>Skipping L0/L1 “just to ship UI” — No programmatic core; UX cannot rest on facts</li>
+    <li>Partial skin-variant rollout — New <code>data-flow-skin</code> on some screens; shared downstream screens still inject the default → two skins in <code>head</code>, cascade clash mid-journey</li>
+    </ul>
+    <h2>Project docs</h2>
+    <p>Each project should keep a living spectrum section in its own <code>devguide.md</code>. This file only defines the shared idea.</p>
+    <h2>Citations</h2>
+    <ul>
+    <li><code>A_document/_navi_style.md</code> — spectrum ethos</li>
+    <li><a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a></li>
+    <li><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a></li>
+    </ul>
+  </article>
+</div>

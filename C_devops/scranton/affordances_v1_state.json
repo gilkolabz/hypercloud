@@ -1,0 +1,76 @@
+{
+  "host": "https://foobarch.net",
+  "index": {
+    "ib": "scranton/affordance/v1",
+    "addr": "scranton/affordance/v1^39159E5BD0E961BE101E289356065522EC2F71A0C4A6EC04E26CBA2B4DB822AE"
+  },
+  "affordances": {
+    "comments": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/comments",
+        "addr": "scranton/affordance/v1/comments^BF17ACFAB0DF7F5BBB4E77FE87C9CDD73BC626C5D70BA1597C1C82768C48DC4A"
+      },
+      "schema": {
+        "ib": "scranton/affordance/v1/comments/schema",
+        "addr": "scranton/affordance/v1/comments/schema^2176AB2E654974380E41ECB52F6138A600E7EC26A2618F110B3E2C59E345765C"
+      },
+      "policy": {
+        "ib": "scranton/affordance/v1/comments/policy",
+        "addr": "scranton/affordance/v1/comments/policy^AEACEFE2AE56ED7A9A015203EB1091ABAAE21D5CCA7595B538AC33AEA1D750A8"
+      }
+    },
+    "stagedir": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/stagedir",
+        "addr": "scranton/affordance/v1/stagedir^6F8BE3AAFDFF99917EC9643F1BC4A0B8E7CA16356FAC1F3F37AD733041E7B90C"
+      },
+      "schema": {
+        "ib": "scranton/affordance/v1/stagedir/schema",
+        "addr": "scranton/affordance/v1/stagedir/schema^7FF07D03C5698B0AEB505AE754ECE870A6D83828DE4847EC2B30101046136F0D"
+      },
+      "policy": {
+        "ib": "scranton/affordance/v1/stagedir/policy",
+        "addr": "scranton/affordance/v1/stagedir/policy^18BF692DA0E0D0E6195583354549EB8416C44F5F86016777699D91C9F9FEA6FB"
+      }
+    },
+    "links": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/links",
+        "addr": "scranton/affordance/v1/links^2FDB3BE47C9AF66E919B4BECFCD26C507E2694ED6A854672F72F36E248C20432"
+      },
+      "schema": {
+        "ib": "scranton/affordance/v1/links/schema",
+        "addr": "scranton/affordance/v1/links/schema^131D540A1601CF671BDA1E205B0980E3C52676E576EED76452FCF3FC4622AC3E"
+      },
+      "policy": {
+        "ib": "scranton/affordance/v1/links/policy",
+        "addr": "scranton/affordance/v1/links/policy^13E56D7EFB7E59A19B690EE8E08E60FFA6275483B0EAA3C568442E4CD5D5141C"
+      }
+    },
+    "stage_member": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/stage_member",
+        "addr": "scranton/affordance/v1/stage_member^33E79B2B74A6E7B2C991063C1A7986B48636E00B0CF77262A8563137ABA44E99"
+      }
+    },
+    "stage_dir": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/stage_dir",
+        "addr": "scranton/affordance/v1/stage_dir^41BEB9092EE9769094AEEBD7C83B016D735AA9471EA3C26ADD0D8870A0637F09"
+      }
+    },
+    "navi_script": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/navi_script",
+        "addr": "scranton/affordance/v1/navi_script^17F6D6FBF25D689D74BF8ACAB63F567972755B6976DD102718A0A582DDFE8361"
+      }
+    },
+    "frens": {
+      "descriptor": {
+        "ib": "scranton/affordance/v1/frens",
+        "addr": "scranton/affordance/v1/frens^5164B3BD2CD9C7A9545334180C357026801F75214883FA68216AA0C6D2DCA1DC"
+      }
+    }
+  },
+  "published_at": "2026-10-10T23:16:45.424Z"
+}

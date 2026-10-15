@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>navi manifest space</title>
+</head>
+<body>
+
+<h1>navi manifest space</h1>
+
+<p>
+Design note: make <b>navi_shell</b> local storage and callins symmetrical with
+<b>foobarch_host</b> tips — one vocabulary on both ends. Experiment behind
+versioned <code>navi_shell.js</code> on the host. This file is meant to be
+readable in a text editor.
+</p>
+
+<p>
+Units / multi-instance tip space:
+<a href="navi_units.html"><code>navi_units.html</code></a>.
+</p>
+
+<h2>1. Where we are</h2>
+
+<p>
+Today the host and the shell speak different dialects:
+</p>
+
+<ul>
+<li><b>foobarch_host</b> — tips are ibgib frames with park +
+<code>data.method[METHOD].kind</code>, optional bin bytes, soft tombstone vs
+admin hard-delete.</li>
+<li><b>navi_shell</b> — <code>navi.storage.item</code> /
+<code>navi.storage.file</code> key bags; callins as a parallel command
+registry; <code>navi.mod.*</code> as live JS objects after mount.</li>
+</ul>
+
+<p>
+Tiny, orient, surf, snoopy, and jockey live-state all invent their own key
+shapes on top of that bag. The spaghetti is the missing shared tip model.
+</p>
+
+<h2>2. Where we are going</h2>
+
+<p>
+Local navi becomes a miniature foobarch space:
+</p>
+
+<ul>
+<li>Every stored tip is a <b>manifest</b> (expanded sense — see §3).</li>
+<li>Method controls (<code>GET</code> / <code>PUT</code> / <code>POST</code> /
+<code>DELETE</code> / …) describe what the tip does, including a sync/async
+preference.</li>
+<li>Opaque bytes live in a <b>bin</b> relation (replaces item/file dialectic).</li>
+<li>Callins are parks under <code>navi/</code>. The callin language
+presumes that prefix: <code>navi("surf …")</code> addresses tip
+<code>navi/surf</code>; remainder is passthrough. Same remainder /
+capture / defer ideas as the host.</li>
+<li>Admin always wins locally (user can wipe or rewrite any tip); policies
+under that are optional later.</li>
+<li>Wire upgrade: host ↔ shell may pass ibgib / manifest envelopes when both
+sides opt in; raw byte proxy stays valid.</li>
+</ul>
+
+<pre>
+foobarch_host                          navi_shell (local)
+─────────────────                      ─────────────────
+tip ib                                 tip ib  (navi/…, tiny/…, …)
+ibgib frame                            ibgib frame
+data.method[METHOD]                      data.method[METHOD]
+rel8ns.bin / bin table                 local bin store
+park + remainder                       callin park under navi/
+admin hard-delete                      navi admin (user)
+</pre>
+
+<h2>3. Semantic shift: manifest = frame contract (not “proposal”)</h2>
+
+<p>
+Stop saying <b>proposal</b> for the parked tip shape. Let <b>manifest</b> mean
+the contract in an ibgib frame’s <code>data</code>: normative controls
+(<code>method</code>, optional <code>park</code>), metadata (<code>about</code>),
+and associated-data notes — the thing you GET when you ask what a route
+<i>is</i> and how to use it. Canonical vocabulary:
+<code>A_document/manifest.md</code>.
+</p>
+
+<p>
+The stored unit is always an ibgib frame
+<code>{ ib, gib, data, rel8ns }</code>. Tip-level <code>parts</code> tags such as
+<code>ibgib_frame</code>, <code>json</code>, and <code>network_proposal</code>
+are <b>deprecated noise</b> in new writing (implied by being a JSON frame, or
+legacy host labels). Live tips may still carry them until migrated.
+</p>
+
+<p>
+Optional single-field route claim (not addressability — an <code>ib</code> is
+already addressable):
+</p>
+
+<pre>
+"park": "capture" | "defer"   // omit = not in path/callin resolve
+</pre>
+
+<p>
+READMEs and foobarch_host commentary should migrate language from “proposal”
+to “manifest” as we touch them. Code identifiers may lag; docs lead.
+</p>
+
+<h2>4. Edges (answered so far)</h2>
+
+<h3>4.1 Bootstrap / seed</h3>
+
+<p>
+<code>navi_shell.js</code> seeds like <code>init_script</code> and
+<code>mod:surf.js</code> today: plant a small set of tip frames into local
+space on first run (or when missing). We author those seed manifests here in
+repo, bake or fetch them into the shell, then runtime only mut8s them.
+</p>
+
+<p>
+Minimum seed set (v0) — authored under
+<a href="../C_devops/navi_redux/"><code>C_devops/navi_redux/seed/</code></a>:
+</p>
+
+<ul>
+<li><code>navi</code> — root park: what <code>navi/</code> means; links to children.</li>
+<li><code>navi/mod</code> — index manifest of mounted parks (updated on
+mount/unmount).</li>
+<li><code>navi/admin</code> — user-level hard controls (delete tip, reseed, …).</li>
+<li><code>navi/init_script</code> — boot command list (replaces storage key
+<code>init_script</code>).</li>
+<li><code>navi/surf</code> — first real callin park (pilot).</li>
+</ul>
+
+<p>
+See <code>C_devops/navi_redux/README.html</code>. Exact frames live as
+<code>*.frame.json</code> there; gibs are placeholders until plant
+content-addresses.
+</p>
+
+<h3>4.2 Sync vs async</h3>
+
+<p>
+Each method control may declare preference, e.g.:
+</p>
+
+<pre>
+"GET":  { "kind": "bin",    "mode": "sync" }
+"PUT":  { "kind": "commit", "mode": "async" }
+"POST": { "kind": "lua",    "mode": "async" }
+</pre>
+
+<p>
+Default if omitted: <code>sync</code> for local bin/frame reads;
+<code>async</code> for commit / cross-host / SW-bridged work. Callers that
+need a promise always may still await; sync controls must not rely on
+microtasks to finish.
+</p>
+
+<h3>4.3 Is every <code>navi.*</code> a park? Can JSON equal the live object?</h3>
+
+<p>
+Directionally yes: <code>navi.mod</code> ↔ <code>navi/mod</code>,
+<code>navi.surf</code> ↔ <code>navi/surf</code>. Devtools and parks share one
+addressing story.
+</p>
+
+<p>
+Coherence rule (important):
+</p>
+
+<ul>
+<li>The <b>manifest tip</b> is the normative, serializable description
+(controls, subcommands, where the module bytes live, sync prefs).</li>
+<li>The <b>live JS object</b> (<code>navi.mod.surf</code>) is the runtime
+projection after mount — not something we fully reify as JSON.</li>
+<li><code>navi/mod</code> index lists parks that are mounted (ib, name,
+subcommand list, optional subject addr). It does <i>not</i> deep-clone the
+module export.</li>
+</ul>
+
+<p>
+So: you can express <i>what would be true if you referenced the mod</i>
+(name, commands, park path, kinds) in JSON. You cannot honestly serialize
+closures / DOM handles into the tip. Overlap is coherent if we treat the tip
+as the contract and the object as the fulfillment.
+</p>
+
+<h3>4.4 Who may park</h3>
+
+<ul>
+<li>Only while <b>mounted</b>.</li>
+<li>Only parks that correspond to <b>real module commands / subcommands</b>
+the module declares (keep subcommand tables on mods).</li>
+<li>On mount: module registers parks; shell <b>recommits</b>
+<code>navi/mod</code> index (mut8) so registration is visible as data, not
+only as side effect.</li>
+<li>Internal pointing (park → another park / remainder handoff) should mirror
+host redirect/proxy kinds once we need it.</li>
+</ul>
+
+<p>
+Unmount removes or tombstones that module’s parks and mut8s the index again.
+</p>
+
+<h3>4.5 Remainder / capture / defer</h3>
+
+<p>
+Reuse host ideas: a single <code>park</code> field
+(<code>"capture"</code> | <code>"defer"</code>; omit = not in resolve).
+Do not author boolean <code>park</code>, <code>park_precedence</code>, or
+<code>park_depth</code> — migrate live tips first. Exact client subset TBD
+while surfing the pilot — do not invent a third dialect.
+Admin permission for mods to use admin APIs is user-gated; tip-level policies
+under admin are later (same shape as host, no examples required yet).
+</p>
+
+<h3>4.6 Wire upgrade</h3>
+
+<p>
+Ibgib frame is the stored unit on foobarch; the manifest lives
+<i>inside</i> / <i>as</i> that frame’s <code>data</code> (and <code>rel8ns</code>).
+Both ends should learn:
+</p>
+
+<ul>
+<li>Request: optional desire for frame/manifest (header or query).</li>
+<li>Response: either raw bytes (today) or frame JSON with bin out-of-line /
+embedded per control.</li>
+</ul>
+
+<p>
+Passing ibgibs as the language makes snoopy, gibbert, tiny, and potter the
+same family of consumers.
+</p>
+
+<h2>5. Admin vs method DELETE (keep the host split)</h2>
+
+<ul>
+<li><b>Method</b> <code>DELETE</code> on a tip — whatever
+<code>data.method.DELETE.kind</code> says (tombstone, proxy, …).</li>
+<li><b>Admin</b> delete — hard wipe of local tip/frames/bins for that ib,
+always available to the user (and to mods only if permitted).</li>
+</ul>
+
+<h2>6. Practical path (strategic)</h2>
+
+<ol>
+<li><b>Note + vocabulary</b> — this document; light updates to
+<code>manifest.md</code> / host README language over time.</li>
+<li><b>Seed manifests</b> — hand-author <code>navi</code>,
+<code>navi/mod</code>, <code>navi/surf</code>, <code>navi/admin</code>
+fixtures; shell loads them like init_script / surf module seed.</li>
+<li><b>Local resolve stub</b> — minimal <code>resolveRoute</code> +
+<code>httpControl</code> over a tip+bin store (IndexedDB), enough for GET
+frame/bin and admin delete. Do not migrate all of <code>storage.item</code>
+yet.</li>
+<li><b>Surf pilot</b> — <i>hard callin:</i> space is presumed under
+<code>navi/</code>, so <code>navi("surf …")</code> → tip <code>navi/surf</code>
++ remainder passthrough via <code>http[default_method]</code>
+<code>kind:mod</code>. Mount mut8s <code>navi/mod</code>; auto-plants
+<code>navi/&lt;name&gt;</code> if missing. No registry fallback.</li>
+<li><b>Widen</b> — potter, snoopy, tiny as tips; retire item/file for new
+code; optional host Accept-frame.</li>
+</ol>
+
+<p>
+Pilot success criteria: from a clean shell, seed tips exist; mounting surf
+updates <code>navi/mod</code>; invoking surf via park/callin uses method
+controls; user can admin-delete and reseed.
+</p>
+
+<h2>7. Seed tip sketch (surf-first)</h2>
+
+<p>
+Illustrative controls — <b>canonical seed frames</b> are in
+<code>C_devops/navi_redux/seed/</code> (including <code>navi/init_script</code>).
+</p>
+
+<pre>
+navi/surf tip (conceptual)
+{
+  "ib": "navi/surf",
+  "gib": "&lt;content-addressed&gt;",
+  "data": {
+    "park": "capture",
+    "default_method": "GET",
+    "method": {
+      "GET":  {
+        "kind": "mod",
+        "target": "surf",
+        "command": "surf",
+        "mode": "sync",
+        "commands": ["surf", "surf_settings"]
+      },
+      "POST": {
+        "kind": "mod",
+        "target": "surf",
+        "command": "surf",
+        "mode": "async",
+        "commands": ["surf", "surf_settings"]
+      }
+    },
+    "module": {
+      "name": "surf",
+      "subject_seed": "bin <sha>"
+    },
+    "about": {
+      "label": "surf",
+      "description": "surf mod park"
+    },
+    "n": 0,
+    "timestamp": "…"
+  },
+  "rel8ns": {
+    "past": [],
+    "tjp": [],
+    "dna": []
+  }
+}
+</pre>
+
+<pre>
+navi/mod index (conceptual)
+{
+  "ib": "navi/mod",
+  "data": {
+    "park": "capture",
+    "method": {
+      "GET": { "kind": "frame", "mode": "sync" }
+    },
+    "about": {
+      "description": "registration ledger"
+    },
+    "parks": [
+      { "ib": "navi/surf", "name": "surf", "commands": ["surf"] }
+    ]
+  }
+}
+</pre>
+
+<p>
+<code>kind: "mod"</code> means: dispatch remainder + body to the mounted
+module named by <code>target</code> (live object), after checking the
+subcommand is listed on the tip / module.
+</p>
+
+<h2>8. Scale in view (storage + props)</h2>
+
+<p>
+Callin parks are the thin end of a thicker wedge: local navi is meant to look
+like foobarch’s tip+bin+http model, not like a bag of ad-hoc IndexedDB keys.
+</p>
+
+<ul>
+<li><b>Near:</b> callins under <code>navi/</code>; <code>navi/mod</code>
+ledger; seeds; dedicated IndexedDB <code>tips</code>/<code>bins</code>
+(ib as tip key).</li>
+<li><b>Next:</b> remaining <code>navi.storage.item</code>/<code>file</code>
+call sites (settings, SW paths, third-party mods) move to tip/bin or disappear.</li>
+<li><b>Directionally:</b> live props and parks share ibs —
+<code>navi.storage</code>, <code>navi.mod</code>, even future
+<code>navi.sw</code> surfaces resolve through the same park/<code>method</code>
+grammar
+(GET frame/bin, PUT commit, DELETE tombstone/admin). Devtools “dot path”
+and URL/callin path are two spellings of one space.</li>
+<li><b>Host side:</b> foobarch route tips are the same manifest-frame shape
+(e.g. tip <code>navi_shell.js</code> + bin) — network twin of a local tip.
+Legacy <code>parts</code> tails on those tips are noise to strip over time.</li>
+</ul>
+
+<p>
+Pilot discipline: hard callin first (no registry fallback). Storage
+generalization follows once tip+bin stores exist and call sites move; do not
+pretend item keys are parks until resolve is real.
+</p>
+
+<h2>9. Non-goals (for now)</h2>
+
+<ul>
+<li>Full rename of every “proposal” string in foobarch_host source.</li>
+<li>Mass-stripping legacy <code>parts</code> / boolean <code>park</code> from
+every live tip in one pass.</li>
+<li>Replacing tiny’s space in the same pass as surf.</li>
+<li>Mandatory frame responses on all host routes.</li>
+</ul>
+
+<h2>10. Open questions</h2>
+
+<ul>
+<li>Whether tip-level <code>parts</code> stay at all (optional labels) vs
+stage occupant typing — see <code>manifest.md</code>.</li>
+<li>Whether <code>navi.storage.item.get</code> becomes a compatibility shim
+over tip GET or stays until call sites move.</li>
+<li>How SW plugins (snoopy) record against tip ibs vs raw pathnames.</li>
+<li>Remainder grammar for nested subcommands (<code>navi/surf/foo/bar</code>
+vs query/body).</li>
+</ul>
+
+<hr>
+
+<p>
+Related: <code>A_document/manifest.md</code>,
+<code>B_native_mods/foobarch_host/README.md</code>,
+<code>foobarch/static/navi_shell.js</code> (init_script / surf seed),
+<code>A_document/tiny.md</code>,
+<code>C_devops/navi_redux/</code> (seed tips).
+</p>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Local Flowerpot author keystores (private keys) — never commit
+*_owner.json
+*keystore*.json
+summertime_owner.json
+
+# Local pot / publish / policy helper scripts (not part of the public runtime)
+_pot_*.mjs
+_prove_*.mjs
+
+# Node / build
+node_modules/
+dist/
+*.exe
+*.stamped.exe
+
+# Legacy packaging caches (nexe / pkg node trees)
+build/

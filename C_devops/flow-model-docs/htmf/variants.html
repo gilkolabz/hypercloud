@@ -1,0 +1,119 @@
+<div
+  name="flow-model-variants"
+  data-path="torus/devops/flow-model/variants"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Variants, swapping, and shopping</h1>
+    <p>The flow model assumes many published alternatives and one active combination per navi session. Navi’s dynamic mount + hostpark’s parallel paths make that practical. Local tips make the active combination local-first.</p>
+    <h2>Variance records</h2>
+    <p>Anything that can diverge should be able to exist as its own published artifact:</p>
+    <ul>
+    <li><strong>program manifest</strong> — shopping label: <code>feature_imps</code>, optional <code>feature_excludes</code>, layers, artifact contracts (<a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">program-manifest</a>)</li>
+    <li>flow JSON (journey divergence)</li>
+    <li>UI HTML (screen layout divergence)</li>
+    <li>modules (logic / parse / view policy divergence)</li>
+    <li>launches (which combination to boot)</li>
+    <li>programs / instances (declared compositions)</li>
+    </ul>
+    <p>Comparing two artifacts shows where responsibility diverged. That is intentional design archaeology, not accidental duplication.</p>
+    <h2>Kinds of swap</h2>
+    <ul>
+    <li>Different journey — Different flow artifact (entry / policy / routes)</li>
+    <li>Different screen for same role — Same route key → different HTML URL in the flow</li>
+    <li>Optional behavior on shared host — Flow <code>meta</code> + Manager getters / prefs</li>
+    <li>Different logic implementation — Config tip module routes; Manager <code>mount</code>s alternate parks</li>
+    <li>Different full runtime — Different program + launch</li>
+    </ul>
+    <p>Decision tree:</p>
+    <ol>
+    <li>Whole screen layout changes? → new UI + flow route (+ launch)</li>
+    <li>Optional behavior on shared screen? → <code>meta</code> and/or prefs + module</li>
+    <li>Swappable logic you may shop later? → separate module artifact; keep Manager/registry API stable</li>
+    </ol>
+    <h2>After shopping: reiteration</h2>
+    <p>Once a spine runs, new ideas usually arrive as a <strong>client survey</strong> → project <strong>brief</strong> → features on the UX spectrum. That is <strong>reiteration</strong>, not a second shopping pass. See <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>. Breadth that does not belong on the primary launch becomes a sibling program or <strong>program network</strong> member.</p>
+    <h2>Launch as the shopping UI</h2>
+    <p>Ship multiple <code>launch_*.html</code> bookmarks. Do not force a single default until someone chooses.</p>
+    <p>Supporting devops surfaces:</p>
+    <ul>
+    <li>Launch linker — human QA index: links + checklists + “current focus”</li>
+    <li>Launch graph — machine-readable matrix (<code>launch_index.json</code>) for combo browsing</li>
+    </ul>
+    <p>Fields useful per node: artifact types, status, flow, entry, parents, test hint, hostpark logical route, <code>program_id</code>, program manifest (<code>feature_imps</code> / <code>feature_excludes</code>). See <a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">program-manifest</a>.</p>
+    <h2>Session tip override pattern</h2>
+    <pre><code class="js">
+    // inside launch fragment (conceptual)
+    await navi("mount torus/example/notes/modules/notes_init.js");
+    await navi.storage.tip.set({
+      ib: "notes:session:flow_artifact",
+      // …stamp / data: logical route string, optional pot addr…
+      data: { value: "torus/example/notes/flow/notes_editor_first.json" },
+    });
+    // or tip sugar: await navi.storage.item.set("notes:session:flow_artifact", FLOW);
+    await navi("notes_init bootstrap"); // park leaf = register().name
+    </code></pre>
+    <p>Config tip’s <code>flow_artifact</code> remains the default for bootstrap without a launch override.</p>
+    <p>Prefer writing the session tip <strong>before</strong> bootstrap so Manager.loadFlow sees it.</p>
+    <h2>Dynamic module shopping</h2>
+    <p>Manager + registry API stay stable. Behind them:</p>
+    <ul>
+    <li>parse module A vs B</li>
+    <li>view template module A vs B</li>
+    <li>edit-policy module A vs B</li>
+    </ul>
+    <p>Pages keep calling the same Manager methods. Config (or a System-like screen) selects which <strong>hostpark</strong> module path to <code>mount</code> (each becomes <code>navi:<name></code>).</p>
+    <p>This matches the navi style: resting tools; Manager picks and chooses; callin is park commands.</p>
+    <h2>Builder vs hand forks</h2>
+    <p>Hand forks accumulate drift: features land on one layout and never propagate.</p>
+    <p>Prefer:</p>
+    <ul>
+    <li>declare instances with a why</li>
+    <li>compose from concepts/fragments</li>
+    <li>generate flow/launch from base + patch when only a few facts differ</li>
+    </ul>
+    <p>Keep working hand-authored instances declared until builder-generated equivalents are validated; cut over deliberately. “Mainline” is a role (which launch people bookmark), not a sacred filename.</p>
+    <h2>Variant inherit without a builder</h2>
+    <p>Even without codegen, keep discipline:</p>
+    <ul>
+    <li>new local file for a new screen variant (don’t overwrite the shared default unless intended)</li>
+    <li>new or patched flow pointing the route key at it</li>
+    <li>new launch setting that flow via session tip</li>
+    <li>register paths in the project manifest / catalog</li>
+    <li>plant body tips at the <strong>same bare ib</strong> as the hostpark route (same ib as surf/fetch) for local-first; Manager refreshes when UX wants</li>
+    </ul>
+    <h2>What “dynamic” means here</h2>
+    <p>Authors and runtimes may:</p>
+    <ul>
+    <li>publish new flows/instances at any time on hostpark</li>
+    <li>point sessions at them (session tip) without redeploying foobarch itself</li>
+    <li>mount alternate modules from hostpark mid-product (new park tips; remount via <code>navi:mod</code>)</li>
+    <li>compose programs from family instances that did not exist when the Manager was first written</li>
+    </ul>
+    <p>The Manager should resolve routes and modules from published data + tips, not from a closed compile-time enum of all possible products.</p>
+    <h2>Related</h2>
+    <ul>
+    <li><a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a></li>
+    <li><a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a></li>
+    <li><a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a></li>
+    <li><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a></li>
+    </ul>
+  </article>
+</div>

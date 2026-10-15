@@ -1,0 +1,6 @@
+/Flowerpot/ FAQ
+
+Links:
+  [1] What is Flowerpot?        → hypertext/flowerpot_faq/pages/whatisflowerpot.html
+  [2] Can I use Flowerpot here? → hypertext/flowerpot_faq/pages/caniuseflowerpothere.html
+  [3] back to welcome           → hypertext/welcome

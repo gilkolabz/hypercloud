@@ -1,0 +1,1086 @@
+<!-- path -->
+<div name="notemaker" data-path="testkit/legacy/notemaker_v1" data-part="htmf" style="--nm-border:#ffffff;border:1px solid var(--nm-border);padding:0.5rem;max-width:36rem;box-sizing:border-box;">
+  <!-- Separate forms so mobile soft-keyboards do not chain title Enter → body as "Next". -->
+  <form data-part="title-form" autocomplete="off" style="margin:0;padding:0;border:0;">
+    <div data-part="title-box" style="border:1px solid var(--nm-border);padding:0.35rem 0.5rem;display:flex;align-items:center;gap:0.55rem;">
+      <!-- title -->
+      <h1 data-part="title" style="margin:0;font-size:1.4rem;cursor:text;flex:1;min-width:0;">
+untitled
+      </h1>
+      <!-- /title -->
+      <!-- color -->
+      <span data-part="orb-slot" style="flex:0 0 1.35rem;width:1.35rem;height:1.35rem;display:block;">
+        <span data-part="orb" style="display:block;width:1.35rem;height:1.35rem;border-radius:50%;background:#ffffff;box-shadow:0 0 0 1px rgba(0,0,0,0.28);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;"></span>
+      </span>
+      <!-- /color -->
+    </div>
+  </form>
+  <br />
+  <form data-part="body-form" autocomplete="off" style="margin:0;padding:0;border:0;">
+    <div data-part="body-box" style="border:1px solid var(--nm-border);padding:0.35rem 0.5rem;">
+      <!-- body -->
+      <p data-part="body" style="margin:0;">
+        <input type="text" data-part="body-input" enterkeyhint="done" autocomplete="off" spellcheck="true" style="display:block;width:100%;box-sizing:border-box;font:inherit;margin:0;padding:0.15rem;border:1px solid #ccc;" />
+      </p>
+      <!-- /body -->
+    </div>
+  </form>
+  <div data-part="notice" style="min-height:1.4rem;margin-top:0.35rem;"></div>
+  <div data-part="mod-offer" style="display:none;margin-top:0.35rem;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+    <span>notemaker mod is not mounted</span>
+    <button type="button" data-act="mount-mod">mount</button>
+  </div>
+  <script>
+    (function () {
+      const root = document.currentScript.closest('[data-part="htmf"]');
+      if (!root || root.dataset.notemakerBound === "1") return;
+      root.dataset.notemakerBound = "1";
+
+      const SCRIPT_BODY = document.currentScript
+        ? document.currentScript.textContent
+        : "";
+      const FIELD_CSS =
+        "display:block;width:100%;box-sizing:border-box;font:inherit;margin:0;padding:0.15rem;border:1px solid #ccc;";
+      const UI_PREFIX = "navi:notemaker:";
+      const NOTE_PREFIX = "navi:note:";
+      const WHITE = { r: 255, g: 255, b: 255 };
+      const UI_MIME = "text/html; charset=utf-8";
+      const TEXT_MIME = "text/plain; charset=utf-8";
+      const ROOT_STYLE =
+        "border:1px solid var(--nm-border);padding:0.5rem;max-width:36rem;box-sizing:border-box;";
+      const TITLE_BOX_STYLE =
+        "border:1px solid var(--nm-border);padding:0.35rem 0.5rem;display:flex;align-items:center;gap:0.55rem;";
+      const TITLE_STYLE =
+        "margin:0;font-size:1.4rem;cursor:text;flex:1;min-width:0;";
+      const ORB_SLOT_STYLE =
+        "flex:0 0 1.35rem;width:1.35rem;height:1.35rem;display:block;";
+      const ORB_STYLE =
+        "display:block;width:1.35rem;height:1.35rem;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,0.28);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;";
+      const BODY_BOX_STYLE =
+        "border:1px solid var(--nm-border);padding:0.35rem 0.5rem;";
+      const BODY_P_STYLE = "margin:0;";
+      const FORM_STYLE = "margin:0;padding:0;border:0;";
+      const BODY_INPUT_TAG =
+        '<input type="text" data-part="body-input" enterkeyhint="done" autocomplete="off" spellcheck="true" style="' +
+        FIELD_CSS +
+        '" />';
+
+      const titleEl = () => root.querySelector('[data-part="title"]');
+      const bodyEl = () => root.querySelector('[data-part="body"]');
+      const noticeEl = () => root.querySelector('[data-part="notice"]');
+      const offerEl = () => root.querySelector('[data-part="mod-offer"]');
+      const orbEl = () => root.querySelector('[data-part="orb"]');
+      const orbSlotEl = () => root.querySelector('[data-part="orb-slot"]');
+
+      let boundName = null;
+      let pendingName = null;
+      let rgb = { r: WHITE.r, g: WHITE.g, b: WHITE.b };
+
+      const fileApi = () => globalThis.navi?.storage?.file || null;
+      const itemApi = () => globalThis.navi?.storage?.item || null;
+      const uiKey = (name) => UI_PREFIX + String(name || "");
+      const textKey = (name) => NOTE_PREFIX + String(name || "");
+      const noteHttpPath = (name) =>
+        "/navi/note/" + encodeURIComponent(String(name || ""));
+
+      const setLivePath = (name) => {
+        root.setAttribute("data-note", textKey(name));
+      };
+
+      const nameFromPath = (raw) => {
+        const s = String(raw || "").trim();
+        const m = s.match(/^(?:navi[:/])?notemaker[:/](.+)$/i);
+        return m ? m[1] : "";
+      };
+
+      const nameFromNoteAttr = (raw) => {
+        const s = String(raw || "").trim();
+        const m = s.match(/^(?:navi[:/])?note[:/](.+)$/i);
+        return m ? m[1] : "";
+      };
+
+      const applyBodyRef = (name) => {
+        const p = bodyEl();
+        if (!p || !name) return;
+        p.setAttribute("data-note", textKey(name));
+        p.setAttribute("hx-get", noteHttpPath(name));
+        p.setAttribute("hx-trigger", "load");
+        p.setAttribute("hx-swap", "innerHTML");
+        const htmxApi = globalThis.htmx;
+        if (htmxApi && typeof htmxApi.process === "function") {
+          htmxApi.process(p);
+        }
+      };
+
+      const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+      const cssRgb = () =>
+        `rgb(${Math.round(rgb.r)},${Math.round(rgb.g)},${Math.round(rgb.b)})`;
+
+      const paintColor = () => {
+        const c = cssRgb();
+        root.style.setProperty("--nm-border", c);
+        const orb = orbEl();
+        if (orb) orb.style.background = c;
+      };
+
+      const rgbToHsl = (r, g, b) => {
+        r /= 255;
+        g /= 255;
+        b /= 255;
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h = 0;
+        let s = 0;
+        const l = (max + min) / 2;
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+          else if (max === g) h = (b - r) / d + 2;
+          else h = (r - g) / d + 4;
+          h /= 6;
+        }
+        return { h, s, l };
+      };
+
+      const hslToRgb = (h, s, l) => {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        };
+        let r;
+        let g;
+        let b;
+        if (s === 0) r = g = b = l;
+        else {
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1 / 3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1 / 3);
+        }
+        return { r: r * 255, g: g * 255, b: b * 255 };
+      };
+
+      const parseColor = (raw) => {
+        if (!raw) return null;
+        if (typeof raw === "object" && raw.r != null) {
+          return {
+            r: clamp(Number(raw.r) || 0, 0, 255),
+            g: clamp(Number(raw.g) || 0, 0, 255),
+            b: clamp(Number(raw.b) || 0, 0, 255),
+          };
+        }
+        const s = String(raw);
+        const m = s.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/i);
+        if (m) {
+          return { r: +m[1], g: +m[2], b: +m[3] };
+        }
+        const hx = s.match(/^#?([0-9a-f]{6})$/i);
+        if (hx) {
+          const n = parseInt(hx[1], 16);
+          return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+        }
+        return null;
+      };
+
+      const applyColor = (c) => {
+        rgb = c
+          ? { r: clamp(c.r, 0, 255), g: clamp(c.g, 0, 255), b: clamp(c.b, 0, 255) }
+          : { ...WHITE };
+        paintColor();
+      };
+
+      const parseRecord = (raw) => {
+        if (raw == null) return null;
+        if (typeof raw === "string") return { body: raw, color: null };
+        if (typeof raw === "object") {
+          let body = "";
+          if (raw.body != null) body = String(raw.body);
+          else if (typeof raw.note === "string") body = raw.note;
+          return { body, color: parseColor(raw.color) };
+        }
+        return { body: String(raw), color: null };
+      };
+
+      const escapeText = (s) =>
+        String(s == null ? "" : s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+
+      const escapeAttr = (s) =>
+        escapeText(s).replace(/"/g, "&quot;");
+
+      const serializeUi = (name) => {
+        const ib = uiKey(name);
+        const noteIb = textKey(name);
+        const c = cssRgb();
+        const title =
+          String(name || "").replace(/\r?\n/g, " ").trim() || "untitled";
+        const orbStyle = ORB_STYLE + "background:" + c + ";";
+        const pAttrs =
+          'data-part="body" data-note="' +
+          escapeAttr(noteIb) +
+          '" hx-get="' +
+          escapeAttr(noteHttpPath(name)) +
+          '" hx-trigger="load" hx-swap="innerHTML" style="' +
+          BODY_P_STYLE +
+          '"';
+        return [
+          "<!-- path -->",
+          '<div name="notemaker" data-path="' +
+            escapeAttr(ib) +
+            '" data-part="htmf" style="--nm-border:' +
+            c +
+            ";" +
+            ROOT_STYLE +
+            '">',
+          '  <form data-part="title-form" autocomplete="off" style="' +
+            FORM_STYLE +
+            '">',
+          '    <div data-part="title-box" style="' + TITLE_BOX_STYLE + '">',
+          "      <!-- title -->",
+          '      <h1 data-part="title" style="' + TITLE_STYLE + '">',
+          title,
+          "      </h1>",
+          "      <!-- /title -->",
+          "      <!-- color -->",
+          '      <span data-part="orb-slot" style="' + ORB_SLOT_STYLE + '">',
+          '        <span data-part="orb" style="' + orbStyle + '"></span>',
+          "      </span>",
+          "      <!-- /color -->",
+          "    </div>",
+          "  </form>",
+          "  <br />",
+          '  <form data-part="body-form" autocomplete="off" style="' +
+            FORM_STYLE +
+            '">',
+          '    <div data-part="body-box" style="' + BODY_BOX_STYLE + '">',
+          "      <!-- body -->",
+          "      <p " + pAttrs + ">",
+          "      </p>",
+          "      <!-- /body -->",
+          "    </div>",
+          "  </form>",
+          '  <div data-part="notice" style="min-height:1.4rem;margin-top:0.35rem;"></div>',
+          "  <script>",
+          SCRIPT_BODY,
+          "  </scr" + "ipt>",
+          "</div>",
+          "",
+        ].join("\n");
+      };
+
+      const parseNoteHtml = (html) => {
+        const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+        const host =
+          doc.querySelector('[data-part="htmf"]') || doc.body;
+        if (!host) return null;
+        const path = host.getAttribute("data-path") || "";
+        const h = host.querySelector('[data-part="title"]');
+        const p = host.querySelector('[data-part="body"]');
+        const title = String(h?.textContent || "").trim();
+        const color =
+          parseColor(host.style.getPropertyValue("--nm-border")) ||
+          parseColor(
+            host.querySelector('[data-part="orb"]')?.style?.background
+          );
+        const notePath = p?.getAttribute("data-note") || "";
+        return { title, color, path, notePath };
+      };
+
+      const fileMedia = async (key) => {
+        const file = fileApi();
+        if (!file || typeof file.get !== "function") return null;
+        const entry = await file.get(key);
+        if (!entry || entry.media == null) return null;
+        return entry;
+      };
+
+      const loadNote = async (name) => {
+        const uiEntry = await fileMedia(uiKey(name));
+        const textEntry = await fileMedia(textKey(name));
+        if (uiEntry || textEntry) {
+          const rec = uiEntry?.media
+            ? parseNoteHtml(uiEntry.media) || {}
+            : {};
+          let body =
+            textEntry && textEntry.media != null
+              ? String(textEntry.media)
+              : "";
+          let color = rec.color || null;
+          try {
+            const tip = await globalThis.navi?.storage?.tip?.get(textKey(name));
+            if (tip?.data?.color) color = parseColor(tip.data.color);
+          } catch (_) {
+            /* ignore */
+          }
+          return {
+            title: rec.title || name,
+            body,
+            color: color,
+            path: rec.path || uiKey(name),
+          };
+        }
+        const item = itemApi();
+        if (item && typeof item.get === "function") {
+          const raw = await item.get(uiKey(name));
+          if (raw != null) return parseRecord(raw);
+        }
+        return null;
+      };
+
+      const saveText = async (name, body) => {
+        const file = fileApi();
+        if (!file || typeof file.save !== "function") {
+          throw new Error("navi.storage.file unavailable");
+        }
+        await file.save(textKey(name), {
+          media: body == null ? "" : String(body),
+          mime: TEXT_MIME,
+        });
+      };
+
+      const saveColor = async (name) => {
+        const tip = globalThis.navi?.storage?.tip;
+        if (!tip || typeof tip.mut8 !== "function") return;
+        await tip.mut8(textKey(name), {
+          color: {
+            r: Math.round(rgb.r),
+            g: Math.round(rgb.g),
+            b: Math.round(rgb.b),
+          },
+        });
+      };
+
+      const saveNote = async (name, body) => {
+        await saveText(name, body);
+        await saveColor(name);
+      };
+
+      const applyLoaded = (name, rec) => {
+        boundName = name;
+        setLivePath(name);
+        renderTitle(name);
+        renderBody(rec?.body == null ? "" : String(rec.body));
+        applyBodyRef(name);
+        applyColor(rec?.color || WHITE);
+        clearNotice();
+      };
+
+      const commitNewName = async (name) => {
+        try {
+          await saveNote(name, committedBody());
+          boundName = name;
+          setLivePath(name);
+          renderTitle(name);
+          applyBodyRef(name);
+          clearNotice();
+          flashSuccess();
+          return true;
+        } catch (err) {
+          console.error("[notemaker] save failed", err);
+          return false;
+        }
+      };
+
+      const clearNotice = () => {
+        const n = noticeEl();
+        if (n) n.replaceChildren();
+        pendingName = null;
+      };
+
+      const flashNotice = (text, color) => {
+        const n = noticeEl();
+        if (!n) return;
+        n.replaceChildren();
+        const el = document.createElement("span");
+        el.setAttribute("data-part", "flash");
+        el.textContent = text;
+        el.style.cssText =
+          "color:" +
+          color +
+          ";font-weight:600;display:inline-block;opacity:1;transition:opacity 4s linear;";
+        n.appendChild(el);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.style.opacity = "0";
+          });
+        });
+        setTimeout(() => {
+          if (el.parentNode) el.remove();
+        }, 4000);
+      };
+
+      const flashSuccess = () => flashNotice("success!", "#0a8f2e");
+      const flashFail = () => flashNotice("fail!", "#c62828");
+
+      const showWarn = (name) => {
+        const n = noticeEl();
+        if (!n) return;
+        pendingName = name;
+        n.replaceChildren();
+        const wrap = document.createElement("div");
+        wrap.setAttribute("data-part", "warn");
+        wrap.style.cssText =
+          "display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;";
+        const msg = document.createElement("span");
+        msg.textContent = `A note named "${name}" already exists.`;
+        const ov = document.createElement("button");
+        ov.type = "button";
+        ov.setAttribute("data-act", "overwrite");
+        ov.textContent = "overwrite";
+        const ld = document.createElement("button");
+        ld.type = "button";
+        ld.setAttribute("data-act", "load");
+        ld.textContent = "load";
+        wrap.append(msg, ov, ld);
+        n.appendChild(wrap);
+      };
+
+      const committedBody = () => {
+        const p = bodyEl();
+        if (!p) return "";
+        if (p.querySelector('input[data-part="body-input"]')) return "";
+        const field = p.querySelector("textarea");
+        if (field) return String(field.value || "");
+        return String(p.textContent || "");
+      };
+
+      const makeBodyInput = (value) => {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.setAttribute("data-part", "body-input");
+        input.setAttribute("enterkeyhint", "done");
+        input.autocomplete = "off";
+        input.style.cssText = FIELD_CSS;
+        input.value = value == null ? "" : String(value);
+        return input;
+      };
+
+      const renderBody = (text) => {
+        const p = bodyEl();
+        if (!p) return;
+        const s = text == null ? "" : String(text);
+        if (s === "") p.replaceChildren(makeBodyInput(""));
+        else p.textContent = s;
+      };
+
+      const renderTitle = (name) => {
+        const h = titleEl();
+        if (!h) return;
+        h.textContent = name && String(name).trim() ? String(name) : "untitled";
+      };
+
+      const persistColor = async () => {
+        if (!boundName) return;
+        try {
+          await saveColor(boundName);
+        } catch (err) {
+          console.error("[notemaker] color mut8 failed", err);
+        }
+      };
+
+      const finishTitleEmpty = () => {
+        renderTitle(boundName || "untitled");
+      };
+
+      const beginTitleEdit = () => {
+        const h = titleEl();
+        if (!h || h.querySelector("input")) return;
+        clearNotice();
+        const prior = String(h.textContent || "");
+        const input = document.createElement("input");
+        input.type = "text";
+        input.setAttribute("data-part", "title-input");
+        input.setAttribute("enterkeyhint", "done");
+        input.autocomplete = "off";
+        input.style.cssText =
+          FIELD_CSS + "font-size:inherit;font-weight:inherit;";
+        input.value = prior === "untitled" && !boundName ? "" : prior;
+        h.textContent = "";
+        h.appendChild(input);
+        input.focus();
+        try {
+          input.setSelectionRange(input.value.length, input.value.length);
+        } catch (_) {
+          /* ignore */
+        }
+
+        const onEnter = async (e) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          e.stopPropagation();
+          const name = String(input.value || "").trim();
+          if (!name) {
+            finishTitleEmpty();
+            return;
+          }
+          if (boundName && name === boundName) {
+            setLivePath(boundName);
+            renderTitle(boundName);
+            return;
+          }
+          let existing = null;
+          try {
+            existing = await loadNote(name);
+          } catch (err) {
+            console.error("[notemaker] get failed", err);
+            return;
+          }
+          if (existing != null) {
+            pendingName = name;
+            renderTitle(name);
+            showWarn(name);
+            return;
+          }
+          await commitNewName(name);
+        };
+        input.addEventListener("keydown", onEnter);
+        input.addEventListener("click", (e) => e.stopPropagation());
+        input.addEventListener("mousedown", (e) => e.stopPropagation());
+      };
+
+      const beginBodyEdit = () => {
+        const p = bodyEl();
+        if (!p) return;
+        if (p.querySelector("textarea, input")) return;
+        const prior = String(p.textContent || "");
+        const field = document.createElement("textarea");
+        field.setAttribute("data-part", "body-edit");
+        field.setAttribute("enterkeyhint", "done");
+        field.rows = Math.max(3, Math.min(12, prior.split("\n").length + 1));
+        field.placeholder = prior;
+        field.value = prior;
+        field.style.cssText = FIELD_CSS + "min-height:3.5rem;resize:vertical;";
+        p.replaceChildren(field);
+        field.focus();
+        try {
+          field.setSelectionRange(field.value.length, field.value.length);
+        } catch (_) {
+          /* ignore */
+        }
+
+        const onEnter = async (e) => {
+          if (e.key !== "Enter" || e.shiftKey) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const next = String(field.value || "");
+          if (boundName) {
+            try {
+              await saveText(boundName, next);
+            } catch (err) {
+              console.error("[notemaker] mut8 failed", err);
+              return;
+            }
+          }
+          renderBody(next);
+          if (boundName) applyBodyRef(boundName);
+        };
+        field.addEventListener("keydown", onEnter);
+        field.addEventListener("click", (e) => e.stopPropagation());
+        field.addEventListener("mousedown", (e) => e.stopPropagation());
+      };
+
+      const onBodyInputEnter = async (input) => {
+        const next = String(input.value || "");
+        if (next.trim() === "") return;
+        if (boundName) {
+          try {
+            await saveText(boundName, next);
+          } catch (err) {
+            console.error("[notemaker] mut8 failed", err);
+            return;
+          }
+        }
+        renderBody(next);
+        if (boundName) applyBodyRef(boundName);
+      };
+
+      const drag = {
+        active: false,
+        pointerId: null,
+        samples: [],
+        lastShake: 0,
+        lastTick: 0,
+        circleUntil: 0,
+        dirArmedAt: 0,
+        appliedT: 0,
+        raf: 0,
+        returning: false,
+      };
+
+      const samplePush = (x, y, t) => {
+        drag.samples.push({ x, y, t });
+        while (drag.samples.length > 80) drag.samples.shift();
+        const cutoff = t - 900;
+        while (drag.samples.length && drag.samples[0].t < cutoff) {
+          drag.samples.shift();
+        }
+      };
+
+      const headingCircle = (s) => {
+        const now = s[s.length - 1].t;
+        const win = s.filter((p) => p.t >= now - 650);
+        if (win.length < 6) return { circling: false, turns: 0 };
+
+        const segs = [];
+        for (let i = 1; i < win.length; i++) {
+          const dx = win[i].x - win[i - 1].x;
+          const dy = win[i].y - win[i - 1].y;
+          const len = Math.hypot(dx, dy);
+          if (len < 3) continue;
+          segs.push({ dx, dy, len });
+        }
+        if (segs.length < 5) return { circling: false, turns: 0 };
+
+        let heading = 0;
+        let posN = 0;
+        let negN = 0;
+        let pathLen = 0;
+        for (const seg of segs) pathLen += seg.len;
+        for (let i = 1; i < segs.length; i++) {
+          const a = segs[i - 1];
+          const b = segs[i];
+          const cross = a.dx * b.dy - a.dy * b.dx;
+          const dot = a.dx * b.dx + a.dy * b.dy;
+          const d = Math.atan2(cross, dot);
+          heading += d;
+          if (d > 0.05) posN += 1;
+          else if (d < -0.05) negN += 1;
+        }
+        const signed = posN + negN;
+        const consistent =
+          signed >= 4 && Math.max(posN, negN) / signed >= 0.68;
+        const turns = Math.abs(heading) / (Math.PI * 2);
+        const circling =
+          consistent &&
+          pathLen >= 70 &&
+          Math.abs(heading) >= 2.1;
+        return { circling, turns, pathLen };
+      };
+
+      const strokeWindow = (s, afterT, spanMs) => {
+        const last = s[s.length - 1];
+        const from = Math.max(afterT || 0, last.t - spanMs);
+        const win = s.filter((p) => p.t >= from);
+        if (win.length < 2) {
+          return { dx: 0, dy: 0, net: 0, path: 0, straight: false, arcing: false };
+        }
+        let path = 0;
+        for (let i = 1; i < win.length; i++) {
+          path += Math.hypot(win[i].x - win[i - 1].x, win[i].y - win[i - 1].y);
+        }
+        const dx = win[win.length - 1].x - win[0].x;
+        const dy = win[win.length - 1].y - win[0].y;
+        const net = Math.hypot(dx, dy);
+        return {
+          dx,
+          dy,
+          net,
+          path,
+          straight: net >= 52 && path <= net * 1.5,
+          arcing: path >= 90 && net < path * 0.55,
+        };
+      };
+
+      const motionStats = () => {
+        const s = drag.samples;
+        if (s.length < 2) {
+          return {
+            circling: false,
+            reversals: 0,
+            turns: 0,
+            stroke: {
+              dx: 0,
+              dy: 0,
+              net: 0,
+              path: 0,
+              straight: false,
+              arcing: false,
+            },
+          };
+        }
+
+        let reversals = 0;
+        let lastSx = 0;
+        let lastSy = 0;
+        for (let i = 1; i < s.length; i++) {
+          const dti = Math.max(0.008, (s[i].t - s[i - 1].t) / 1000);
+          const sx = (s[i].x - s[i - 1].x) / dti;
+          const sy = (s[i].y - s[i - 1].y) / dti;
+          if (
+            lastSx &&
+            sx &&
+            lastSx * sx < 0 &&
+            Math.abs(sx) > 220 &&
+            Math.abs(lastSx) > 220
+          ) {
+            reversals += 1;
+          }
+          if (
+            lastSy &&
+            sy &&
+            lastSy * sy < 0 &&
+            Math.abs(sy) > 220 &&
+            Math.abs(lastSy) > 220
+          ) {
+            reversals += 1;
+          }
+          lastSx = sx;
+          lastSy = sy;
+        }
+
+        const circ = headingCircle(s);
+        const stroke = strokeWindow(s, drag.dirArmedAt, 340);
+        const circling = circ.circling || stroke.arcing;
+        return {
+          circling,
+          reversals,
+          turns: circ.turns,
+          stroke,
+        };
+      };
+
+      const stepAmt = (pixels, speed) => {
+        const boost = 1 + speed / 620;
+        return clamp(Math.abs(pixels) * 0.95 * boost, 0, 70);
+      };
+
+      const applyGestures = () => {
+        const s = drag.samples;
+        if (s.length < 2) return;
+        const last = s[s.length - 1];
+        if (last.t === drag.appliedT) return;
+        drag.appliedT = last.t;
+
+        const prev = s[s.length - 2];
+        const dx = last.x - prev.x;
+        const dy = last.y - prev.y;
+        const dist = Math.hypot(dx, dy);
+        const stepDt = Math.max(0.008, (last.t - prev.t) / 1000);
+        const speed = dist / stepDt;
+        const now = last.t;
+
+        const st = motionStats();
+
+        if (st.reversals >= 4 && now - drag.lastShake > 220) {
+          drag.lastShake = now;
+          const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+          hsl.h = (hsl.h + 0.18 + Math.random() * 0.22) % 1;
+          hsl.s = clamp(Math.max(hsl.s, 0.35) + 0.2, 0.2, 1);
+          const next = hslToRgb(hsl.h, hsl.s, hsl.l);
+          rgb.r = next.r;
+          rgb.g = next.g;
+          rgb.b = next.b;
+        }
+
+        if (st.circling) {
+          drag.circleUntil = now + 280;
+          drag.dirArmedAt = drag.circleUntil + 90;
+        }
+
+        if (dist < 1.4) {
+          rgb.r = clamp(rgb.r, 0, 255);
+          rgb.g = clamp(rgb.g, 0, 255);
+          rgb.b = clamp(rgb.b, 0, 255);
+          paintColor();
+          return;
+        }
+
+        if (st.circling) {
+          rgb.g += stepAmt(dist, speed) * 1.15;
+        } else if (now >= drag.dirArmedAt && now >= drag.circleUntil) {
+          if (dx < -1.2) rgb.r += stepAmt(-dx, speed);
+          if (dx > 1.2) rgb.b += stepAmt(dx, speed);
+          if (dy > 1.2) {
+            const d = stepAmt(dy, speed);
+            rgb.r -= d;
+            rgb.g -= d;
+            rgb.b -= d;
+          }
+          if (dy < -1.2) {
+            const d = stepAmt(-dy, speed);
+            rgb.r += d;
+            rgb.g += d;
+            rgb.b += d;
+          }
+        }
+
+        rgb.r = clamp(rgb.r, 0, 255);
+        rgb.g = clamp(rgb.g, 0, 255);
+        rgb.b = clamp(rgb.b, 0, 255);
+        paintColor();
+      };
+
+      const placeOrb = (x, y) => {
+        const orb = orbEl();
+        if (!orb) return;
+        orb.style.position = "fixed";
+        orb.style.left = x + "px";
+        orb.style.top = y + "px";
+        orb.style.transform = "translate(-50%, -50%)";
+        orb.style.zIndex = "9999";
+        orb.style.margin = "0";
+        orb.style.cursor = "grabbing";
+      };
+
+      const homeCenter = () => {
+        const slot = orbSlotEl();
+        if (!slot) return { x: 0, y: 0 };
+        const r = slot.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      };
+
+      const restoreOrb = () => {
+        const orb = orbEl();
+        if (!orb) return;
+        orb.style.position = "";
+        orb.style.left = "";
+        orb.style.top = "";
+        orb.style.transform = "";
+        orb.style.zIndex = "";
+        orb.style.margin = "";
+        orb.style.transition = "";
+        orb.style.cursor = "grab";
+      };
+
+      const tickDrag = () => {
+        if (!drag.active) return;
+        applyGestures();
+        drag.raf = requestAnimationFrame(tickDrag);
+      };
+
+      const onDocMove = (e) => {
+        if (!drag.active || e.pointerId !== drag.pointerId) return;
+        e.preventDefault();
+        placeOrb(e.clientX, e.clientY);
+        samplePush(e.clientX, e.clientY, performance.now());
+        applyGestures();
+      };
+
+      const onDocUp = (e) => {
+        if (!drag.active || e.pointerId !== drag.pointerId) return;
+        endDrag();
+      };
+
+      const bindDoc = () => {
+        document.addEventListener("pointermove", onDocMove, { passive: false });
+        document.addEventListener("pointerup", onDocUp);
+        document.addEventListener("pointercancel", onDocUp);
+      };
+
+      const unbindDoc = () => {
+        document.removeEventListener("pointermove", onDocMove);
+        document.removeEventListener("pointerup", onDocUp);
+        document.removeEventListener("pointercancel", onDocUp);
+      };
+
+      const endDrag = () => {
+        if (!drag.active || drag.returning) return;
+        drag.active = false;
+        drag.returning = true;
+        unbindDoc();
+        const orb = orbEl();
+        if (drag.raf) cancelAnimationFrame(drag.raf);
+        drag.raf = 0;
+        drag.samples = [];
+        const home = homeCenter();
+        if (orb) {
+          orb.style.transition = "left 0.16s ease, top 0.16s ease";
+          placeOrb(home.x, home.y);
+        }
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          drag.returning = false;
+          restoreOrb();
+          void persistColor();
+        };
+        if (orb) {
+          orb.addEventListener("transitionend", finish, { once: true });
+          setTimeout(finish, 220);
+        } else finish();
+      };
+
+      const startDrag = (e, orb) => {
+        if (drag.active || drag.returning) return;
+        e.preventDefault();
+        e.stopPropagation();
+        drag.active = true;
+        drag.pointerId = e.pointerId;
+        drag.samples = [];
+        drag.lastShake = 0;
+        drag.lastTick = 0;
+        drag.circleUntil = 0;
+        drag.dirArmedAt = 0;
+        drag.appliedT = 0;
+        try {
+          orb.setPointerCapture(e.pointerId);
+        } catch (_) {
+          /* ignore */
+        }
+        placeOrb(e.clientX, e.clientY);
+        samplePush(e.clientX, e.clientY, performance.now());
+        bindDoc();
+        if (drag.raf) cancelAnimationFrame(drag.raf);
+        drag.raf = requestAnimationFrame(tickDrag);
+      };
+
+      root.addEventListener("pointerdown", (e) => {
+        const orb = e.target.closest('[data-part="orb"]');
+        if (!orb || !root.contains(orb)) return;
+        startDrag(e, orb);
+      });
+
+      root.addEventListener("click", (e) => {
+        if (e.target.closest('[data-part="orb"]')) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        const btn = e.target.closest("[data-act]");
+        if (btn && root.contains(btn)) {
+          e.preventDefault();
+          const act = btn.getAttribute("data-act");
+          if (act === "mount-mod") {
+            void mountNotemakerMod();
+            return;
+          }
+          const name = pendingName;
+          if (!name) return;
+          if (act === "overwrite") {
+            void commitNewName(name);
+            return;
+          }
+          if (act === "load") {
+            void (async () => {
+              try {
+                const rec = await loadNote(name);
+                if (rec == null) return;
+                applyLoaded(name, rec);
+              } catch (err) {
+                console.error("[notemaker] load failed", err);
+              }
+            })();
+          }
+          return;
+        }
+
+        const h = e.target.closest('[data-part="title"]');
+        if (h && root.contains(h)) {
+          if (h.querySelector("input")) return;
+          e.preventDefault();
+          beginTitleEdit();
+          return;
+        }
+
+        const p = e.target.closest('[data-part="body"]');
+        if (p && root.contains(p)) {
+          if (p.querySelector("textarea, input")) return;
+          e.preventDefault();
+          beginBodyEdit();
+        }
+      });
+
+      root.addEventListener("submit", (e) => {
+        if (!e.target || !root.contains(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      root.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" || e.shiftKey) return;
+        const input = e.target;
+        if (!(input instanceof HTMLInputElement)) return;
+        if (input.getAttribute("data-part") !== "body-input") return;
+        if (!root.contains(input)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        void onBodyInputEnter(input);
+      });
+
+      const MOD_ROUTE =
+        "flowerpot/hypercloud/testkit/mods/legacy/notemaker.js";
+
+      const hasNotemakerMod = () =>
+        !!(globalThis.navi?.mod && globalThis.navi.mod.notemaker);
+
+      const hideModOffer = () => {
+        const el = offerEl();
+        if (el) el.style.display = "none";
+      };
+
+      const showModOffer = () => {
+        const el = offerEl();
+        if (!el) return;
+        el.style.display = "flex";
+      };
+
+      const refreshModOffer = () => {
+        if (hasNotemakerMod()) hideModOffer();
+        else showModOffer();
+      };
+
+      const mountNotemakerMod = async () => {
+        const navi = globalThis.navi;
+        if (!navi) {
+          flashFail();
+          return;
+        }
+        try {
+          const surfMount = navi.mod?.surf?.commands?.mount?.execute;
+          if (typeof surfMount === "function") {
+            const out = await surfMount(MOD_ROUTE);
+            const msg = out == null ? "" : String(out);
+            if (/^error\b/i.test(msg.trim())) throw new Error(msg);
+          } else if (typeof navi.mount === "function") {
+            const url =
+              typeof navi.resolveUrl === "function"
+                ? navi.resolveUrl(MOD_ROUTE)
+                : "/" + MOD_ROUTE;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            await navi.mount(await res.text());
+          } else {
+            throw new Error("mount unavailable");
+          }
+          if (!hasNotemakerMod()) throw new Error("mount did not register navi.mod.notemaker");
+          hideModOffer();
+          flashSuccess();
+        } catch (err) {
+          console.error("[notemaker] mount failed", err);
+          flashFail();
+        }
+      };
+
+      const bootName =
+        nameFromNoteAttr(root.getAttribute("data-note")) ||
+        nameFromNoteAttr(bodyEl()?.getAttribute("data-note")) ||
+        nameFromPath(root.getAttribute("data-path"));
+      if (bootName) {
+        boundName = bootName;
+        applyColor(
+          parseColor(root.style.getPropertyValue("--nm-border")) || WHITE
+        );
+        applyBodyRef(bootName);
+        void loadNote(bootName).then((rec) => {
+          if (!rec) return;
+          if (rec.color) applyColor(rec.color);
+          renderBody(rec.body == null ? "" : String(rec.body));
+          applyBodyRef(bootName);
+        });
+      } else {
+        paintColor();
+      }
+      setTimeout(refreshModOffer, 2000);
+    })();
+  </script>
+</div>

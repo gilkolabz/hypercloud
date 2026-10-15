@@ -1,0 +1,730 @@
+<div
+  name="clock"
+  data-path="torus/testkit/clock"
+  data-part="htmf"
+  data-schema="flowerpot/torus/testkit/clock/schema/am"
+  data-scan=""
+  data-schemas=""
+>
+  <style>
+    div[name="clock"] {
+      --clock-ink: #1a1a1a;
+      --clock-paper: #f3efe6;
+      --clock-accent: #c45c26;
+      --clock-mute: #8a8478;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      color: var(--clock-ink);
+      background: radial-gradient(120% 80% at 50% 0%, #fffaf0 0%, var(--clock-paper) 55%, #e6e0d4 100%);
+      padding: 1.25rem 1.5rem 1.75rem;
+      max-width: 42rem;
+      box-sizing: border-box;
+    }
+    div[name="clock"] h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin: 0 0 0.35rem;
+    }
+    div[name="clock"] .lede {
+      margin: 0 0 1rem;
+      color: var(--clock-mute);
+      font-size: 0.95rem;
+      max-width: 36rem;
+    }
+    div[name="clock"] .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+      align-items: center;
+      margin: 0 0 0.75rem;
+    }
+    div[name="clock"] label {
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--clock-mute);
+    }
+    div[name="clock"] input[type="text"],
+    div[name="clock"] select {
+      font: inherit;
+      font-size: 0.95rem;
+      border: 1px solid #cfc7b8;
+      background: #fffdf8;
+      color: var(--clock-ink);
+      padding: 0.35rem 0.55rem;
+      min-width: 12rem;
+      border-radius: 0;
+    }
+    div[name="clock"] button {
+      font: inherit;
+      font-size: 0.9rem;
+      border: 1px solid var(--clock-ink);
+      background: transparent;
+      color: var(--clock-ink);
+      padding: 0.35rem 0.7rem;
+      cursor: pointer;
+    }
+    div[name="clock"] button:hover {
+      background: var(--clock-ink);
+      color: var(--clock-paper);
+    }
+    div[name="clock"] button[data-active="1"] {
+      background: var(--clock-accent);
+      border-color: var(--clock-accent);
+      color: #fff8f0;
+    }
+    div[name="clock"] [data-part="face-wrap"] {
+      position: relative;
+      width: min(100%, 28rem);
+      margin: 0.75rem auto 0.5rem;
+      aspect-ratio: 1;
+    }
+    div[name="clock"] canvas[data-part="face"] {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    div[name="clock"] [data-part="readout"] {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-size: 1.35rem;
+      letter-spacing: 0.08em;
+      margin: 0.25rem 0 0.75rem;
+    }
+    div[name="clock"] [data-part="status"] {
+      font-size: 0.85rem;
+      color: var(--clock-mute);
+      min-height: 1.2em;
+    }
+    div[name="clock"] [data-part="events"] {
+      list-style: none;
+      margin: 0.5rem 0 0;
+      padding: 0;
+      max-height: 10rem;
+      overflow: auto;
+      font-size: 0.85rem;
+      border-top: 1px solid #ddd5c6;
+      padding-top: 0.5rem;
+    }
+    div[name="clock"] [data-part="events"] li {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.2rem 0;
+      border-bottom: 1px dotted #ddd5c6;
+      font-variant-numeric: tabular-nums;
+    }
+    div[name="clock"] [data-part="events"] .deg {
+      color: var(--clock-accent);
+      min-width: 4.5rem;
+    }
+    div[name="clock"] [data-part="events"] .ib {
+      color: var(--clock-mute);
+      word-break: break-all;
+    }
+  </style>
+
+  <h1>clock</h1>
+  <p class="lede">
+    Circle face driven by a schema tip (AM / PM / 24h / …). Load tips to scan;
+    timestamps and event lists land as marks on the wheel.
+  </p>
+
+  <div class="row">
+    <label for="clock-schema">schema</label>
+    <select data-part="schema-pick" id="clock-schema" title="schema tip">
+      <option value="flowerpot/torus/testkit/clock/schema/am">AM</option>
+      <option value="flowerpot/torus/testkit/clock/schema/pm">PM</option>
+      <option value="flowerpot/torus/testkit/clock/schema/24h">24h</option>
+    </select>
+    <button type="button" data-part="reload" title="reload schema + scan">reload</button>
+  </div>
+
+  <div class="row">
+    <label for="clock-schema-add">add schema</label>
+    <input
+      type="text"
+      data-part="schema-add"
+      id="clock-schema-add"
+      placeholder="flowerpot/…/schema/… or torus/…"
+      spellcheck="false"
+    />
+    <button type="button" data-part="schema-add-go" title="fetch schema tip and add to list">add</button>
+  </div>
+
+  <div class="row">
+    <label for="clock-scan">scan tips</label>
+    <input
+      type="text"
+      data-part="scan"
+      id="clock-scan"
+      placeholder="ib, ib, … (comma-separated)"
+      spellcheck="false"
+    />
+    <button type="button" data-part="scan-go">scan</button>
+  </div>
+
+  <div data-part="face-wrap">
+    <canvas data-part="face" width="560" height="560" aria-label="clock face"></canvas>
+  </div>
+  <div
+    data-part="readout"
+    data-path="navi:clock:readout"
+    title="jockey-claimable HH:MM"
+  >
+    --:--
+  </div>
+  <div data-part="status"></div>
+  <ul data-part="events"></ul>
+
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="clock"]')) ||
+        document.querySelector('div[name="clock"]');
+      if (!root || root.dataset.clockBound === "1") return;
+      root.dataset.clockBound = "1";
+
+      const part = (n) => root.querySelector(`[data-part="${n}"]`);
+      const SCHEMA_KIND = "navi.clock.schema";
+      const BUILTIN_SCHEMAS = [
+        "flowerpot/torus/testkit/clock/schema/am",
+        "flowerpot/torus/testkit/clock/schema/pm",
+        "flowerpot/torus/testkit/clock/schema/24h",
+      ];
+
+      let schema = null;
+      let events = [];
+      let now = new Date();
+      let raf = 0;
+
+      function setStatus(msg) {
+        const el = part("status");
+        if (el) el.textContent = msg || "";
+      }
+
+      /** Flowerpot park routes need the flowerpot/ prefix for navi.fetch. */
+      function withFlowerpot(ib) {
+        let s = String(ib || "")
+          .trim()
+          .replace(/^\/+/, "");
+        if (!s) return s;
+        if (/^flowerpot[/:]/i.test(s)) {
+          return s.replace(/^flowerpot:/i, "flowerpot/");
+        }
+        // Local nest tips stay bare (navi:…); everything else is a park route.
+        if (/^navi[/:]/i.test(s)) return s;
+        return "flowerpot/" + s;
+      }
+
+      function bareRoute(ib) {
+        return String(ib || "")
+          .trim()
+          .replace(/^\/+/, "")
+          .replace(/^flowerpot[/:]/i, "");
+      }
+
+      async function fetchJson(ib) {
+        const path = withFlowerpot(ib);
+        if (!path) throw new Error("empty tip ib");
+        // Local tip first (planted / savefs), then park-check → flowerpot host.
+        const localIb = bareRoute(path);
+        try {
+          const tip = await navi?.storage?.tip?.get?.(localIb);
+          if (tip?.data && tip.data.kind === SCHEMA_KIND) return tip.data;
+          if (tip?.rel8ns?.bin?.[0] && navi?.storage?.bin?.mediaFromTip) {
+            const media = await navi.storage.bin.mediaFromTip(
+              tip.ib || localIb
+            );
+            return JSON.parse(media);
+          }
+          if (tip?.data && !tip.data.kind) {
+            /* fall through to fetch — might be a stub */
+          } else if (tip?.data) {
+            return tip.data;
+          }
+        } catch {
+          /* try network */
+        }
+        if (typeof navi?.fetch === "function") {
+          const res = await navi.fetch(path);
+          const text = await res.text();
+          if (!res.ok) {
+            throw new Error("navi.fetch " + path + " → " + res.status);
+          }
+          return JSON.parse(text);
+        }
+        throw new Error("cannot load tip " + path);
+      }
+
+      function listKnownSchemas() {
+        const pick = part("schema-pick");
+        const fromSelect = pick
+          ? [...pick.options].map((o) => o.value).filter(Boolean)
+          : [];
+        const fromAttr = String(root.getAttribute("data-schemas") || "")
+          .split(/[,;\n]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        const all = [...BUILTIN_SCHEMAS, ...fromAttr, ...fromSelect].map(
+          withFlowerpot
+        );
+        return [...new Set(all)];
+      }
+
+      function rememberSchema(ib, label) {
+        const path = withFlowerpot(ib);
+        const pick = part("schema-pick");
+        if (pick && ![...pick.options].some((o) => o.value === path)) {
+          const o = document.createElement("option");
+          o.value = path;
+          o.textContent = label || bareRoute(path).split("/").pop() || path;
+          pick.appendChild(o);
+        }
+        const extras = String(root.getAttribute("data-schemas") || "")
+          .split(/[,;\n]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .map(withFlowerpot);
+        if (!extras.includes(path) && !BUILTIN_SCHEMAS.includes(path)) {
+          extras.push(path);
+          root.setAttribute("data-schemas", extras.join(", "));
+        }
+        if (pick) pick.value = path;
+        return path;
+      }
+
+      async function addSchema(rawIb) {
+        const path = withFlowerpot(rawIb);
+        if (!path) throw new Error("enter a schema tip ib");
+        setStatus("loading schema " + path + "…");
+        const raw = await fetchJson(path);
+        if (!raw || raw.kind !== SCHEMA_KIND) {
+          throw new Error("not a " + SCHEMA_KIND + ": " + path);
+        }
+        rememberSchema(path, raw.label || raw.id || path);
+        await loadSchema(path);
+        setStatus(
+          "added schema " +
+            (raw.label || raw.id || path) +
+            " · " +
+            (raw.about?.description || "")
+        );
+        return raw;
+      }
+
+      async function loadTipFrame(ib) {
+        const raw = String(ib || "").trim();
+        if (!raw) return null;
+        // Prefer local tip; flowerpot-prefix only for network fetch.
+        const localCandidates = [raw, bareRoute(raw)].filter(
+          (v, i, a) => v && a.indexOf(v) === i
+        );
+        for (const cand of localCandidates) {
+          try {
+            const tip = await navi?.storage?.tip?.get?.(cand);
+            if (tip) return tip;
+          } catch {
+            /* try next */
+          }
+        }
+        try {
+          const body = await fetchJson(raw);
+          if (body && typeof body === "object") {
+            if (body.ib || body.data) return body;
+            return { ib: bareRoute(raw), data: body, rel8ns: {} };
+          }
+        } catch {
+          /* miss */
+        }
+        return null;
+      }
+
+      function parseWhen(raw) {
+        if (raw == null) return null;
+        if (raw instanceof Date && !Number.isNaN(raw.getTime())) return raw;
+        if (typeof raw === "number" && Number.isFinite(raw)) {
+          const d = new Date(raw);
+          return Number.isNaN(d.getTime()) ? null : d;
+        }
+        if (typeof raw === "object") {
+          const h = Number(raw.hour ?? raw.h);
+          const m = Number(raw.minute ?? raw.min ?? raw.m ?? 0);
+          const s = Number(raw.second ?? raw.s ?? 0);
+          if (Number.isFinite(h)) {
+            const d = new Date();
+            d.setHours(h, Number.isFinite(m) ? m : 0, Number.isFinite(s) ? s : 0, 0);
+            return d;
+          }
+          if (raw.timestamp) return parseWhen(raw.timestamp);
+          if (raw.at) return parseWhen(raw.at);
+          if (raw.time) return parseWhen(raw.time);
+        }
+        const s = String(raw).trim();
+        if (!s) return null;
+        const d = new Date(s);
+        if (!Number.isNaN(d.getTime())) return d;
+        const hm = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+        if (hm) {
+          let h = Number(hm[1]);
+          const m = Number(hm[2]);
+          const sec = hm[3] != null ? Number(hm[3]) : 0;
+          const ap = (hm[4] || "").toLowerCase();
+          if (ap === "pm" && h < 12) h += 12;
+          if (ap === "am" && h === 12) h = 0;
+          const out = new Date();
+          out.setHours(h, m, sec, 0);
+          return out;
+        }
+        return null;
+      }
+
+      function minutesInPeriod(date, sch) {
+        const start = Number(sch?.period?.startHour ?? 0);
+        const hours = Number(sch?.period?.hours ?? 12);
+        const end = Number(
+          sch?.period?.endHour != null ? sch.period.endHour : start + hours
+        );
+        const h = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
+        if (h < start || h >= end) return null;
+        return (h - start) * 60;
+      }
+
+      function angleForMinutes(mins, sch) {
+        const hours = Number(sch?.period?.hours ?? 12);
+        const span = hours * 60;
+        const deg = Number(sch?.degrees ?? 360);
+        let a = (mins / span) * deg;
+        if (sch?.clockwise === false) a = -a;
+        // 0 at top
+        return a - 90;
+      }
+
+      function collectEventsFromTip(tip, sch) {
+        const out = [];
+        if (!tip) return out;
+        const ib = String(tip.ib || "").trim();
+        const data = tip.data && typeof tip.data === "object" ? tip.data : {};
+        const push = (when, label, meta) => {
+          const d = parseWhen(when);
+          if (!d) return;
+          const mins = minutesInPeriod(d, sch);
+          if (mins == null) return;
+          out.push({
+            ib,
+            label: label || ib || d.toISOString(),
+            at: d,
+            minutes: mins,
+            deg: ((mins / (Number(sch.period.hours) * 60)) * Number(sch.degrees || 360)) % 360,
+            meta: meta || null,
+          });
+        };
+
+        if (Array.isArray(data.events)) {
+          for (const ev of data.events) {
+            if (ev == null) continue;
+            if (typeof ev === "string" || typeof ev === "number") {
+              push(ev, String(ev));
+            } else {
+              push(
+                ev.timestamp ?? ev.at ?? ev.time ?? ev,
+                ev.label || ev.ib || ib,
+                ev
+              );
+            }
+          }
+        }
+        if (data.timestamp) push(data.timestamp, ib);
+        if (data.time) push(data.time, ib);
+        if (sch?.event?.ibAsEvent && !data.timestamp && !data.time && !data.events) {
+          // bare ib with nothing — skip
+        }
+        return out;
+      }
+
+      async function loadSchema(ib) {
+        const path = withFlowerpot(
+          String(ib || root.getAttribute("data-schema") || "").trim() ||
+            BUILTIN_SCHEMAS[0]
+        );
+        const raw = await fetchJson(path);
+        if (!raw || raw.kind !== SCHEMA_KIND) {
+          throw new Error("not a " + SCHEMA_KIND + ": " + path);
+        }
+        schema = raw;
+        root.setAttribute("data-schema", path);
+        rememberSchema(path, raw.label || raw.id || path);
+        return schema;
+      }
+
+      async function scanTips(rawList) {
+        const list = String(
+          rawList != null ? rawList : root.getAttribute("data-scan") || ""
+        )
+          .split(/[,;\n]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+        root.setAttribute("data-scan", list.join(", "));
+        const scanEl = part("scan");
+        if (scanEl) scanEl.value = list.join(", ");
+
+        const found = [];
+        for (const ib of list) {
+          try {
+            const tip = await loadTipFrame(ib);
+            if (!tip) {
+              setStatus("miss " + ib);
+              continue;
+            }
+            found.push(...collectEventsFromTip(tip, schema));
+          } catch (e) {
+            setStatus(String(e && e.message ? e.message : e));
+          }
+        }
+        events = found;
+        renderEventList();
+        return events;
+      }
+
+      function renderEventList() {
+        const ul = part("events");
+        if (!ul) return;
+        ul.textContent = "";
+        const sorted = events.slice().sort((a, b) => a.minutes - b.minutes);
+        for (const ev of sorted) {
+          const li = document.createElement("li");
+          const deg = document.createElement("span");
+          deg.className = "deg";
+          deg.textContent = ev.deg.toFixed(1) + "°";
+          const when = document.createElement("span");
+          when.textContent = formatHm(ev.at, schema);
+          const ib = document.createElement("span");
+          ib.className = "ib";
+          ib.textContent = ev.label;
+          li.appendChild(deg);
+          li.appendChild(when);
+          li.appendChild(ib);
+          ul.appendChild(li);
+        }
+      }
+
+      function formatHm(date, sch) {
+        const h24 = date.getHours();
+        const m = String(date.getMinutes()).padStart(2, "0");
+        const hours = Number(sch?.period?.hours ?? 12);
+        if (hours === 24) {
+          return String(h24).padStart(2, "0") + ":" + m;
+        }
+        const ap = h24 >= 12 ? "PM" : "AM";
+        let h = h24 % 12;
+        if (h === 0) h = 12;
+        return h + ":" + m + " " + ap;
+      }
+
+      function draw() {
+        const canvas = part("face");
+        if (!canvas || !schema) return;
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width;
+        const h = canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const r = Math.min(w, h) * 0.42;
+        ctx.clearRect(0, 0, w, h);
+
+        // face
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#fffdf8";
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "#1a1a1a";
+        ctx.stroke();
+
+        const hours = Number(schema.period?.hours ?? 12);
+        const major = Number(schema.ticks?.majorEveryHours ?? 1);
+        const minorMin = Number(schema.ticks?.minorEveryMinutes ?? 5);
+        const showLabels = schema.ticks?.labels !== false;
+
+        // minor ticks
+        const totalMin = hours * 60;
+        for (let m = 0; m < totalMin; m += minorMin) {
+          const ang = (angleForMinutes(m, schema) * Math.PI) / 180;
+          const outer = r;
+          const inner = r * (m % 60 === 0 ? 0.86 : 0.92);
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(ang) * inner, cy + Math.sin(ang) * inner);
+          ctx.lineTo(cx + Math.cos(ang) * outer, cy + Math.sin(ang) * outer);
+          ctx.strokeStyle = m % 60 === 0 ? "#1a1a1a" : "#b0a898";
+          ctx.lineWidth = m % 60 === 0 ? 2 : 1;
+          ctx.stroke();
+        }
+
+        // hour labels
+        if (showLabels) {
+          ctx.fillStyle = "#1a1a1a";
+          ctx.font = "600 18px Georgia, serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          for (let hr = 0; hr < hours; hr += major) {
+            const mins = hr * 60;
+            const ang = (angleForMinutes(mins, schema) * Math.PI) / 180;
+            const lr = r * 0.72;
+            let label;
+            if (hours === 24) {
+              label = String(hr).padStart(2, "0");
+            } else {
+              const wall = (Number(schema.period.startHour) + hr) % 24;
+              let h12 = wall % 12;
+              if (h12 === 0) h12 = 12;
+              label = String(h12);
+            }
+            ctx.fillText(
+              label,
+              cx + Math.cos(ang) * lr,
+              cy + Math.sin(ang) * lr
+            );
+          }
+        }
+
+        // period badge
+        ctx.fillStyle = "#c45c26";
+        ctx.font = "600 14px Georgia, serif";
+        ctx.fillText(String(schema.label || ""), cx, cy + r * 0.28);
+
+        // event marks
+        for (const ev of events) {
+          const ang = (angleForMinutes(ev.minutes, schema) * Math.PI) / 180;
+          const mr = r * 0.95;
+          ctx.beginPath();
+          ctx.arc(
+            cx + Math.cos(ang) * mr,
+            cy + Math.sin(ang) * mr,
+            5,
+            0,
+            Math.PI * 2
+          );
+          ctx.fillStyle = "#c45c26";
+          ctx.fill();
+        }
+
+        // now hand (if in period)
+        const minsNow = minutesInPeriod(now, schema);
+        if (minsNow != null) {
+          const ang = (angleForMinutes(minsNow, schema) * Math.PI) / 180;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(ang) * r * 0.78, cy + Math.sin(ang) * r * 0.78);
+          ctx.strokeStyle = "#c45c26";
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+          ctx.fillStyle = "#1a1a1a";
+          ctx.fill();
+        }
+      }
+
+      function tickReadout() {
+        now = new Date();
+        const el = part("readout");
+        if (el && schema) el.textContent = formatHm(now, schema);
+        draw();
+      }
+
+      function loop() {
+        tickReadout();
+        raf = window.setTimeout(loop, 1000);
+      }
+
+      async function reload() {
+        try {
+          setStatus("loading schema…");
+          await loadSchema(part("schema-pick")?.value);
+          setStatus(
+            "schema " +
+              (schema.id || "") +
+              " · " +
+              (schema.about?.description || schema.label || "")
+          );
+          await scanTips(part("scan")?.value);
+          setStatus(
+            "schema " +
+              (schema.label || schema.id) +
+              " · " +
+              events.length +
+              " event(s) in period"
+          );
+          tickReadout();
+        } catch (e) {
+          setStatus(String(e && e.message ? e.message : e));
+        }
+      }
+
+      part("schema-pick")?.addEventListener("change", () => {
+        void reload();
+      });
+      part("reload")?.addEventListener("click", () => {
+        void reload();
+      });
+      part("schema-add-go")?.addEventListener("click", () => {
+        void (async () => {
+          try {
+            const raw = String(part("schema-add")?.value || "").trim();
+            await addSchema(raw);
+            const addEl = part("schema-add");
+            if (addEl) addEl.value = "";
+            await scanTips(part("scan")?.value);
+            tickReadout();
+          } catch (e) {
+            setStatus(String(e && e.message ? e.message : e));
+          }
+        })();
+      });
+      part("schema-add")?.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          part("schema-add-go")?.click();
+        }
+      });
+      part("scan-go")?.addEventListener("click", () => {
+        void (async () => {
+          try {
+            if (!schema) await loadSchema();
+            await scanTips(part("scan")?.value);
+            setStatus(
+              "schema " +
+                (schema.label || schema.id) +
+                " · " +
+                events.length +
+                " event(s) in period"
+            );
+            draw();
+          } catch (e) {
+            setStatus(String(e && e.message ? e.message : e));
+          }
+        })();
+      });
+
+      // seed scan field + custom schemas from attributes
+      const scanEl = part("scan");
+      if (scanEl) scanEl.value = String(root.getAttribute("data-scan") || "");
+      for (const ib of listKnownSchemas()) {
+        rememberSchema(ib, bareRoute(ib).split("/").pop() || ib);
+      }
+      const pick = part("schema-pick");
+      if (pick) {
+        const cur = withFlowerpot(
+          String(root.getAttribute("data-schema") || "").trim()
+        );
+        if (cur) {
+          rememberSchema(cur);
+          pick.value = cur;
+        }
+      }
+
+      void reload();
+      loop();
+    })();
+  </script>
+</div>

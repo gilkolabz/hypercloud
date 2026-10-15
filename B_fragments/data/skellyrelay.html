@@ -1,0 +1,599 @@
+<div name="skellyrelay" data-path="hypertext/skellyrelay" data-part="htmf" style="max-height:100vh;overflow:auto;box-sizing:border-box;">
+<script>(function(){var path="/hypertext/skellyrelay";if(location.pathname===path)return;if(location.pathname!=="/"&&location.pathname!=="")return;try{history.replaceState({htmx:true},document.title,path);sessionStorage.setItem("htmx-current-path-for-history",path);}catch(e){}})();</script>
+  <style>
+    div[name="skellyrelay"] {
+      font: 14px/1.45 system-ui, sans-serif;
+    }
+    div[name="skellyrelay"] .muted { color: #555; }
+    div[name="skellyrelay"] .err {
+      color: #a30;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    div[name="skellyrelay"] .ok { color: #070; }
+    div[name="skellyrelay"] p {
+      margin: 0.4rem 0;
+    }
+    div[name="skellyrelay"] button {
+      font: inherit;
+      cursor: pointer;
+      padding: 0.1rem 0.28rem;
+    }
+    div[name="skellyrelay"] input[data-part="alias"],
+    div[name="skellyrelay"] input[data-part="relay-alias"],
+    div[name="skellyrelay"] input[data-part="relay-token"] {
+      font: inherit;
+      min-width: 10rem;
+      padding: 0.1rem 0.2rem;
+    }
+    div[name="skellyrelay"] [data-part="relay-status"],
+    div[name="skellyrelay"] [data-part="status"],
+    div[name="skellyrelay"] [data-part="relay-result"],
+    div[name="skellyrelay"] [data-part="import-result"],
+    div[name="skellyrelay"] [data-part="mount-result"] {
+      padding: 0.15rem 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    div[name="skellyrelay"] .spin {
+      display: inline-block;
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid #bbb;
+      border-top-color: #222;
+      border-radius: 50%;
+      vertical-align: -0.15rem;
+      margin-right: 0.4rem;
+      animation: skelly-spin 0.7s linear infinite;
+    }
+    @keyframes skelly-spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <h1>Skelly Relay</h1>
+  <hr>
+  <p>Snapshot this navi (export) or pull a snapshot from a relay alias (import), then reboot.</p>
+  <div data-part="mount-area"><p class="muted">checking skelly…</p></div>
+  <hr>
+  <div data-part="relay-status" class="muted" style="white-space:pre-wrap">relay status…</div>
+  <p>
+    <label>token leave empty for open <input data-part="relay-token" autocomplete="off"></label>
+    <button type="button" data-part="relay-connect">connect</button>
+    <button type="button" data-part="relay-disconnect">disconnect</button>
+    <span data-part="relay-connect-busy" hidden><span class="spin"></span>working…</span>
+  </p>
+  <p>
+    <label>alias <input data-part="relay-alias" placeholder="vip" autocomplete="off"></label>
+    <button type="button" data-part="relay-advertise">advertise</button>
+    <button type="button" data-part="relay-status-btn">status</button>
+    <span data-part="relay-busy" hidden><span class="spin"></span>working…</span>
+  </p>
+  <div data-part="relay-result"></div>
+  <div data-part="controls" hidden>
+    <hr>
+    <div data-part="status" class="muted">…</div>
+    <p>
+      <button type="button" data-part="check">check</button>
+      <button type="button" data-part="export">export</button>
+      <span data-part="export-busy" hidden><span class="spin"></span>working…</span>
+    </p>
+    <hr>
+    <p>
+      <label>alias <input data-part="alias" placeholder="vip" autocomplete="off"></label>
+                      <button type="button" data-part="import">import</button>
+                      <button type="button" data-part="boot-clone">boot clone</button>
+                      <span data-part="import-busy" hidden><span class="spin"></span>pending request…</span>
+    </p>
+    <div data-part="import-result"></div>
+    <p data-part="reboot-wrap" hidden>
+      <button type="button" data-part="reboot">reboot navi</button>
+    </p>
+  </div>
+  <hr>
+  <p>
+    <img src="https://www.fg-a.com/animated/man-running-2.gif" alt="gif of man-running-2">
+  </p>
+  <a href="/hypertext/welcome" hx-get="/hypertext/welcome" hx-swap="outerHTML" hx-target="closest div[name='skellyrelay']" hx-push-url="true">back to welcome</a>
+
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="skellyrelay"]')) ||
+        document.querySelector('div[name="skellyrelay"]');
+      if (!root) return;
+
+      const part = (name) => root.querySelector('[data-part="' + name + '"]');
+      const SKELLY_PARK = "skelly";
+
+      const esc = (s) =>
+        String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+
+      function skellyMounted() {
+        return !!(typeof navi !== "undefined" && navi && navi.mod && navi.mod.skelly);
+      }
+
+      async function refreshStatus() {
+        const el = part("status");
+        if (!el || typeof navi === "undefined" || !navi || !navi.storage) {
+          if (el) el.textContent = "navi.storage unavailable";
+          return;
+        }
+        const lines = [];
+        try {
+          const park = await navi.storage.tip.get("navi:skelly");
+          if (park && park.ib) {
+            lines.push(
+              "navi:skelly exists" +
+                (park.gib ? " (" + park.ib + "^" + park.gib + ")" : "")
+            );
+          } else {
+            lines.push("navi:skelly missing");
+          }
+        } catch (e) {
+          lines.push(
+            "navi:skelly: " + (e && e.message ? e.message : String(e))
+          );
+        }
+        try {
+          const exp = await navi.storage.tip.get("navi:skelly:export");
+          if (exp && exp.ib) {
+            lines.push(
+              "navi:skelly:export exists" +
+                (exp.gib ? " (" + exp.ib + "^" + exp.gib + ")" : "")
+            );
+          } else {
+            lines.push("navi:skelly:export missing");
+          }
+        } catch (e) {
+          lines.push(
+            "navi:skelly:export: " + (e && e.message ? e.message : String(e))
+          );
+        }
+        el.textContent = lines.join("\n");
+        el.className = "";
+        el.style.whiteSpace = "pre-wrap";
+      }
+
+      function showMounted(show) {
+        const controls = part("controls");
+        if (controls) controls.hidden = !show;
+      }
+
+      async function renderMount() {
+        const area = part("mount-area");
+        if (!area) return;
+        if (skellyMounted()) {
+          area.innerHTML = '<p class="ok">skelly is mounted.</p>';
+          showMounted(true);
+          await refreshStatus();
+          return;
+        }
+        showMounted(false);
+        area.innerHTML =
+          '<p class="muted">skelly is not mounted.</p>' +
+          '<p><button type="button" data-part="mount">mount skelly</button>' +
+          '<span data-part="mount-busy" hidden><span class="spin"></span>mounting…</span></p>' +
+          '<div data-part="mount-result"></div>';
+        const btn = part("mount");
+        if (btn) btn.addEventListener("click", onMount);
+      }
+
+      async function onMount() {
+        const btn = part("mount");
+        const busy = part("mount-busy");
+        const result = part("mount-result");
+        if (btn) btn.hidden = true;
+        if (busy) busy.hidden = false;
+        if (result) {
+          result.textContent = "";
+          result.className = "muted";
+        }
+        try {
+          if (typeof navi === "undefined" || !navi) {
+            throw new Error("navi unavailable");
+          }
+          // Mount the hostpark park /skelly, like the warez table does.
+          const msg =
+            typeof navi.callin === "function"
+              ? await navi.callin({
+                  path: SKELLY_PARK,
+                  method: "GET",
+                  headers: { "X-Navi-Park-Bypass": "1" },
+                })
+              : await navi(SKELLY_PARK);
+          const ok = String(msg || "").length > 0 && !String(msg).startsWith("Error");
+          if (!ok) throw new Error(String(msg || "mount failed"));
+          if (result) {
+            result.textContent = String(msg);
+            result.className = "ok";
+          }
+          await renderMount();
+        } catch (e) {
+          if (result) {
+            result.textContent = "error: " + (e && e.message ? e.message : String(e));
+            result.className = "err";
+          }
+          if (btn) btn.hidden = false;
+        } finally {
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      async function refreshRelayStatus() {
+        const el = part("relay-status");
+        if (!el) return;
+        try {
+          if (typeof navi === "undefined" || !navi) {
+            throw new Error("navi unavailable");
+          }
+          const text = await navi("relay status");
+          el.textContent = String(text || "");
+          el.className = "";
+        } catch (e) {
+          el.textContent =
+            "relay status error: " + (e && e.message ? e.message : String(e));
+          el.className = "err";
+        }
+      }
+
+      async function runRelayAction(opts) {
+        const btn = opts.btn;
+        const busy = opts.busy;
+        const result = part("relay-result");
+        if (btn) btn.hidden = true;
+        if (busy) busy.hidden = false;
+        if (result) {
+          result.textContent = "";
+          result.className = "muted";
+        }
+        try {
+          if (typeof navi === "undefined" || !navi) {
+            throw new Error("navi unavailable");
+          }
+          const out = await opts.run();
+          if (result) {
+            result.textContent = String(out || "ok");
+            result.className = "ok";
+          }
+          await refreshRelayStatus();
+        } catch (e) {
+          if (result) {
+            result.textContent =
+              "error: " + (e && e.message ? e.message : String(e));
+            result.className = "err";
+          }
+        } finally {
+          if (btn) btn.hidden = false;
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      async function onRelayConnect() {
+        await runRelayAction({
+          btn: part("relay-connect"),
+          busy: part("relay-connect-busy"),
+          run: async () => {
+            const token = String(
+              (part("relay-token") && part("relay-token").value) || ""
+            ).trim();
+            if (token) {
+              await navi("relay token " + token);
+            }
+            return await navi("relay connect");
+          },
+        });
+      }
+
+      async function onRelayDisconnect() {
+        await runRelayAction({
+          btn: part("relay-disconnect"),
+          busy: part("relay-connect-busy"),
+          run: async () => await navi("relay disconnect"),
+        });
+      }
+
+      async function onRelayAdvertise() {
+        await runRelayAction({
+          btn: part("relay-advertise"),
+          busy: part("relay-busy"),
+          run: async () => {
+            const alias = String((part("relay-alias") && part("relay-alias").value) || "")
+              .trim()
+              .replace(/^navi-/, "");
+            if (!alias) throw new Error("alias required (e.g. vip)");
+            return await navi("relay advertise " + alias);
+          },
+        });
+      }
+
+      async function onRelayStatus() {
+        const btn = part("relay-status-btn");
+        const busy = part("relay-busy");
+        const result = part("relay-result");
+        if (btn) btn.hidden = true;
+        if (busy) busy.hidden = false;
+        if (result) {
+          result.textContent = "";
+          result.className = "";
+        }
+        try {
+          await refreshRelayStatus();
+        } finally {
+          if (btn) btn.hidden = false;
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      async function onCheck() {
+        const btn = part("check");
+        const busy = part("export-busy");
+        if (btn) btn.hidden = true;
+        if (busy) busy.hidden = false;
+        try {
+          await refreshStatus();
+        } finally {
+          if (btn) btn.hidden = false;
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      async function onExport() {
+        const btn = part("export");
+        const checkBtn = part("check");
+        const busy = part("export-busy");
+        const status = part("status");
+        if (btn) btn.hidden = true;
+        if (checkBtn) checkBtn.hidden = true;
+        if (busy) busy.hidden = false;
+        try {
+          if (!skellyMounted()) throw new Error("skelly is not mounted");
+          await navi("skelly export");
+          if (status) {
+            await refreshStatus();
+            status.className = "ok";
+          }
+        } catch (e) {
+          if (status) {
+            status.textContent =
+              "export error: " + (e && e.message ? e.message : String(e));
+            status.className = "err";
+          }
+        } finally {
+          if (btn) btn.hidden = false;
+          if (checkBtn) checkBtn.hidden = false;
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      async function onImport() {
+        const btn = part("import");
+        const busy = part("import-busy");
+        const result = part("import-result");
+        const reboot = part("reboot-wrap");
+        const alias = importAlias();
+        const requestBtn = part("boot-clone");
+        if (reboot) reboot.hidden = true;
+        if (btn) btn.hidden = true;
+        if (requestBtn) requestBtn.hidden = true;
+        if (busy) busy.hidden = false;
+        if (result) {
+          result.textContent = "pending request…";
+          result.className = "muted";
+        }
+        try {
+          if (!alias) throw new Error("alias required (e.g. vip)");
+          if (!skellyMounted()) throw new Error("skelly is not mounted");
+          const out = await navi(
+            "skelly import navi-" + alias + " skelly export"
+          );
+          if (result) {
+            result.textContent =
+              "success" +
+              (out && typeof out === "object"
+                ? " — tips " +
+                  (out.tipsWritten != null ? out.tipsWritten : "?") +
+                  ", bins " +
+                  (out.binsWritten != null ? out.binsWritten : "?")
+                : "");
+            result.className = "ok";
+          }
+          if (reboot) reboot.hidden = false;
+        } catch (e) {
+          if (result) {
+            result.textContent =
+              "fail/error: " + (e && e.message ? e.message : String(e));
+            result.className = "err";
+          }
+        } finally {
+          if (btn) btn.hidden = false;
+          if (requestBtn) requestBtn.hidden = false;
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      function importAlias() {
+        return String((part("alias") && part("alias").value) || "")
+          .trim()
+          .replace(/^navi-/, "");
+      }
+
+      const CLONE_IB = "navi:skelly:clone";
+
+      async function onBootClone() {
+        const btn = part("boot-clone");
+        const importBtn = part("import");
+        const busy = part("import-busy");
+        const result = part("import-result");
+        const alias = importAlias();
+        if (btn) btn.hidden = true;
+        if (importBtn) importBtn.hidden = true;
+        if (busy) busy.hidden = false;
+        if (result) {
+          result.textContent = "boot clone: requesting export…";
+          result.className = "muted";
+        }
+        try {
+          if (!alias) throw new Error("alias required (e.g. vip)");
+          if (!skellyMounted()) throw new Error("skelly is not mounted");
+          if (typeof navi === "undefined" || !navi || typeof navi.resolveUrl !== "function") {
+            throw new Error("navi.resolveUrl unavailable");
+          }
+          const url = navi.resolveUrl("/navi-" + alias + "/skelly/export");
+          const t0 =
+            typeof performance !== "undefined" && performance.now
+              ? performance.now()
+              : Date.now();
+          // X-Navi-Shell-Wait: relay holds this request and returns the device's reply.
+          const res = await fetch(url, {
+            headers: {
+              Accept: "application/json, text/plain, */*",
+              "X-Navi-Shell-Wait": "1",
+            },
+          });
+          const text = await res.text();
+          const ms = Math.round(
+            (typeof performance !== "undefined" && performance.now
+              ? performance.now()
+              : Date.now()) - t0
+          );
+          if (!res.ok) {
+            let why = text.slice(0, 400);
+            try {
+              const j = JSON.parse(text);
+              if (j && j.error) why = String(j.error);
+            } catch {
+              /* keep slice */
+            }
+            throw new Error(
+              "GET " + url + " → " + res.status + " in " + ms + "ms: " + why
+            );
+          }
+          let parsed = null;
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            /* reported below */
+          }
+          if (!parsed || parsed.kind !== "navi.skelly.export") {
+            const got = parsed && parsed.ib
+              ? "its tip " + parsed.ib + " instead of the bundle"
+              : text.length + " bytes (HTTP " + res.status + ") that are not a skelly bundle";
+            throw new Error(
+              "navi-" + alias + " sent " + got + ": " + text.slice(0, 160)
+            );
+          }
+          if (result) {
+            result.textContent =
+              "boot clone: got " +
+              text.length +
+              " bytes in " +
+              ms +
+              "ms — seeding…";
+            result.className = "muted";
+          }
+          const sha = await navi.storage.bin.putMedia({
+            media: text,
+            mime: "application/json; charset=utf-8",
+          });
+          const ref = navi.storage.bin.ref(sha);
+          const existing = await navi.storage.tip.get(CLONE_IB);
+          const data = {
+            parts: ["skelly_clone", "ibgib_frame", "manifest", "json"],
+            park: "capture",
+            default_method: "GET",
+            content_type: "application/json; charset=utf-8",
+            http: { GET: { kind: "bin", mode: "sync" } },
+          };
+          if (existing && existing.data) {
+            await navi.storage.tip.mut8(CLONE_IB, data, {
+              rel8ns: { bin: [ref] },
+            });
+          } else {
+            await navi.storage.tip.set({
+              ib: CLONE_IB,
+              gib: "",
+              data,
+              rel8ns: { bin: [ref], past: [], tjp: [], dna: [] },
+            });
+          }
+          const sk = navi.mod.skelly;
+          const out =
+            sk && typeof sk.importBundle === "function"
+              ? await sk.importBundle(parsed, "navi-" + alias)
+              : await navi("skelly import navi skelly clone");
+          const tips =
+            out && typeof out === "object" && out.tipsWritten != null
+              ? out.tipsWritten
+              : "?";
+          const bins =
+            out && typeof out === "object" && out.binsWritten != null
+              ? out.binsWritten
+              : "?";
+          if (result) {
+            result.textContent =
+              "boot clone: seeded tips " +
+              tips +
+              ", bins " +
+              bins +
+              " — rebooting…";
+            result.className = "ok";
+          }
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          window.location.reload();
+        } catch (e) {
+          if (result) {
+            result.textContent =
+              "fail/error: " + (e && e.message ? e.message : String(e));
+            result.className = "err";
+          }
+          if (btn) btn.hidden = false;
+          if (importBtn) importBtn.hidden = false;
+          if (busy) busy.hidden = true;
+        }
+      }
+
+      function onReboot() {
+        try {
+          if (typeof navi !== "undefined" && navi && navi.pwa) {
+            /* PWA and document: same-origin reload is the equivalent. */
+          }
+        } catch {
+          /* ignore */
+        }
+        window.location.reload();
+      }
+
+      const checkBtn = part("check");
+      const exportBtn = part("export");
+      const importBtn = part("import");
+      const requestExportBtn = part("boot-clone");
+      const rebootBtn = part("reboot");
+      const connectBtn = part("relay-connect");
+      const disconnectBtn = part("relay-disconnect");
+      const advertiseBtn = part("relay-advertise");
+      const statusBtn = part("relay-status-btn");
+      if (checkBtn) checkBtn.addEventListener("click", onCheck);
+      if (exportBtn) exportBtn.addEventListener("click", onExport);
+      if (importBtn) importBtn.addEventListener("click", onImport);
+      if (requestExportBtn) requestExportBtn.addEventListener("click", onBootClone);
+      if (rebootBtn) rebootBtn.addEventListener("click", onReboot);
+      if (connectBtn) connectBtn.addEventListener("click", onRelayConnect);
+      if (disconnectBtn) disconnectBtn.addEventListener("click", onRelayDisconnect);
+      if (advertiseBtn) advertiseBtn.addEventListener("click", onRelayAdvertise);
+      if (statusBtn) statusBtn.addEventListener("click", onRelayStatus);
+
+      void refreshRelayStatus();
+      setTimeout(() => {
+        void renderMount();
+      }, 2000);
+    })();
+  </script>
+</div>

@@ -1,0 +1,151 @@
+<div
+  name="navi_text_editor"
+  data-path="torus/testkit/text_editor"
+  data-part="htmf"
+>
+  <label>
+    path
+    <br />
+    <input
+      type="text"
+      name="file_path"
+      data-part="path"
+      placeholder="notes/draft.txt"
+      autocomplete="off"
+      spellcheck="false"
+      size="48"
+    />
+  </label>
+  <br /><br />
+
+  <label>
+    mime
+    <br />
+    <input
+      type="text"
+      name="file_mime"
+      data-part="mime"
+      placeholder="text/plain"
+      autocomplete="off"
+      spellcheck="false"
+      size="48"
+    />
+  </label>
+  <br /><br />
+
+  <label>
+    text
+    <br />
+    <textarea
+      name="file_body"
+      data-part="body"
+      spellcheck="false"
+      rows="12"
+      cols="48"
+      placeholder="…"
+    ></textarea>
+  </label>
+  <br /><br />
+
+  <div data-part="actions">
+    <button type="button" data-part="load">load</button>
+    <button type="button" data-part="save">save</button>
+    <span data-part="status"></span>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.currentScript.closest(
+        'div[name="navi_text_editor"]'
+      );
+      if (!root) return;
+
+      const part = (name) => root.querySelector(`[data-part="${name}"]`);
+      const pathEl = part("path");
+      const mimeEl = part("mime");
+      const bodyEl = part("body");
+      const statusEl = part("status");
+      const loadBtn = part("load");
+      const saveBtn = part("save");
+
+      const setStatus = (text) => {
+        statusEl.textContent = text || "";
+      };
+
+      const fileApi = () => {
+        const navi = globalThis.navi;
+        const file = navi?.storage?.file;
+        if (
+          !file ||
+          typeof file.save !== "function" ||
+          typeof file.get !== "function"
+        ) {
+          throw new Error("navi.storage.file unavailable");
+        }
+        return file;
+      };
+
+      const normalizePath = (raw) =>
+        String(raw || "")
+          .trim()
+          .replace(/^\/+/, "");
+
+      const guessMime = (path) => {
+        const p = path.toLowerCase();
+        if (p.endsWith(".html") || p.endsWith(".htm")) return "text/html";
+        if (p.endsWith(".json")) return "application/json";
+        if (p.endsWith(".md")) return "text/markdown";
+        if (p.endsWith(".js") || p.endsWith(".mjs"))
+          return "application/javascript";
+        if (p.endsWith(".css")) return "text/css";
+        return "text/plain";
+      };
+
+      const resolveMime = (path) => {
+        const typed = String(mimeEl.value || "").trim();
+        return typed || guessMime(path);
+      };
+
+      loadBtn.addEventListener("click", async () => {
+        try {
+          const path = normalizePath(pathEl.value);
+          if (!path) {
+            setStatus("path required");
+            return;
+          }
+          const entry = await fileApi().get(path);
+          if (!entry || entry.media == null) {
+            bodyEl.value = "";
+            mimeEl.value = guessMime(path);
+            setStatus(`not found: ${path}`);
+            return;
+          }
+          bodyEl.value = String(entry.media);
+          mimeEl.value = String(entry.mime || guessMime(path));
+          setStatus(`loaded ${path} (${mimeEl.value})`);
+        } catch (err) {
+          setStatus(String(err?.message || err));
+        }
+      });
+
+      saveBtn.addEventListener("click", async () => {
+        try {
+          const path = normalizePath(pathEl.value);
+          if (!path) {
+            setStatus("path required");
+            return;
+          }
+          const mime = resolveMime(path);
+          mimeEl.value = mime;
+          await fileApi().save(path, {
+            media: bodyEl.value,
+            mime,
+          });
+          setStatus(`saved ${path} (${mime})`);
+        } catch (err) {
+          setStatus(String(err?.message || err));
+        }
+      });
+    })();
+  </script>
+</div>

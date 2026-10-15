@@ -1,0 +1,217 @@
+<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-navi-modules-guide"
+  data-path="torus/docs/navi-modules-guide"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Navi module writer’s guide (today)</h1>
+    <p>How to write a navi module for current <code>navi_shell</code> (browser foobarch host + native). This replaces older guides that assumed automatic callin listeners, <code>navi.core</code>, path-derived module names, <code>navi:mod:<name></code> parks, and storage as plain key bags.</p>
+    <p>Shell overview: <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi shell</a>. Units / entry-plug: <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi units</a>.</p>
+    <h2>What a module is</h2>
+    <p>A module is JS with <code>export const register = (navi) => { … return moduleObject }</code>.</p>
+    <p>Mount loads the source, calls <code>register(navi)</code>, and places the return value at <code>navi.mod.<name></code>.</p>
+    <p><strong>Park tip</strong> for a module is a <strong>bare single-segment</strong> ib matching <code>register().name</code> (e.g. <code>stagedir</code>), optionally with a short hostpark alias (underscore <code>about.name</code>). <strong><code>navi:mod</code> is only the registration ledger</strong> (<code>parks[]</code> with <code>ib^gib</code>) — never the module park itself. Declare <strong>both</strong> <code>method.GET</code> and <code>method.POST</code> as <code>kind: "mod"</code> (usually identical), with <code>rel8ns.bin</code> + <code>content_type: application/navi-module</code> for provision. Host pin: <code>Accept: application/navi-mod</code> → multipart eframe+bin; tip-only <code>Accept: application/eframe</code>; raw bytes <code>Accept: application/navi-module</code>. URL park uses GET callin; <code>navi('…')</code> uses POST callin — same resolution otherwise. Capture uses <code>park: "capture"</code>. See <code>README — Park frames: GET vs POST</code> and <code>navi_park_addressing.md</code>.</p>
+    <p>For request bodies / headers (CRUD, large text), read <strong><code>navi.callinRequest</code></strong> while your command runs — not a relay-specific API. Relay is callin with <code>viaRelay: true</code>.</p>
+    <pre><code class="javascript">
+    export const register = (navi) =&gt; {
+      const isBrowser =
+        typeof window !== "undefined" && typeof window.document !== "undefined";
+    
+      const eventListeners = [];
+      const createdElements = [];
+      const timers = [];
+    
+      const runHelp = async (...args) =&gt; {
+        if (!args.length || args[0] === "help") {
+          return "my_mod — try: my_mod ping";
+        }
+        if (args[0] === "ping") return "pong";
+        return `unknown: ${args[0]}`;
+      };
+    
+      return {
+        name: "my_mod", // required — navi.mod.my_mod + park tip navi:my_mod
+        version: "1.0.0",
+        description: "Example module",
+        moduleInfo: {
+          name: "my_mod",
+          version: "1.0.0",
+          description: "Example module",
+        },
+        commands: {
+          // callin verbs — keys are what users type
+          my_mod: {
+            name: "my_mod",
+            description: "my_mod help | ping",
+            execute: runHelp,
+          },
+        },
+        onMount: async () =&gt; {
+          /* optional init */
+        },
+        onUnmount: () =&gt; {
+          for (const { element, event, handler } of eventListeners) {
+            element.removeEventListener(event, handler);
+          }
+          eventListeners.length = 0;
+          for (const el of createdElements) el.remove();
+          createdElements.length = 0;
+          for (const t of timers) clearTimeout(t);
+          timers.length = 0;
+        },
+      };
+    };
+    </code></pre>
+    <p>Required for a healthy mount:</p>
+    <ul>
+    <li><code>name</code> — Registry key + park tip <code>navi:<name></code>. Taken from the live <code>register()</code> return (required). Single segment only (no <code>/</code> or <code>:</code>).</li>
+    <li><code>commands</code> — Map of command keys → <code>{ name, description?, execute }</code>. Must include <code>commands.&lt;name&gt;</code> (the help verb below), including plugin-only mods (stagejockey plugins, supermouse plugins) that have nothing else to type. Other keys are only reachable as <code>&lt;name&gt; &lt;key&gt; …</code>, never as a first word.</li>
+    <li><code>onUnmount</code> — Clean DOM / listeners / timers you added (browser).</li>
+    </ul>
+    <h3>Help text (required)</h3>
+    <p>Every module answers <code>navi('&lt;name&gt;')</code> and <code>navi('&lt;name&gt; help')</code> with help text written by hand for that module. Typing a mounted mod's name with no <code>commands.&lt;name&gt;</code> throws <code>navi.mod.&lt;name&gt;.commands.&lt;name&gt; not available</code>, so plugin-only mods are not exempt.</p>
+    <ul>
+    <li>Key it as <code>commands.&lt;name&gt;</code> (same string as the module <code>name</code>); no args and <code>help</code> both return the text.</li>
+    <li>Write it for a person who just mounted the mod: what it is for, how to use it (for jockey plugins, which claims appear, on what, and in which direction), what else must be mounted, and any subcommands.</li>
+    <li>Do not generate it from <code>description</code>, claim ids, or <code>Object.keys(commands)</code>, and do not return only a version string.</li>
+    <li>Live state is welcome after the text, but the hand-written part must still read correctly when nothing else is mounted.</li>
+    <li>Keep it plain text, a few short lines, no ANSI.</li>
+    <li>Do not store module state on the same tip ib as the module park (<code>&lt;name&gt;</code> / <code>navi:&lt;name&gt;</code>). That shadows the park; a bare <code>navi('&lt;name&gt;')</code> then returns the state frame instead of help. Use a nested ib (e.g. <code>navi:&lt;name&gt;:frame</code>) or <code>navi.storage.item</code>.</li>
+    </ul>
+    <pre><code class="javascript">const HELP = [
+  "image_resize — resize a picture on the page by dragging.",
+  "use: select an image with stagejockey → +1 \"image-resize\"; drag a corner,",
+  "     click inside the frame to keep it, Escape / click outside to undo.",
+  "needs: stagejockey",
+].join("\n");
+
+commands: {
+  image_resize: { name: "image_resize", description: "help", execute: async () => HELP },
+},
+</code></pre>
+    <p>MIME for published bytes: <code>application/navi-module</code>.</p>
+    <h2>Install / mount</h2>
+    <pre><code class="text">
+    mount stagedir
+    </code></pre>
+    <p>(Fetch route / filename need not match <code>register().name</code> — that module plants park tip <code>navi:stagedir</code>.)</p>
+    <p>Surf flow (simplified):</p>
+    <ol>
+    <li>Fetch route as a navi module.</li>
+    <li><code>mount(source)</code> → <code>register(navi)</code> → live <code>moduleObject.name</code>.</li>
+    <li><code>plantModulePark</code> under that live name → tip <strong><code>navi:<name></code></strong> + bin (<code>kind: "mod"</code>). The fetch route is not the park ib.</li>
+    <li>Index <strong><code>navi:mod.parks[]</code></strong> with live <code>Object.keys(commands)</code> (may be <code>[]</code>) and mut8 the tip’s <code>method.GET.commands</code> / <code>method.POST.commands</code> when the mod has more than one verb. Claim the mount on this instance’s unit tip when units are active.</li>
+    </ol>
+    <p>Name comes from the register return, not a source scrape (scraping false-positives like WebCrypto <code>{ name: "Ed25519" }</code>).</p>
+    <p>Also: <code>mount navi:my_mod</code> when the park tip already exists; <code>navi.remount()</code> mounts every park listed on ledger <code>navi:mod</code>, independent of which unit this instance is.</p>
+    <p>Do not hand-register <code>navi.on('callin', …)</code> for your verbs. Hard park dispatch owns callin.</p>
+    <h2>Callin discovery (parks, not a flat command registry)</h2>
+    <pre><code class="text">
+    navi('my_mod ping')
+    </code></pre>
+    <ol>
+    <li>First token → park tip <code>navi:<token></code> (modules and <code>surf</code> included). Shell/kernel tips also use flat <code>navi:<token></code> (<code>storage</code>, <code>init_script</code>, <code>mod</code>, <code>plug</code>, <code>reseed</code>, …). There is no <code>navi:mod:<token></code> park path.</li>
+    <li>Optional unit prefix first: <code>navi('unit/01/my_mod …')</code> — see <code>navi_units.html</code>.</li>
+    <li>If that tip is missing, search mounted parks for a command key equal to the token (<code>findMountedCommand</code>).</li>
+    <li>Tip must be listed on <code>navi:mod.parks</code> and <code>http.POST.kind === 'mod'</code> for callin (URL GET uses <code>http.GET</code>).</li>
+    <li>Execute <code>navi.mod.<target>.commands.<command>.execute(...rest)</code>.</li>
+    </ol>
+    <p>So callin is park + command key, not “whatever string you hope is global.”</p>
+    <h3>Namespace coherency (incidental, but aim for it)</h3>
+    <p>Callin discovery does not demand that:</p>
+    <ul>
+    <li>module <code>name</code>,</li>
+    <li>park tip leaf (<code>navi:<name></code>),</li>
+    <li>and every <code>commands</code> key</li>
+    </ul>
+    <p>are the same string. Those are separate fields. Matching them is incidental hygiene, not a runtime rule.</p>
+    <p>In practice the mount snapshot (<code>navi:mod.parks[].commands</code> + tip <code>method.GET.commands</code> when multi-verb) should list the verbs people type. Single-command mod parks use <code>method.GET.command</code> only.</p>
+    <ul>
+    <li><code>navi('my_mod …')</code> hits tip <code>navi:my_mod</code>, and  </li>
+    <li><code>commands.my_mod</code> exists as the default verb.</li>
+    </ul>
+    <p>When a short alias is nicer to type, alias both keys to the same <code>execute</code> so tip name and short verb both work. Example: <code>stagedir</code> ships:</p>
+    <pre><code class="javascript">
+    commands: {
+      stagedir: { name: "stagedir", execute: runStagedir },
+      horizon_stagedir: { name: "horizon_stagedir", execute: runStagedir },
+    }
+    </code></pre>
+    <p>Park tip / <code>navi.mod</code> key is <code>stagedir</code> (<code>navi:stagedir</code>). Users can type <code>stagedir show</code> or <code>horizon_stagedir show</code> when both keys are listed on the tip and ledger.</p>
+    <p>Anti-pattern: <code>name: "stagedir"</code> but only <code>commands.stagedir</code>, with a planted tip listing <code>["horizon_stagedir"]</code> only. Then <code>horizon_stagedir</code> callin will not resolve under park dispatch.</p>
+    <p>Snapshot timing: index/tip commands are written at mount from <code>commands{}</code>. Mutating <code>commands</code> later on the live object does not update discovery until remount / <code>navi('reindex')</code>. Programmatic <code>navi.mod.x.commands.y.execute()</code> still works without remount.</p>
+    <h2>Storage (tip + bin; item/file are shims)</h2>
+    <p>Authoritative space is tips + bins (<code>tip</code> pointer + <code>tip.frame</code> at <code>ib^gib</code>). <code>navi.storage.item</code> / <code>file</code> remain as shims; bare keys presume <code>navi:</code> (no bare ↔ <code>navi:</code> bridge on lookup).</p>
+    <ul>
+    <li>Prefer tip frames + <code>rel8ns.bin</code> for module-owned data when you care about the ledger.</li>
+    <li>Park-check / surf paths do not presume: <code>surf horizon/enter</code> is host; <code>surf navi/horizon/enter</code> is local tip space.</li>
+    <li>Path GET for modules: <code>navi.fetch(path)</code> (optional). Global <code>fetch</code> still works in the browser via the SW.</li>
+    </ul>
+    <p>See also: <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi shell</a> storage, and <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>.</p>
+    <h2>Paying for foobarch writes (<code>navi.tokens</code>)</h2>
+    <p>Foobarch commits need a usage token (<code>X-Foobarch-Usage-Token</code>). Do not keep a private token list in your mod; use the shared stash (local tip <code>tokens</code>, keyed by origin):</p>
+    <pre><code class="text">
+    const token = await navi.tokens.take(host);   // throws err.code "NO_TOKENS" when empty
+    // … PUT with the token …
+    // on failure, unless the host said "consumed" / "invalid usage token":
+    await navi.tokens.giveBack(host, token);
+    </code></pre>
+    <p>Also <code>count(host)</code>, <code>look(host)</code>, <code>add(host, tokens)</code>, and an optional <code>path</code> argument for a separate budget. The host only spends a token when the commit is saved. Users fill the stash via <code>hypertext/intro</code>; operators via <code>relay tokens add|file</code>. Full guide: <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>.</p>
+    <h2>Units (when you care about multi-instance)</h2>
+    <p>Registration (<code>navi:mod</code>) ≠ session claim on this window’s unit. Prefer reading <code>navi_units.html</code> before gating destructive ops. Permission-style APIs (<code>storage kill</code>, <code>prune</code>, …) expect a bonded entry-plug and usually a confirm (<code>via entry-plug of <unitIb></code>).</p>
+    <h2>Browser vs native</h2>
+    <ul>
+    <li>DOM / <code>window</code> — Browser: yes. Native (<code>navi_shell.exe</code> / <code>navi_shell-linux-x64</code> / Node): no — guard with <code>isBrowser</code>.</li>
+    <li><code>navi.require('fs')</code> etc. — Browser: no. Native: yes (native modules).</li>
+    <li>Ports / SQLite hosts — Browser: N/A. Native: e.g. <code>hostparkinator_5000</code>.</li>
+    </ul>
+    <p>One <code>register</code> can serve both; throw or no-op when the environment is wrong.</p>
+    <h2>Service worker (optional)</h2>
+    <ul>
+    <li>Shell registers <code>/sw.js</code>.</li>
+    <li>Page: <code>navi.sw.on(name, fn)</code>, <code>navi.sw.registerPlugin…</code>.</li>
+    <li>Clear handlers in <code>onUnmount</code> (owner-scoped).</li>
+    </ul>
+    <p>PWA identity: prefer same-origin <code>/manifest.json</code> (host tip or SW overlay from <code>navi.pwa.set</code>). Do not rely on <code>blob:</code> manifests for Chromium installability. Icon <code>src</code> must be fetchable http(s) paths.</p>
+    <p>Offline boot: SW caches <code>start_url</code> document + <code>/navi_shell.js</code> (<code>navi.pwa.shell.*</code>). Tip/bin localpark still needs the runtime loaded first.</p>
+    <h2>Cleanup</h2>
+    <p>Track what you add; tear it down in <code>onUnmount</code>: listeners, DOM nodes, style tags, observers, timers, <code>navi.sw</code> handlers. Unmount without cleanup leaks across remounts in a long-lived tab.</p>
+    <h2>Publishing</h2>
+    <p>A published module is a hostpark route whose bin is the module source (<code>application/navi-module</code>) and whose frame says <code>kind: "mod"</code>. The short park name is what <code>mount</code> fetches. After mount, the live park tip is <code>navi:&lt;name&gt;</code> from <code>register()</code>, which can differ from the route you fetched.</p>
+    <p>Warez is the catalog card for that route: <code>about.name</code> matches the live <code>register()</code> name, <code>about.version</code> matches the source version, and <code>about.commit-devnote</code> is one sentence on why this generation exists. Mount with <code>mount/&lt;park&gt;</code>.</p>
+    <h2>Quick checklist</h2>
+    <ul>
+    <li>[ ] Foobarch writes pay via <code>navi.tokens</code> (no private token stash; refund unless the host says consumed/invalid)</li>
+    <li>[ ] <code>export const register</code></li>
+    <li>[ ] <code>name</code> in return (and usually <code>moduleInfo</code>) — single segment</li>
+    <li>[ ] Park tip will be <code>navi:<name></code> (not <code>navi:mod:<name></code>)</li>
+    <li>[ ] <code>commands</code> with <code>execute</code> if you want callin; omit / empty OK for plugin-only</li>
+    <li>[ ] Prefer <code>commands.<name></code> === module <code>name</code>; add aliases if you want short verbs</li>
+    <li>[ ] Park tip name comes from live <code>register()</code> return — keep <code>name</code> accurate there</li>
+    <li>[ ] <code>onUnmount</code> cleans browser side effects</li>
+    <li>[ ] Do not attach your own top-level <code>callin</code> listener for verbs</li>
+    <li>[ ] After changing <code>commands{}</code>, remount (or <code>reindex</code>) so discovery snapshots update</li>
+    </ul>
+    <h2>See also</h2>
+    <ul>
+    <li><a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi shell</a> — runtime affordances, storage, surf, callin</li>
+    <li><a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi units</a> — units, entry-plug, heartbeat</li>
+    <li><a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi park addressing</a> — callin vs URL, relay, capture</li>
+    <li><a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a> — frame shape</li>
+    </ul>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

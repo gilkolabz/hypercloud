@@ -1,0 +1,10 @@
+{
+  "nickname": "torus",
+  "purpose": "Write-gate publisher for torus/testkit/* HTMF tips",
+  "identity": "torus",
+  "policy_ib": "policies/torus",
+  "schema_ib": "foobarch.schema.keys.v1",
+  "public_key": "SdsF2kK-Mr68bbsVyxODSiT9jhVjPniqWyb6XW26cyY",
+  "public_key_hash": "b99bf729297d8dae",
+  "created_at": "2026-08-13T23:42:36.824Z"
+}

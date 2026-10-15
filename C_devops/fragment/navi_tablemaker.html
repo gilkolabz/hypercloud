@@ -1,0 +1,206 @@
+<div
+  name="tablemaker"
+  data-path="torus/testkit/tablemaker"
+  data-part="htmf"
+>
+  <table
+    data-part="grid"
+    style="border-collapse:collapse;border:1px solid #000;"
+  >
+    <tbody>
+      <tr>
+        <td
+          data-part="cell"
+          style="border:1px solid #000;min-width:2rem;height:1.5rem;padding:2px;vertical-align:top;cursor:text;"
+        ></td>
+        <td
+          data-part="cell"
+          style="border:1px solid #000;min-width:2rem;height:1.5rem;padding:2px;vertical-align:top;cursor:text;"
+        ></td>
+      </tr>
+      <tr>
+        <td
+          data-part="cell"
+          style="border:1px solid #000;min-width:2rem;height:1.5rem;padding:2px;vertical-align:top;cursor:text;"
+        ></td>
+        <td
+          data-part="cell"
+          style="border:1px solid #000;min-width:2rem;height:1.5rem;padding:2px;vertical-align:top;cursor:text;"
+        ></td>
+      </tr>
+    </tbody>
+  </table>
+  <hr />
+  <button type="button" data-act="r+">R+</button>
+  <button type="button" data-act="r-">R-</button>
+  <button type="button" data-act="c+">C+</button>
+  <button type="button" data-act="c-">C-</button>
+  <script>
+    (function () {
+      const root = document.currentScript.closest('[data-part="htmf"]');
+      if (!root || root.dataset.tablemakerBound === "1") return;
+      root.dataset.tablemakerBound = "1";
+
+      const STATE_KEY = "navi:tablemaker:state";
+      const CELL_CSS =
+        "border:1px solid #000;min-width:2rem;height:1.5rem;padding:2px;vertical-align:top;cursor:text;";
+
+      const grid = () => root.querySelector('table[data-part="grid"]');
+
+      const itemApi = () => globalThis.navi?.storage?.item || null;
+
+      const makeCell = (text) => {
+        const td = document.createElement("td");
+        td.setAttribute("data-part", "cell");
+        td.style.cssText = CELL_CSS;
+        td.textContent = text == null ? "" : String(text);
+        return td;
+      };
+
+      const readLiveState = () => {
+        const t = grid();
+        if (!t) return { rows: 2, cols: 2, cells: [["", ""], ["", ""]] };
+        const cells = [];
+        for (const tr of t.rows) {
+          const row = [];
+          for (const td of tr.cells) {
+            const editing = td.querySelector("textarea, input");
+            row.push(
+              editing
+                ? String(editing.value || "")
+                : String(td.textContent || "")
+            );
+          }
+          cells.push(row);
+        }
+        const rows = cells.length || 1;
+        const cols = cells[0]?.length || 1;
+        return { rows, cols, cells };
+      };
+
+      const applyState = (state) => {
+        const t = grid();
+        if (!t) return;
+        const rows = Math.max(1, Number(state?.rows) || 1);
+        const cols = Math.max(1, Number(state?.cols) || 1);
+        const cells = Array.isArray(state?.cells) ? state.cells : [];
+        const body = t.tBodies[0] || t.createTBody();
+        body.replaceChildren();
+        for (let r = 0; r < rows; r++) {
+          const tr = body.insertRow(-1);
+          const row = Array.isArray(cells[r]) ? cells[r] : [];
+          for (let c = 0; c < cols; c++) {
+            tr.appendChild(makeCell(row[c] ?? ""));
+          }
+        }
+      };
+
+      const saveState = async () => {
+        const item = itemApi();
+        if (!item || typeof item.set !== "function") return;
+        try {
+          await item.set(STATE_KEY, readLiveState());
+        } catch (err) {
+          console.error("[tablemaker] save failed", err);
+        }
+      };
+
+      const loadState = async () => {
+        const item = itemApi();
+        if (!item || typeof item.get !== "function") return null;
+        try {
+          const raw = await item.get(STATE_KEY);
+          if (!raw || typeof raw !== "object") return null;
+          return raw;
+        } catch {
+          return null;
+        }
+      };
+
+      const commitCell = (td, value) => {
+        if (!(td instanceof HTMLElement)) return;
+        td.textContent = String(value ?? "");
+        void saveState();
+      };
+
+      const beginEdit = (td) => {
+        if (!(td instanceof HTMLElement)) return;
+        if (td.querySelector("textarea, input")) return;
+        const prior = td.textContent || "";
+        const field = document.createElement("textarea");
+        field.rows = Math.max(1, Math.min(8, prior.split("\n").length));
+        field.style.cssText =
+          "display:block;width:100%;box-sizing:border-box;min-width:4rem;min-height:1.4rem;resize:both;font:inherit;margin:0;padding:0;border:0;outline:1px solid #000;background:transparent;";
+        field.value = prior;
+        td.textContent = "";
+        td.appendChild(field);
+        field.focus();
+        try {
+          field.setSelectionRange(field.value.length, field.value.length);
+        } catch (_) {
+          /* ignore */
+        }
+
+        let settled = false;
+        const finish = (save) => {
+          if (settled) return;
+          settled = true;
+          commitCell(td, save ? field.value : prior);
+        };
+
+        field.addEventListener("blur", () => finish(true));
+        field.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            finish(false);
+            return;
+          }
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+            field.blur();
+          }
+        });
+        field.addEventListener("click", (e) => e.stopPropagation());
+        field.addEventListener("mousedown", (e) => e.stopPropagation());
+      };
+
+      root.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-act]");
+        if (btn && root.contains(btn)) {
+          e.preventDefault();
+          const t = grid();
+          if (!t) return;
+          const act = btn.getAttribute("data-act");
+          if (act === "r+") {
+            const n = t.rows[0] ? t.rows[0].cells.length : 1;
+            const tr = t.insertRow(-1);
+            for (let i = 0; i < n; i++) tr.appendChild(makeCell(""));
+          } else if (act === "r-") {
+            if (t.rows.length > 1) t.deleteRow(-1);
+          } else if (act === "c+") {
+            for (const tr of t.rows) tr.appendChild(makeCell(""));
+          } else if (act === "c-") {
+            if (!t.rows[0] || t.rows[0].cells.length <= 1) return;
+            for (const tr of t.rows) {
+              if (tr.cells.length) tr.deleteCell(-1);
+            }
+          }
+          void saveState();
+          return;
+        }
+
+        const td = e.target.closest('td[data-part="cell"]');
+        if (!td || !root.contains(td)) return;
+        if (td.querySelector("textarea, input")) return;
+        e.preventDefault();
+        beginEdit(td);
+      });
+
+      void loadState().then((state) => {
+        if (state) applyState(state);
+      });
+    })();
+  </script>
+</div>

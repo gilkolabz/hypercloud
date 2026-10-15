@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "flow-model/program_manifest",
+  "title": "ProgramManifest",
+  "description": "Declared runnable program / variant: what it implements, what it excludes, which artifacts compose it, and optional I/O contracts for shopping and composition.",
+  "type": "object",
+  "required": ["id", "label", "why", "flow", "launch"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional pointer to this schema file"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Stable program id (e.g. tipunch:program:pm_field_v2 or product_family_leaf)"
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human shopping name — name the sandwich, not the missing ingredient"
+    },
+    "why": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Written rationale: who, what journey, what wedge"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "deprecated"],
+      "default": "draft"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["program", "network"],
+      "default": "program",
+      "description": "program = runnable leaf; network = declared set of related programs (compose_from = members)"
+    },
+    "variant_of": {
+      "type": ["string", "null"],
+      "description": "Parent program id for inherit/patch; null for root variants"
+    },
+    "network": {
+      "type": ["string", "null"],
+      "description": "Parent program-network id when this leaf belongs to a network"
+    },
+    "role": {
+      "type": "string",
+      "description": "Primary actor (e.g. pm, sub, dispatcher, admin)"
+    },
+    "flow": {
+      "type": "string",
+      "description": "Logical route to flow JSON (flowerpot / hostpark path)"
+    },
+    "launch": {
+      "type": "string",
+      "description": "Logical route to launch HTML fragment"
+    },
+    "entry": {
+      "type": "string",
+      "description": "First in-app route key (must match flow.entry)"
+    },
+    "layers": {
+      "type": "object",
+      "description": "UX spectrum placement — which artifacts sit at each level (L0, L1, L2, …)",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 }
+      }
+    },
+    "feature_imps": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Feature tokens this program implements (viewport / launch_index shopping)"
+    },
+    "feature_excludes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Optional explicit non-goals — keeps baseline flows unpolluted"
+    },
+    "modules": {
+      "type": "object",
+      "description": "Module mounts relative to project flowerpot root",
+      "additionalProperties": false,
+      "properties": {
+        "init": { "type": "string" },
+        "manager": { "type": "string" },
+        "registry": { "type": "string" },
+        "mount": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extra L2/L5 parks to mount at launch (e.g. photo bin module)"
+        }
+      }
+    },
+    "artifact_contracts": {
+      "type": "array",
+      "description": "Standard I/O: what each artifact provides and requires — enables isolated testing and later compose-all",
+      "items": {
+        "type": "object",
+        "required": ["artifact"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "type": "string",
+            "description": "Logical route or park name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["module", "flow", "ui", "schema", "data", "launch"]
+          },
+          "provides": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Capability tokens or API surfaces this artifact exports"
+          },
+          "requires": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Capabilities or tips another artifact must supply"
+          },
+          "consumes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Data shapes read (schema ids, tip keys)"
+          },
+          "emits": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Data shapes written or events emitted"
+          }
+        }
+      }
+    },
+    "compose": {
+      "type": "object",
+      "description": "Optional cross-family composition map (typed ids) — see composition.md"
+    },
+    "compose_from": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Program ids merged to build this runtime (future suite / all-features variant)"
+    },
+    "test_hint": {
+      "type": "string",
+      "description": "Short QA path for launch_index / viewport"
+    },
+    "flowerpot_root": {
+      "type": "string",
+      "description": "Project publish prefix when id is project-local"
+    }
+  }
+}

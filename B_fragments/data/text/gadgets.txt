@@ -1,0 +1,18 @@
+Gadgets
+
+Browser-only toys (mount-all warez, rewrite init, mini unmounter) are omitted here.
+From the REPL you can still browse the testkit HTMFs:
+
+Testkit:
+  [1]  Notemaker      → testkit/notemaker
+  [2]  Tinyviewport   → testkit/tinyviewport
+  [3]  Relaytest      → testkit/relaytest
+  [4]  Meshyrelay     → testkit/meshyrelay
+  [5]  Storagetest    → testkit/storagetest
+  [6]  Text editor    → testkit/text_editor
+  [7]  Tablemaker     → testkit/tablemaker
+  [8]  Scripter       → testkit/scripter
+  [9]  Fofum          → testkit/fofum
+  [10] Cornersphere   → testkit/cornersphere
+
+  [11] back to welcome → hypertext/welcome

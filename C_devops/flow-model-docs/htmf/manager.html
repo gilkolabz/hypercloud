@@ -1,0 +1,131 @@
+<div
+  name="flow-model-manager"
+  data-path="torus/devops/flow-model/manager"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Manager</h1>
+    <p>The Manager is a thin navi module that:</p>
+    <ol>
+    <li>Loads the active flow artifact (tip first, flowerpot on miss / refresh)</li>
+    <li>Navigates with surf using route keys</li>
+    <li>Holds journey context in <strong>session tips</strong></li>
+    <li>Calls resting modules for facts and capabilities</li>
+    <li>Optionally resolves program / PWA identity for the running combination</li>
+    </ol>
+    <p>It does not own HTML templates, application CRUD, or device I/O. Those stay in UI fragments and resting modules.</p>
+    <p>Flow products assume <strong>one session per navi window</strong>. The shell may bond a unit underneath; Manager code does not need to branch on units.</p>
+    <h2>Contract (conceptual)</h2>
+    <pre><code class="text">
+    loadFlow()           → resolve active flow (tips + host as Manager chooses)
+    getFlow()            → current artifact (or null)
+    setFlowArtifact(r)   → tip: which flow is active; cache body as Manager chooses
+    go(routeKey)         → surf(routes[routeKey])  // park-check then host
+    policy helpers       → map named outcomes → go(nextKey)
+    session getters/set  → tips (pending ids, return-to, prefs, active flow pointer)
+    ensureXModule()      → mount from config routes → navi.mod.&lt;name&gt;
+    bootstrap path       → init module park command, not Manager alone
+    </code></pre>
+    <p>Exact method names are per-project. The paradigm is: thin, flow-driven, surf-based, <strong>one tip layer</strong>, <strong>local-first by default</strong>, Manager owns cache/request policy so UX stays good.</p>
+    <h2>Navigation</h2>
+    <pre><code class="js">
+    // conceptual
+    async go(routeKey) {
+      const flow = await this.loadFlow();
+      const url = flow.routes[routeKey];
+      if (!url) throw new Error(`unknown route: ${routeKey}`);
+      await navi.mod.surf.surf(url);
+    }
+    </code></pre>
+    <p>Pages should call <code>go("edit")</code>, not hard-code flowerpot URLs. That keeps HTML reusable across flows that remap the same keys.</p>
+    <h2>Policy application</h2>
+    <p>Typical pattern after a resting-module fact:</p>
+    <pre><code class="text">
+    user submits code / id
+      → registry.lookup(...)
+      → if found:  go(policy.lookup.found)
+      → if missing: go(policy.lookup.missing)
+    </code></pre>
+    <p>Or after a page action:</p>
+    <pre><code class="text">
+    user taps Cancel on create
+      → go(policy.create.cancel)
+    </code></pre>
+    <p>The Manager may expose named helpers (<code>submitCode</code>, <code>finishCreate</code>, <code>openSettings</code>) that encode those branches so pages stay short. Helpers still read this flow’s policy — they must not hard-wire destinations.</p>
+    <h2>Session + cache (same tip layer; local-first)</h2>
+    <p>Everything that must survive a body swap is tips — not a side channel:</p>
+    <ul>
+    <li>which flow is active (pointer tip → logical route / id)</li>
+    <li>the flow JSON and screen HTML (body tips; prefer ib <code>flowerpot/…</code> when that matches surf/fetch paths so park-check wins)</li>
+    <li>pending / active entity ids, return-to, program id, prefs</li>
+    <li>config defaults</li>
+    </ul>
+    <p>Pointer tips and artifact tips are the same kind of thing: tips. A tip with <code>http</code> GET bin/frame is what park-check serves; Manager can also <code>tip.get</code> any ib it knows. That is not two systems.</p>
+    <p><strong>Local-first default; UX guides how:</strong> prefer warm tips; fetch host when needed; plant/mut8 after fetch; optionally track pot addr for refresh. Optimize for how the journey feels without inventing a parallel store.</p>
+    <h2>Resting modules vs Manager</h2>
+    <ul>
+    <li>Registry / L1 — Facts: get, list, create, update. Emit events as facts only</li>
+    <li>Device / L2 — Camera, OCR, sensors — capability</li>
+    <li>Manager / L4 — Journey: go, policy, session tips, which module to mount</li>
+    <li>Page script — Wire buttons to Manager + modules; render</li>
+    </ul>
+    <p>Anti-pattern: registry opens a screen because it emitted <code>item_found</code>. Pattern: registry returns / emits a fact; Manager (or page → Manager) decides UI.</p>
+    <h2>Callin / park dispatch</h2>
+    <p>Manager and init are normal navi modules:</p>
+    <ul>
+    <li>Mount plants park tip <code>navi:<name></code> + indexes <code>navi:mod</code></li>
+    <li>Callin verbs are <code>commands</code> keys on that park (GET/POST both <code>kind: "mod"</code>)</li>
+    <li>Example: after mounting init, <code>navi("notes bootstrap")</code> runs <code>commands.bootstrap</code> if the park leaf is <code>notes</code> (or use <code>navi("notes_init bootstrap")</code> if that is the register name)</li>
+    </ul>
+    <p>Do not assume a flat global command table. Align <code>name</code>, park leaf, and command keys deliberately.</p>
+    <h2>Dynamic swapping</h2>
+    <p>Because modules are flowerpot logical routes named in config (and optionally overridden), the Manager can:</p>
+    <ul>
+    <li><code>mount</code> alternate parse / view / policy modules (new park tips)</li>
+    <li>keep the same <code>go()</code> and registry API while shopping implementations</li>
+    <li>describe runtime identity (project, flow id, program id, launch) for feedback and System-like hosts</li>
+    </ul>
+    <p>This is the “shop for final version” posture at the logic layer: Manager + registry API stay stable; modules behind them swap.</p>
+    <h2>Init + bootstrap</h2>
+    <p>Usually a separate init module owns callin commands (<code>bootstrap</code>, <code>lookup</code>, …) and mounts registry + Manager. Launch fragments:</p>
+    <ol>
+    <li><code>mount</code> init from flowerpot</li>
+    <li>set session tip for flow (and optional program)</li>
+    <li><code>navi("<initPark> bootstrap")</code> (or project-chosen verb)</li>
+    </ol>
+    <p>Manager should tolerate remount after reload (<code>navi.remount()</code> / init_script) without assuming DOM from a previous page still exists.</p>
+    <h2>What not to put in the Manager</h2>
+    <ul>
+    <li>Large HTML strings / template rendering of whole screens</li>
+    <li>Schema validation that belongs in registry</li>
+    <li>One-off UI for a single variant (put it in that variant’s HTML or a resting module)</li>
+    <li>Silent auto-navigation on every registry event</li>
+    <li>Unit / entry-plug bookkeeping (out of scope for flow products)</li>
+    </ul>
+    <p>When the Manager file becomes a churn magnet, split resting capabilities out; keep Manager as the junction of flow + surf + session tips.</p>
+    <h2>Related</h2>
+    <ul>
+    <li><a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a></li>
+    <li><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a></li>
+    <li><a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a></li>
+    <li><code>navi_shell/docs/navi_modules_guide.md</code></li>
+    </ul>
+  </article>
+</div>

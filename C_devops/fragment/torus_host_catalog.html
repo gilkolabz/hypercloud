@@ -1,0 +1,302 @@
+<div
+  name="torus-host-catalog"
+  data-path="torus/host-catalog"
+  data-part="htmf"
+>
+  <article>
+    <h1>Torus host catalog</h1>
+    <p>
+      Known hostpark <code>ib</code> paths from identity catalogs
+      (<code>C_devops/identity/_lib.mjs</code>,
+      <code>C_devops/flow-model-docs/_catalog.mjs</code>,
+      <code>C_devops/htmf-ecosystem/_catalog.mjs</code>)
+      plus leftovers outside those catalogs.
+    </p>
+    <p>
+      See also
+      <a href="/torus/flowerpot-catalog" hx-get="/torus/flowerpot-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flowerpot catalog</a>,
+      <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>,
+      and
+      <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+      (required <code>goal=</code> on every fsdevops put / hostpark-push).
+    </p>
+
+    <h2>Product push rule (fsdevopstracker)</h2>
+    <p>
+      Hostpark product paths (e.g. <code>opry/devops/ti_punch/…</code>) are usually published via
+      <code>fsdevopstracker hostpark-push &lt;rel&gt; goal=&lt;why&gt;</code>, not only identity <code>_publish.mjs</code>.
+      Every write that changes tip or hostpark bytes needs a real why-string.
+      Goals ledger: <code>{project}/devops/goals.json</code>. Ops lineage: <code>{project}:devops:ops</code>.
+      See <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model devops-goals</a>
+      and <a href="/torus/testkit/mod/fsdevopstracker/readme" hx-get="/torus/testkit/mod/fsdevopstracker/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">fsdevopstracker readme</a>.
+      This catalog lists routes; goals explain each generation.
+    </p>
+
+    <h2>foobarch shell</h2>
+    <ul>
+      <li><code>navi_shell.js</code></li>
+      <li><code>navi_shell.exe</code></li>
+      <li><code>navi_shell-linux-x64</code></li>
+      <li><code>sw.js</code></li>
+      <li><code>favicon.ico</code></li>
+      <li><code>manifest.json/icon-192.png</code></li>
+      <li><code>manifest.json/icon-512.png</code></li>
+      <li><code>humans.txt</code></li>
+      <li><code>robots.txt</code></li>
+      <li><code>security.txt</code></li>
+      <li><code>manifest.json</code></li>
+      <li><code>scripts/ua_get</code></li>
+      <li><code>readme/scripts/ua_get</code></li>
+      <li><code>scripts/ua_get/readme</code></li>
+    </ul>
+
+    <h2>foobarch spawn (torus/text/spawn)</h2>
+    <ul>
+      <li><code>torus/text/spawn/enter</code></li>
+      <li><code>torus/text/spawn/welcome</code></li>
+      <li><code>torus/text/spawn/bulletinboard</code></li>
+      <li><code>torus/text/spawn/flowerpot_faq</code></li>
+      <li><code>torus/text/spawn/gadgets</code></li>
+      <li><code>torus/text/spawn/hypernetizenwarez</code></li>
+      <li><code>torus/text/spawn/skellyrelay</code></li>
+      <li><code>torus/text/spawn/intro</code></li>
+      <li><code>torus/text/spawn/phonebooth</code></li>
+      <li><code>torus/text/spawn/pages/caniuseflowerpothere</code></li>
+      <li><code>torus/text/spawn/pages/whatisflowerpot</code></li>
+    </ul>
+
+    <h2>foobarch proxies / redirects</h2>
+    <ul>
+      <li><code>mimex</code></li>
+      <li><code>arbiter</code></li>
+      <li><code>fusion</code></li>
+      <li><code>flowerpot</code></li>
+      <li><code>devops_feedback_host_v1</code></li>
+      <li><code>horizon</code></li>
+      <li><code>manifest</code></li>
+      <li><code>fofum</code></li>
+      <li><code>phonebook</code></li>
+      <li><code>torus_faucet</code></li>
+    </ul>
+
+    <h2>foobarch policy / schema</h2>
+    <ul>
+      <li><code>policies/foobarch-shell</code></li>
+      <li><code>foobarch.schema.keys.v1</code></li>
+    </ul>
+
+    <h2>hypertext</h2>
+    <ul>
+      <li><code>hypertext/enter</code></li>
+      <li><code>hypertext/welcome</code></li>
+      <li><code>hypertext/bulletinboard</code></li>
+      <li><code>hypertext/flowerpot_faq</code></li>
+      <li><code>hypertext/gadgets</code></li>
+      <li><code>hypertext/hypernetizenwarez</code></li>
+      <li><code>hypertext/skellyrelay</code></li>
+      <li><code>hypertext/intro</code></li>
+      <li><code>hypertext/phonebooth</code></li>
+      <li><code>hypertext/flowerpot_faq/pages/caniuseflowerpothere.html</code></li>
+      <li><code>hypertext/flowerpot_faq/pages/whatisflowerpot.html</code></li>
+      <li><code>policies/hypertext</code></li>
+    </ul>
+
+    <h2>torus testkit (long)</h2>
+    <ul>
+      <li><code>torus/testkit/text_editor</code></li>
+      <li><code>torus/testkit/tablemaker</code></li>
+      <li><code>torus/testkit/notemaker</code></li>
+      <li><code>torus/testkit/legacy/notemaker_v1</code></li>
+      <li><code>torus/testkit/tinyviewport</code></li>
+      <li><code>torus/testkit/clock</code></li>
+      <li><code>torus/testkit/clock/schema/am</code></li>
+      <li><code>torus/testkit/clock/schema/pm</code></li>
+      <li><code>torus/testkit/clock/schema/24h</code></li>
+      <li><code>torus/testkit/relaytest</code></li>
+      <li><code>torus/testkit/storagetest</code></li>
+      <li><code>torus/testkit/scripter</code></li>
+      <li><code>torus/testkit/fofum</code></li>
+      <li><code>torus/testkit/cornersphere</code></li>
+      <li><code>torus/testkit/cornersphere/tips-stage</code></li>
+      <li><code>torus/testkit/nexus-sphere</code></li>
+      <li><code>torus/testkit/mod/fsdevopstracker</code></li>
+      <li><code>torus/testkit/mod/fsdevopstracker/readme</code></li>
+      <li><code>torus/testkit/native/fofum_server</code></li>
+      <li><code>torus/testkit/mod/scranton_lobby_v1_client</code> (torus copy; install via the <code>scranton_lobby</code> park)</li>
+    </ul>
+
+    <h2>scranton lobby (foobarch owner)</h2>
+    <p>
+      Doc: <code>C_devops/scranton/scranton_lobby_v1.md</code>. Lobbies live at
+      <code>scranton/lobby/v1/{path}</code> (foobarch tips) or
+      <code>sprinter/scranton/lobby/v1/{path}</code> (sprinter relay lane).
+    </p>
+    <ul>
+      <li><code>scranton/lobby/v1</code> (governor: <code>rel8ns.genesis_policy</code> gates new lobbies)</li>
+      <li><code>scranton/lobby/v1/schema</code></li>
+      <li><code>scranton/lobby/v1/policy</code></li>
+      <li><code>sprinter</code> (capture relay → <code>sprinter_server</code>)</li>
+      <li><code>scranton_lobby</code> (client mod park)</li>
+      <li><code>sprinter_server</code> (sprinter mod park)</li>
+    </ul>
+
+    <h2>torus testkit (short clones)</h2>
+    <ul>
+      <li><code>testkit/text_editor</code></li>
+      <li><code>testkit/tablemaker</code></li>
+      <li><code>testkit/notemaker</code></li>
+      <li><code>testkit/keychain</code></li>
+      <li><code>testkit/surfroster</code></li>
+      <li><code>testkit/legacy/notemaker_v1</code></li>
+      <li><code>testkit/tinyviewport</code></li>
+      <li><code>testkit/clock</code></li>
+      <li><code>testkit/clock/schema/am</code></li>
+      <li><code>testkit/clock/schema/pm</code></li>
+      <li><code>testkit/clock/schema/24h</code></li>
+      <li><code>testkit/relaytest</code></li>
+      <li><code>testkit/storagetest</code></li>
+      <li><code>testkit/scripter</code></li>
+      <li><code>testkit/fofum</code></li>
+      <li><code>testkit/cornersphere</code></li>
+      <li><code>testkit/cornersphere/tips-stage</code></li>
+      <li><code>testkit/nexus-sphere</code></li>
+    </ul>
+
+    <h2>flow-model docs</h2>
+    <ul>
+      <li><a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/readme</a></li>
+      <li><a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/overview</a></li>
+      <li><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/runtime</a></li>
+      <li><a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/flow-artifacts</a></li>
+      <li><a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/manager</a></li>
+      <li><a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/composition</a></li>
+      <li><a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/variants</a></li>
+      <li><a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/program-manifest</a></li>
+      <li><a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/addressing</a></li>
+      <li><a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/ux-spectrum</a></li>
+      <li><a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/authoring</a></li>
+      <li><a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/devops-goals</a></li>
+      <li><a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/ethos</a></li>
+      <li><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/devops/flow-model/glossary</a></li>
+    </ul>
+
+    <h2>docs</h2>
+    <ul>
+      <li><a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/readme</a></li>
+      <li><a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/hostparking</a></li>
+      <li><a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/navi-style</a></li>
+      <li><a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/style-refinement</a></li>
+      <li><a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/navi-shell</a></li>
+      <li><a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/navi-modules-guide</a></li>
+      <li><a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/navi-units</a></li>
+      <li><a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/foobarch-usage-budgets</a></li>
+      <li><a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/manifest</a></li>
+      <li><a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/docs/navi-park-addressing</a></li>
+    </ul>
+
+    <h2>torus policy</h2>
+    <ul>
+      <li><code>policies/torus</code></li>
+    </ul>
+
+    <h2>catalogs</h2>
+    <ul>
+      <li><a href="/torus/host-catalog" hx-get="/torus/host-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/host-catalog</a></li>
+      <li><a href="/torus/flowerpot-catalog" hx-get="/torus/flowerpot-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/flowerpot-catalog</a></li>
+    </ul>
+
+    <h2>outside identity catalogs — torus/native (flowerpot pots)</h2>
+    <ul>
+      <li><code>torus/native/server_manager</code></li>
+      <li><code>torus/native/foobarch_server</code></li>
+      <li><code>torus/native/foobarch_host</code></li>
+      <li><code>torus/native/phonebook_server</code></li>
+      <li><code>torus/native/faucet_server</code></li>
+      <li><code>torus/native/caddy_server</code></li>
+      <li><code>torus/native/spacebarz_arbiter</code></li>
+      <li><code>torus/native/spacebarz_fusion</code></li>
+      <li><code>torus/native/mimex</code></li>
+      <li><code>torus/native/dummyrelay</code></li>
+    </ul>
+
+    <h2>outside identity catalogs — legacy / tombstone</h2>
+    <ul>
+      <li><code>torus/testkit/fsdevopstracker.js</code></li>
+    </ul>
+
+    <h2>outside identity catalogs — ti_punch (fsdevopstracker hostpark-push)</h2>
+    <p>
+      Prefix <code>opry/devops/ti_punch/</code>. Ship with <code>hostpark-push &lt;rel&gt; goal=&lt;why&gt;</code>.
+      Goals/ops: <code>devops/goals.json</code>, <code>devops/ops.json</code>. Variant naming:
+      <strong>scholastic</strong> = L3 skin; <strong>versatile</strong> = screen/flow/launch arrangement.
+      See <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>.
+    </p>
+    <ul>
+      <li><code>opry/devops/ti_punch/config.json</code></li>
+      <li><code>opry/devops/ti_punch/readme.md</code></li>
+      <li><code>opry/devops/ti_punch/devguide.md</code></li>
+      <li><code>opry/devops/ti_punch/devops/goals.json</code></li>
+      <li><code>opry/devops/ti_punch/devops/ops.json</code></li>
+      <li><code>opry/devops/ti_punch/devops/README.md</code></li>
+      <li><code>opry/devops/ti_punch/data/README.md</code></li>
+      <li><code>opry/devops/ti_punch/data/demo_seed.json</code></li>
+      <li><code>opry/devops/ti_punch/data/launch_index.json</code></li>
+      <li><code>opry/devops/ti_punch/data/runtime_bootstrap.json</code></li>
+      <li><code>opry/devops/ti_punch/flow/tipunch_jobs_first.json</code></li>
+      <li><code>opry/devops/ti_punch/flow/tipunch_jobs_versatile.json</code></li>
+      <li><code>opry/devops/ti_punch/flow/tipunch_suite_all.json</code></li>
+      <li><code>opry/devops/ti_punch/flow/tipunch_dispatch_first.json</code></li>
+      <li><code>opry/devops/ti_punch/flow/tipunch_sub_inbox_first.json</code></li>
+      <li><code>opry/devops/ti_punch/flow/tipunch_capture_first.json</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_init.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_manager.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_registry.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_namechips.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_photo.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_dispatch.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_dispatch_manager.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_sub_manager.js</code></li>
+      <li><code>opry/devops/ti_punch/modules/tipunch_host_runtime.js</code></li>
+      <li><code>opry/devops/ti_punch/schema/area.json</code></li>
+      <li><code>opry/devops/ti_punch/schema/job.json</code></li>
+      <li><code>opry/devops/ti_punch/schema/punch_item.json</code></li>
+      <li><code>opry/devops/ti_punch/schema/crew_assignment.json</code></li>
+      <li><code>opry/devops/ti_punch/schema/worker.json</code></li>
+      <li><code>opry/devops/ti_punch/schema/program_manifest.schema.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_pm_field_v2.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_pm_field_v2_binphotos.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_pm_field_versatile_scholastic.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_suite_all_v0.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_dispatch_calendar_v0.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_sub_inbox_v0.json</code></li>
+      <li><code>opry/devops/ti_punch/programs/tipunch_capture_first_versatile_scholastic.json</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_binphotos.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_binphotos_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_suite.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_suite_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_dispatch.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_dispatch_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_sub.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_sub_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/launch_capture_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/launch/linker.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/tipunch_skin.css</code></li>
+      <li><code>opry/devops/ti_punch/ui/tipunch_skin_scholastic.css</code></li>
+      <li><code>opry/devops/ti_punch/ui/jobs.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/job.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/jobs_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/job_versatile.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/area.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/punch.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/report.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/suite_hub.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/dispatch_calendar.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/sub_inbox.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/capture.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/crew.html</code></li>
+      <li><code>opry/devops/ti_punch/ui/login.html</code></li>
+    </ul>
+  </article>
+</div>

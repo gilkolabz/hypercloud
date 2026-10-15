@@ -1,0 +1,10 @@
+{
+  "nickname": "hypernetizen",
+  "purpose": "Write-gate publisher for the hypernetizen/warez hostpark index",
+  "identity": "hypernetizen",
+  "policy_ib": "policies/hypernetizen",
+  "schema_ib": "foobarch.schema.keys.v1",
+  "public_key": "09nszN9kHsuMncAn1LSiOMwdaYsf6jtqA-JwmC_F89M",
+  "public_key_hash": "eb1c224005681ebd",
+  "created_at": "2026-09-28T04:28:55.561Z"
+}

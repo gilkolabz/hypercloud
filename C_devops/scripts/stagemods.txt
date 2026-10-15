@@ -1,0 +1,13 @@
+# torus/scripts/stagemods — mount stage stack from the host short parks (deps first). No jockey_phone / tiny / snoopy / potter_gibbert.
+# Each name is fetched with park bypass, so a local tip that is only the frame JSON cannot block the install.
+const names = ["supermouse", "stagedir", "dropdown", "no_dubclick", "draggem_div", "stagejockey", "jockey_remove", "jockey_move", "stage_casting", "image_resize", "surf_persist", "stage_draggem", "relativespan", "tabletop_render", "zip_manifest"];
+for (const name of names) {
+    const res = await fetch(navi.resolveUrl(name), {
+        headers: { Accept: "application/navi-module, text/javascript, */*", "X-Navi-Park-Bypass": "1" },
+        cache: "no-store",
+    });
+    if (!res.ok) throw new Error(name + " HTTP " + res.status);
+    await navi.mount(await res.text());
+    navi.callout("[stagemods] mounted " + name);
+}
+navi.callout("[stagemods] mounted stage stack");

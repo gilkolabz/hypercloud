@@ -1,0 +1,33 @@
+{
+  "ib": "mimex",
+  "gib": "<sha256_of_canonical_frame_data_UPPERCASE>",
+  "data": {
+    "parts": [
+      "network_proposal",
+      "ibgib_frame",
+      "manifest",
+      "json"
+    ],
+    "park": "capture",
+    "default_method": "GET",
+    "method": {
+      "GET": {
+        "kind": "proxy",
+        "target": "https://xomud.quest/mimex"
+      },
+      "PUT": {
+        "kind": "commit"
+      }
+    },
+    "n": 0,
+    "timestamp": "<Date.toUTCString()>"
+  },
+  "rel8ns": {
+    "policy": [
+      "policies/foobarch-shell^<policy_gib>"
+    ],
+    "past": [],
+    "tjp": [],
+    "dna": []
+  }
+}

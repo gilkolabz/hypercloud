@@ -1,0 +1,15 @@
+Can I use Flowerpot here?
+
+Browser page: potter.js UI to pot/get strings + faucet check.
+Native: mount potter from warez, then use potter callins.
+
+  mount flowerpot/hypercloud/testkit/mods/legacy/potter.js
+  potter help
+
+If potter is not mounted, the browser shows "nah sorry".
+
+Links:
+  [1] Gadgets (mount path) → hypertext/gadgets
+  [2] Hypernetizen Warez   → hypertext/hypernetizenwarez
+  [3] Flowerpot FAQ        → hypertext/flowerpot_faq
+  [4] back to welcome      → hypertext/welcome

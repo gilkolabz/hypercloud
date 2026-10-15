@@ -1,0 +1,114 @@
+<div
+  name="flow-model-devops-goals"
+  data-path="torus/devops/flow-model/devops-goals"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/program-manifest" hx-get="/torus/devops/flow-model/program-manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">program-manifest</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Devops goals</h1>
+    <p>Normative rule for <strong>why</strong> every artifact mut8 / hostpark push exists. Applies to all flow-model products indexed by <strong>fsdevopstracker</strong> (<code>put</code>, <code>append</code>, <code>mut8</code>, <code>hostpark-push</code>).</p>
+
+    <h2>Why goals exist</h2>
+    <ul>
+      <li><strong>Ops lineage</strong> — each write records <code>{ op, path, goal, actor, at, … }</code> on <code>{project}:devops:ops</code> (and bulk export <code>devops/ops.json</code>).</li>
+      <li><strong>Tinyviewport</strong> — flowchart / goal edges read ops + <code>devops/goals.json</code>.</li>
+      <li><strong>Human archaeology</strong> — “why did this frame land?” without reading the whole diff.</li>
+    </ul>
+    <p>A push without a real goal is incomplete devops.</p>
+
+    <h2>Required shape</h2>
+    <p>Every fsdevops write that changes tip bytes <strong>must</strong> include:</p>
+    <pre><code>goal=&lt;why&gt;</code></pre>
+    <table>
+      <thead>
+        <tr><th>Field</th><th>Rule</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Required</strong></td><td>Non-empty <code>goal=</code> on <code>put</code> / <code>append</code> / <code>mut8</code> / <code>hostpark-push</code></td></tr>
+        <tr><td><strong>One artifact</strong></td><td>Prefer one clear goal string per path (or <code>goal=… [rel]</code> when a batch script stamps the same why onto several rels)</td></tr>
+        <tr><td><strong>Why, not what</strong></td><td>State intent / product reason — not <code>refresh tip from disk</code> or <code>update file</code></td></tr>
+        <tr><td><strong>Layer when useful</strong></td><td>Prefix with layer or variant when it clarifies: <code>L3 scholastic: …</code>, <code>versatile job: …</code>, <code>L1 registry: …</code></td></tr>
+        <tr><td><strong>Stable goals ledger</strong></td><td>Longer-lived work also lives in <code>devops/goals.json</code> (<code>id</code>, <code>text</code>, <code>layer</code>, <code>status</code>); ops may cite <code>goal_id</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Good examples</h3>
+    <pre><code>goal=versatile jobs: NEW JOB section label above title input (match CREW/TRADES)
+goal=scholastic: MARK JOB DONE green; PUNCH REPORT amber (was done-btn color)
+goal=L1 registry 0.3.0: notes[] append/edit/delete + tipunch:crew_names suggestions
+goal=hostpark-push ti_punch runtime + tipunch_skin.css for PM field launch</code></pre>
+
+    <h3>Bad examples (reject / rewrite)</h3>
+    <pre><code>goal=refresh tip from disk: ui/jobs.html
+goal=update
+goal=fix
+goal=wip</code></pre>
+
+    <h2>Two ledgers (do not confuse)</h2>
+    <table>
+      <thead>
+        <tr><th>Ledger</th><th>Path / tip</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Goals</strong></td>
+          <td><code>devops/goals.json</code> → <code>{project}:devops:goals</code></td>
+          <td>Planned / layer goals (<code>g16</code>, status, layer)</td>
+        </tr>
+        <tr>
+          <td><strong>Ops</strong></td>
+          <td><code>{project}:devops:ops</code> (+ export <code>devops/ops.json</code>)</td>
+          <td>What actually happened — each put/push with its <code>goal=</code> string</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><code>goals.json</code> answers “what are we trying to finish?” Ops answers “what did we ship, and why was that write done?”</p>
+
+    <h2>Workflow (relay iterate → hostpark ship)</h2>
+    <ol>
+      <li><strong>Edit on disk</strong> under the project root (<code>config.json</code> <code>flowerpot.root</code>).</li>
+      <li><strong>Plant / put</strong> into fsdevops tip space with <code>goal=&lt;why&gt;</code> (relay preview). <code>mirror</code> alone does <strong>not</strong> refresh tip bins from disk — it only rebuilds <code>navi/{route_prefix}/…</code> parks from <strong>existing</strong> tip content. After content changes, <strong><code>put</code> (or reinit)</strong> then <code>mirror</code>.</li>
+      <li><strong>Preview</strong> via <code>navi-{alias}/{route_prefix}/…</code>.</li>
+      <li><strong>Hostpark-push</strong> the same rels with the same quality of goal (production lineage). <code>hostpark-push &lt;rel&gt; goal=&lt;why&gt;</code> — required; tokens + policy key as usual.</li>
+      <li>Optionally sync <code>devops/ops.json</code> and <code>devops/goals.json</code> so tinyviewport and hostpark mirrors stay aligned.</li>
+    </ol>
+
+    <h3>Callin / script shapes</h3>
+    <pre><code># REPL / callin
+fsdevopstracker put path=ui/jobs_versatile.html goal=&lt;why&gt; body=…
+fsdevopstracker hostpark-push ui/jobs_versatile.html goal=&lt;why&gt;
+
+# Batch helper (requires goal=)
+node B_native_mods/_fsdevops_put_disk_files.mjs nativenest goal=&lt;why&gt; ui/a.html ui/b.css</code></pre>
+    <p>POST JSON (relay): <code>{ "path": "…", "goal": "…", "body": "…" }</code> for put/append; <code>{ "path": "…", "goal": "…" }</code> for hostpark-push.</p>
+
+    <h2>Catalog duty</h2>
+    <p>When a project ships new hostpark paths, list them on <a href="/torus/host-catalog" hx-get="/torus/host-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus host catalog</a> under the product section (and identity catalogs when they are first-class assets). Goals do not replace the catalog — they explain each generation.</p>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a> — scaffold + publishing checklist</li>
+      <li><a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a> — hostpark as default artifact host</li>
+      <li><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a> — ops / goals terms</li>
+      <li><a href="/torus/testkit/mod/fsdevopstracker/readme" hx-get="/torus/testkit/mod/fsdevopstracker/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">fsdevopstracker readme</a> — commands</li>
+      <li><a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a> — origin publish + spans</li>
+    </ul>
+  </article>
+</div>

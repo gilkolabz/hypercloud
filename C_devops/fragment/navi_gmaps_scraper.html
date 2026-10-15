@@ -1,0 +1,2634 @@
+<div
+  name="gmaps_scraper"
+  data-path="torus/testkit/gmaps-scraper"
+  data-part="htmf"
+>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Syne:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap");
+    div[name="gmaps_scraper"] {
+      --ink: #0e1114;
+      --mute: #6b737a;
+      --line: #d4d8dc;
+      --paper: #f4f2ee;
+      --panel: #faf9f7;
+      --accent: #1e4d8c;
+      --accent-ink: #12305a;
+      --warn: #c9a227;
+      --bad: #c23b2e;
+      --ok: #1f8a4c;
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--ink);
+      background:
+        radial-gradient(90% 60% at 0% 0%, #e4ecf6 0%, transparent 55%),
+        linear-gradient(180deg, #f7f5f1 0%, var(--paper) 100%);
+      padding: 0.55rem 0.7rem 0.75rem;
+      box-sizing: border-box;
+      max-width: 100%;
+      min-height: 28rem;
+      max-height: min(100vh, 100dvh);
+      overflow: auto;
+      overscroll-behavior: contain;
+    }
+    div[name="gmaps_scraper"] * {
+      box-sizing: border-box;
+    }
+    div[name="gmaps_scraper"] .top {
+      display: flex;
+      align-items: baseline;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      margin: 0 0 0.45rem;
+      border-bottom: 1px solid var(--ink);
+      padding-bottom: 0.35rem;
+    }
+    div[name="gmaps_scraper"] h1 {
+      font-family: Syne, sans-serif;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      margin: 0;
+      line-height: 1;
+    }
+    div[name="gmaps_scraper"] .lede {
+      color: var(--mute);
+      margin: 0;
+      flex: 1;
+      min-width: 10rem;
+    }
+    div[name="gmaps_scraper"] input[type="text"],
+    div[name="gmaps_scraper"] input[type="password"],
+    div[name="gmaps_scraper"] input[type="number"],
+    div[name="gmaps_scraper"] input[type="datetime-local"],
+    div[name="gmaps_scraper"] textarea,
+    div[name="gmaps_scraper"] select {
+      font: inherit;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 0.28rem 0.4rem;
+      border-radius: 0;
+      width: 100%;
+    }
+    div[name="gmaps_scraper"] input:focus,
+    div[name="gmaps_scraper"] textarea:focus {
+      outline: 1px solid var(--accent);
+      border-color: var(--accent);
+    }
+    div[name="gmaps_scraper"] button,
+    div[name="gmaps_scraper"] .btn {
+      font: inherit;
+      font-weight: 500;
+      border: 1px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      padding: 0.28rem 0.55rem;
+      cursor: pointer;
+      border-radius: 0;
+      text-decoration: none;
+      display: inline-block;
+      line-height: 1.2;
+    }
+    div[name="gmaps_scraper"] button:hover,
+    div[name="gmaps_scraper"] .btn:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    div[name="gmaps_scraper"] button.primary {
+      background: var(--accent);
+      border-color: var(--accent-ink);
+      color: #fff;
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    div[name="gmaps_scraper"] button.primary:hover {
+      background: var(--accent-ink);
+    }
+    div[name="gmaps_scraper"] button.danger {
+      border-color: var(--bad);
+      color: var(--bad);
+    }
+    div[name="gmaps_scraper"] button.danger:hover {
+      background: var(--bad);
+      color: #fff;
+    }
+    div[name="gmaps_scraper"] button.ghost {
+      border-color: var(--line);
+      color: var(--mute);
+    }
+    div[name="gmaps_scraper"] .layout {
+      display: grid;
+      grid-template-columns: minmax(15rem, 17.5rem) 1fr;
+      gap: 0.55rem;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      div[name="gmaps_scraper"] .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    div[name="gmaps_scraper"] .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 0.45rem 0.5rem 0.55rem;
+    }
+    div[name="gmaps_scraper"] .sec {
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 0.15rem 0 0.35rem;
+      color: var(--mute);
+    }
+    div[name="gmaps_scraper"] .fg {
+      margin: 0 0 0.35rem;
+    }
+    div[name="gmaps_scraper"] .fg > label {
+      display: block;
+      color: var(--mute);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0 0 0.12rem;
+    }
+    div[name="gmaps_scraper"] .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.35rem;
+    }
+    div[name="gmaps_scraper"] .chk {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0.2rem 0;
+      color: var(--ink);
+    }
+    div[name="gmaps_scraper"] .chk label {
+      margin: 0;
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: 12px;
+      color: var(--ink);
+    }
+    div[name="gmaps_scraper"] details {
+      margin: 0.25rem 0;
+      border-top: 1px dashed var(--line);
+      padding-top: 0.25rem;
+    }
+    div[name="gmaps_scraper"] summary {
+      cursor: pointer;
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent-ink);
+      list-style: none;
+      padding: 0.15rem 0;
+    }
+    div[name="gmaps_scraper"] summary::-webkit-details-marker {
+      display: none;
+    }
+    div[name="gmaps_scraper"] .err {
+      display: none;
+      background: #fdeceb;
+      border: 1px solid var(--bad);
+      color: var(--bad);
+      padding: 0.3rem 0.4rem;
+      margin: 0 0 0.4rem;
+      white-space: pre-wrap;
+    }
+    div[name="gmaps_scraper"] .err:not(:empty) {
+      display: block;
+    }
+    div[name="gmaps_scraper"] .status-line {
+      color: var(--mute);
+      min-height: 1.1em;
+      margin: 0 0 0.35rem;
+      font-size: 11px;
+    }
+    div[name="gmaps_scraper"] table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    div[name="gmaps_scraper"] th,
+    div[name="gmaps_scraper"] td {
+      border-bottom: 1px solid var(--line);
+      padding: 0.28rem 0.35rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    div[name="gmaps_scraper"] th {
+      font-family: Syne, sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--mute);
+      border-bottom-color: var(--ink);
+    }
+    div[name="gmaps_scraper"] tr:hover td {
+      background: #eef2f8;
+    }
+    div[name="gmaps_scraper"] th.sortable {
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    div[name="gmaps_scraper"] th.sortable:hover {
+      color: var(--accent-ink);
+    }
+    div[name="gmaps_scraper"] th.sortable[data-sort-active] {
+      color: var(--accent-ink);
+    }
+    div[name="gmaps_scraper"] th .sort-mark {
+      margin-left: 0.2rem;
+      font-size: 9px;
+      letter-spacing: 0;
+    }
+    div[name="gmaps_scraper"] .id {
+      font-size: 10px;
+      word-break: break-all;
+      max-width: 8rem;
+      color: var(--mute);
+    }
+    div[name="gmaps_scraper"] .pill {
+      display: inline-block;
+      padding: 0.05rem 0.35rem;
+      font-size: 10px;
+      font-weight: 500;
+      border: 1px solid currentColor;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    div[name="gmaps_scraper"] .pill.ok {
+      color: var(--ok);
+    }
+    div[name="gmaps_scraper"] .pill.pending,
+    div[name="gmaps_scraper"] .pill.working {
+      color: #8a6d00;
+      background: #fff6cc;
+      border-color: var(--warn);
+    }
+    div[name="gmaps_scraper"] .pill.failed,
+    div[name="gmaps_scraper"] .pill.error {
+      color: #fff;
+      background: var(--bad);
+      border-color: var(--bad);
+    }
+    div[name="gmaps_scraper"] .acts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    div[name="gmaps_scraper"] .acts button,
+    div[name="gmaps_scraper"] .acts .btn {
+      padding: 0.15rem 0.4rem;
+      font-size: 10px;
+    }
+    div[name="gmaps_scraper"] [data-part="view"] {
+      display: none;
+    }
+    div[name="gmaps_scraper"][data-mode="view"] [data-part="jobs"] {
+      display: none;
+    }
+    div[name="gmaps_scraper"][data-mode="view"] [data-part="view"] {
+      display: block;
+    }
+    div[name="gmaps_scraper"] .view-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      margin: 0.3rem 0 0;
+    }
+    @media (max-width: 720px) {
+      div[name="gmaps_scraper"] .view-controls {
+        grid-template-columns: 1fr;
+      }
+    }
+    div[name="gmaps_scraper"] .field-list,
+    div[name="gmaps_scraper"] .cat-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 11rem;
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    div[name="gmaps_scraper"] .field-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.18rem 0.3rem;
+      border-bottom: 1px solid var(--line);
+      user-select: none;
+    }
+    div[name="gmaps_scraper"] .field-list li:last-child {
+      border-bottom: 0;
+    }
+    div[name="gmaps_scraper"] .field-list li.off {
+      opacity: 0.42;
+      background: #f3f3f1;
+      color: var(--mute);
+    }
+    div[name="gmaps_scraper"] .field-list li.dragging {
+      opacity: 0.85;
+      background: #e8eef6;
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+    div[name="gmaps_scraper"] .field-list li.drag-over {
+      border-top: 2px solid var(--accent);
+    }
+    div[name="gmaps_scraper"] .field-list .field-grip {
+      flex: 0 0 auto;
+      width: 1.1rem;
+      height: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      color: var(--mute);
+      font-size: 11px;
+      line-height: 1;
+      letter-spacing: -0.08em;
+      touch-action: none;
+    }
+    div[name="gmaps_scraper"] .field-list .field-grip:active {
+      cursor: grabbing;
+      color: var(--accent-ink);
+    }
+    div[name="gmaps_scraper"] .field-list label.field-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      font-size: 11px;
+      color: inherit;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+    div[name="gmaps_scraper"] .field-list input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      flex-shrink: 0;
+    }
+    div[name="gmaps_scraper"] .field-list .field-name {
+      flex: 1;
+      min-width: 0;
+    }
+    div[name="gmaps_scraper"] .cat-list label {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.22rem 0.35rem;
+      border-bottom: 1px solid var(--line);
+      margin: 0;
+      font-size: 11px;
+      color: var(--ink);
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+    div[name="gmaps_scraper"] .cat-list label:last-child {
+      border-bottom: 0;
+    }
+    div[name="gmaps_scraper"] .cat-list input {
+      width: auto;
+      margin: 0;
+    }
+    div[name="gmaps_scraper"] .hours-open {
+      color: var(--ok);
+      font-weight: 500;
+    }
+    div[name="gmaps_scraper"] .hours-closed {
+      color: var(--bad);
+      font-weight: 500;
+    }
+    div[name="gmaps_scraper"] .hours-unknown {
+      color: var(--mute);
+    }
+    div[name="gmaps_scraper"] .scroll {
+      overflow: auto;
+      max-height: min(70vh, 36rem);
+      border: 1px solid var(--line);
+    }
+    div[name="gmaps_scraper"] .scroll table {
+      min-width: 48rem;
+    }
+    div[name="gmaps_scraper"] .map-wrap {
+      margin-top: 0.45rem;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 0.4rem 0.45rem 0.5rem;
+    }
+    div[name="gmaps_scraper"] .map-wrap[hidden] {
+      display: none !important;
+    }
+    div[name="gmaps_scraper"] [data-part="map"] {
+      height: min(52vh, 28rem);
+      width: 100%;
+      background: #dfe4ec;
+    }
+    div[name="gmaps_scraper"] [data-part="geo-wrap"] {
+      margin-top: 0.55rem;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 0.45rem 0.5rem 0.55rem;
+    }
+    div[name="gmaps_scraper"] [data-part="geo-wrap"][hidden] {
+      display: none !important;
+    }
+    div[name="gmaps_scraper"] [data-part="geo-map"] {
+      height: min(56vh, 32rem);
+      width: 100%;
+      background: #dfe4ec;
+      border: 1px solid var(--line);
+    }
+    div[name="gmaps_scraper"] .geo-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.55rem;
+      align-items: center;
+      margin: 0 0 0.4rem;
+    }
+    div[name="gmaps_scraper"] .geo-bar .geo-live {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      color: var(--ink);
+      flex: 1 1 14rem;
+      min-width: 0;
+      word-break: break-word;
+    }
+    div[name="gmaps_scraper"] .geo-bar .geo-live .mute {
+      color: var(--mute);
+    }
+    div[name="gmaps_scraper"] .geo-hint {
+      color: var(--mute);
+      font-size: 11px;
+      margin: 0.35rem 0 0;
+      line-height: 1.4;
+    }
+    div[name="gmaps_scraper"] .geo-radius-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin: 0.4rem 0 0;
+    }
+    div[name="gmaps_scraper"] .geo-radius-row label {
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    div[name="gmaps_scraper"] .geo-radius-row input[type="range"] {
+      flex: 1;
+      min-width: 0;
+    }
+    div[name="gmaps_scraper"] .gms-geo-center {
+      background: transparent;
+      border: 0;
+    }
+    div[name="gmaps_scraper"] .gms-geo-center-dot {
+      width: 16px;
+      height: 16px;
+      margin-left: -8px;
+      margin-top: -8px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px var(--accent-ink), 0 1px 3px rgba(0, 0, 0, 0.35);
+      cursor: grab;
+    }
+    div[name="gmaps_scraper"] .gms-geo-edge {
+      background: transparent;
+      border: 0;
+    }
+    div[name="gmaps_scraper"] .gms-geo-edge-dot {
+      width: 14px;
+      height: 14px;
+      margin-left: -7px;
+      margin-top: -7px;
+      border-radius: 50%;
+      background: #fff;
+      border: 2px solid var(--accent-ink);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      cursor: ew-resize;
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] {
+      margin: 0.45rem 0 0;
+      padding: 0.55rem 0.6rem 0.65rem;
+      border-top: 1px solid var(--line);
+      background: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px;
+      line-height: 1.4;
+      min-height: 1.4em;
+      color: var(--ink);
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .pick-title {
+      font-family: Syne, sans-serif;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.55rem;
+      line-height: 1.15;
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .mute {
+      font-weight: 500;
+      color: var(--mute);
+      font-size: 0.85em;
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .pick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+      gap: 0.55rem 0.75rem;
+      align-items: start;
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .pick-card {
+      min-width: 0;
+      padding: 0.35rem 0.4rem;
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .pick-k {
+      display: block;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 10px;
+      margin: 0 0 0.2rem;
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .pick-v {
+      display: block;
+      word-break: break-word;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    div[name="gmaps_scraper"] [data-part="map-pick"] .pick-v a {
+      color: var(--accent-ink);
+      font-weight: 500;
+    }
+    div[name="gmaps_scraper"] .gms-pin {
+      background: transparent;
+      border: 0;
+    }
+    div[name="gmaps_scraper"] .gms-pin-dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #1e4d8c;
+      border: 1px solid #12305a;
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 24px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    }
+    div[name="gmaps_scraper"] .hidden {
+      display: none !important;
+    }
+    div[name="gmaps_scraper"] .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+      margin: 0 0 0.35rem;
+    }
+  </style>
+
+  <div class="top">
+    <h1>Maps scraper</h1>
+    <p class="lede">localhost:8080 via relay → native navi_shell</p>
+    <button type="button" data-part="refresh" class="ghost">refresh</button>
+  </div>
+
+  <div class="base-row" style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;margin:0 0 0.45rem">
+    <label for="gms-alias" style="color:var(--mute);text-transform:uppercase;letter-spacing:0.06em;font-size:10px">relay alias</label>
+    <input
+      type="text"
+      data-part="alias"
+      id="gms-alias"
+      style="width:min(12rem,100%)"
+      spellcheck="false"
+      placeholder="native shell alias"
+      autocomplete="off"
+    />
+    <label for="gms-token" style="color:var(--mute);text-transform:uppercase;letter-spacing:0.06em;font-size:10px">access token</label>
+    <input
+      type="password"
+      data-part="token"
+      id="gms-token"
+      style="width:min(14rem,100%)"
+      spellcheck="false"
+      placeholder="optional"
+      autocomplete="off"
+    />
+    <button type="button" data-part="check" class="ghost">check</button>
+    <span data-part="relay-ok" class="lede" style="flex:1"></span>
+  </div>
+
+  <div data-part="err" class="err"></div>
+  <div data-part="status" class="status-line"></div>
+
+  <div data-part="jobs">
+    <div class="layout">
+      <form data-part="form" class="panel" autocomplete="off">
+        <div class="sec">new job</div>
+        <div class="fg">
+          <label for="gms-name">name</label>
+          <input type="text" data-part="name" id="gms-name" />
+        </div>
+        <div class="fg">
+          <label for="gms-keywords">keywords (one per line)</label>
+          <textarea data-part="keywords" id="gms-keywords" rows="6"></textarea>
+        </div>
+        <div class="fg">
+          <label for="gms-lang">lang</label>
+          <input type="text" data-part="lang" id="gms-lang" value="en" maxlength="2" />
+        </div>
+
+        <details data-part="loc-details">
+          <summary>location</summary>
+          <div class="row2">
+            <div class="fg">
+              <label for="gms-zoom">zoom</label>
+              <input type="number" data-part="zoom" id="gms-zoom" value="15" min="0" max="21" />
+            </div>
+            <div class="fg">
+              <label for="gms-radius">radius (m)</label>
+              <input type="number" data-part="radius" id="gms-radius" value="10000" min="50" step="50" />
+            </div>
+          </div>
+          <div class="row2">
+            <div class="fg">
+              <label for="gms-lat">lat</label>
+              <input type="text" data-part="lat" id="gms-lat" value="32.7" />
+            </div>
+            <div class="fg">
+              <label for="gms-lon">lon</label>
+              <input type="text" data-part="lon" id="gms-lon" value="-96.8" />
+            </div>
+          </div>
+          <button type="button" data-part="geo-open" class="ghost" style="width:100%;margin-top:0.35rem">
+            pick on map
+          </button>
+          <p class="geo-hint" style="margin-top:0.3rem">
+            lat/lon = search center · radius = meters (fast-mode filter) · zoom = Maps viewport 0–21
+          </p>
+        </details>
+
+        <details>
+          <summary>advanced</summary>
+          <div class="chk">
+            <input type="checkbox" data-part="fastmode" id="gms-fast" />
+            <label for="gms-fast">fast mode (beta)</label>
+          </div>
+          <div class="chk">
+            <input type="checkbox" data-part="email" id="gms-email" />
+            <label for="gms-email">fetch emails</label>
+          </div>
+          <div class="row2">
+            <div class="fg">
+              <label for="gms-depth">depth</label>
+              <input type="number" data-part="depth" id="gms-depth" value="10" />
+            </div>
+            <div class="fg">
+              <label for="gms-maxtime">max time</label>
+              <input type="text" data-part="maxtime" id="gms-maxtime" value="10m" />
+            </div>
+          </div>
+        </details>
+
+        <details>
+          <summary>proxies</summary>
+          <div class="fg">
+            <label for="gms-proxies">one per line</label>
+            <textarea data-part="proxies" id="gms-proxies" rows="3"></textarea>
+          </div>
+        </details>
+
+        <button type="submit" class="primary" style="width: 100%; margin-top: 0.4rem">
+          start scraping
+        </button>
+      </form>
+
+      <div class="panel">
+        <div class="sec">jobs</div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>date</th>
+                <th>status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody data-part="job-rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div data-part="geo-wrap" hidden>
+      <div class="geo-bar">
+        <div class="sec" style="margin:0">map location</div>
+        <span data-part="geo-live" class="geo-live"></span>
+        <button type="button" data-part="geo-done" class="primary">use values</button>
+        <button type="button" data-part="geo-cancel" class="ghost">cancel</button>
+      </div>
+      <div data-part="geo-map" role="img" aria-label="location and radius picker"></div>
+      <div class="geo-radius-row">
+        <label for="gms-geo-radius">radius</label>
+        <input
+          type="range"
+          data-part="geo-radius"
+          id="gms-geo-radius"
+          min="100"
+          max="80000"
+          step="50"
+          value="10000"
+        />
+        <span data-part="geo-radius-label" class="lede" style="min-width:5.5rem;text-align:right">10000 m</span>
+      </div>
+      <p class="geo-hint">
+        Drag the teal center · drag the white handle (or slider) for radius · scroll to set zoom ·
+        click the map to jump the center · values update live in the form
+      </p>
+    </div>
+  </div>
+
+  <div data-part="view">
+    <div class="toolbar">
+      <button type="button" data-part="back" class="ghost">← jobs</button>
+      <strong data-part="view-title"></strong>
+      <span data-part="view-meta" class="lede"></span>
+      <button type="button" data-part="dl" class="ghost">download csv</button>
+    </div>
+    <div class="panel" style="margin-bottom: 0.35rem">
+      <div class="toolbar">
+        <span>time <strong data-part="clock"></strong></span>
+        <input type="datetime-local" data-part="time-override" />
+        <button type="button" data-part="time-apply" class="ghost">apply</button>
+        <button type="button" data-part="time-reset" class="ghost">live</button>
+      </div>
+      <div class="view-controls">
+        <div>
+          <div class="sec">columns · drag ≡ · check to show</div>
+          <ul class="field-list" data-part="field-list"></ul>
+          <div class="toolbar">
+            <button type="button" data-part="fields-all" class="ghost">all</button>
+            <button type="button" data-part="fields-none" class="ghost">none</button>
+            <button type="button" data-part="view-apply" class="primary">update</button>
+          </div>
+        </div>
+        <div>
+          <div class="sec">categories (filter)</div>
+          <div class="cat-list" data-part="cat-filter"></div>
+          <div class="toolbar">
+            <button type="button" data-part="cat-all" class="ghost">all</button>
+            <button type="button" data-part="cat-none" class="ghost">none</button>
+            <button type="button" data-part="view-apply" class="primary">update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr data-part="result-head"></tr>
+        </thead>
+        <tbody data-part="result-rows"></tbody>
+      </table>
+    </div>
+    <div class="toolbar" style="margin-top: 0.4rem">
+      <button type="button" data-part="map-toggle" class="primary">map entries</button>
+      <span data-part="map-status" class="lede"></span>
+    </div>
+    <div class="map-wrap" data-part="map-wrap" hidden>
+      <div data-part="map" role="img" aria-label="entry map"></div>
+      <div data-part="map-pick">click a point</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.currentScript.closest('div[name="gmaps_scraper"]');
+      if (!root) return;
+      const part = (n) => root.querySelector(`[data-part="${n}"]`);
+      const navi = globalThis.navi;
+
+      const FIELDS = [
+        "title",
+        "category",
+        "address",
+        "phone",
+        "hours",
+        "website",
+        "review_rating",
+        "review_count",
+        "latitude",
+        "longitude",
+        "status",
+        "price_range",
+        "description",
+        "emails",
+        "link",
+        "cid",
+      ];
+
+      let pollTimer = 0;
+      let viewJob = null;
+      let viewEntries = [];
+      let fieldOrder = FIELDS.slice();
+      let fieldEnabled = new Set(FIELDS);
+      /** @type {Set<string>|null} null = all categories included */
+      let categoryInclude = null;
+      let sortKey = null;
+      let sortDir = "desc";
+      let timeMode = "live";
+      let overrideBase = null;
+      let overrideStart = null;
+      let csvBlobUrl = null;
+      let leafletReady = null;
+      let mapInst = null;
+      let mapLayer = null;
+      let geoMap = null;
+      let geoCircle = null;
+      let geoCenter = null;
+      let geoEdge = null;
+      let geoSyncing = false;
+      let geoSnapshot = null;
+
+      function setErr(msg) {
+        const el = part("err");
+        if (el) el.textContent = msg || "";
+      }
+      function setStatus(msg) {
+        const el = part("status");
+        if (el) el.textContent = msg || "";
+      }
+
+      const MOD_ROUTE =
+        "flowerpot/hypercloud/testkit/mods/legacy/gmaps_scraper.js";
+      const ALIAS_ITEM = "gmaps_scraper.relay_alias";
+      const TOKEN_ITEM = "gmaps_scraper.relay_token";
+      let relayReady = false;
+
+      function peerAlias() {
+        return String(part("alias")?.value || "")
+          .trim()
+          .replace(/^navi-/i, "")
+          .toLowerCase();
+      }
+
+      function peerToken() {
+        return String(part("token")?.value || "").trim();
+      }
+
+      function resolvePath(path) {
+        const p = String(path || "").replace(/^\/+/, "");
+        if (typeof navi?.resolveUrl === "function") {
+          return navi.resolveUrl("/" + p);
+        }
+        return "/" + p;
+      }
+
+      async function relayHit(remainder, opts = {}) {
+        const alias = peerAlias();
+        if (!alias) throw new Error("set relay alias (native navi_shell)");
+        const rem = String(remainder || "").replace(/^\/+/, "");
+        const path = rem ? `navi-${alias}/${rem}` : `navi-${alias}/`;
+        const method = String(opts.method || "GET").toUpperCase();
+        const init = {
+          method,
+          headers: {
+            Accept: "application/json, text/plain, */*",
+            // Sync result — without this, foobarch returns 202 {job_id} and we go blind.
+            "X-Navi-Shell-Wait": "1",
+            ...(opts.headers || {}),
+          },
+          cache: "no-store",
+        };
+        const token = peerToken();
+        if (token) init.headers["X-Navi-Shell-Usage-Token"] = token;
+        if (opts.body != null && method !== "GET" && method !== "HEAD") {
+          init.body =
+            typeof opts.body === "string"
+              ? opts.body
+              : JSON.stringify(opts.body);
+          if (!init.headers["Content-Type"]) {
+            init.headers["Content-Type"] = "application/json; charset=utf-8";
+          }
+        }
+        const url = resolvePath(path);
+        const res = await fetch(url, init);
+        const text = await res.text();
+        const parsed = (() => {
+          try {
+            return text ? JSON.parse(text) : null;
+          } catch {
+            return null;
+          }
+        })();
+        const errMsg =
+          (parsed && typeof parsed === "object" && parsed.error
+            ? String(parsed.error)
+            : "") ||
+          (/^error:\s*/im.test(text) ? text.split("\n")[0] : "");
+        if (res.status === 202 || (parsed && parsed.job_id && parsed.state)) {
+          throw new Error(
+            "relay returned async job (need X-Navi-Shell-Wait) " +
+              text.slice(0, 160)
+          );
+        }
+        const ok = res.ok && !errMsg;
+        return {
+          ok,
+          status: res.status,
+          text,
+          parsed,
+          error: errMsg || (!res.ok ? text.slice(0, 240) : ""),
+          url,
+        };
+      }
+
+      function parseMaybeJson(text) {
+        const t = String(text || "").trim();
+        if (!t) return null;
+        try {
+          return JSON.parse(t);
+        } catch {
+          return t;
+        }
+      }
+
+      async function ensureRemoteMod() {
+        const help = await relayHit("gmaps_scraper/help");
+        if (help.ok) return "already mounted";
+        setStatus(
+          "mounting gmaps_scraper on navi-" +
+            peerAlias() +
+            "… (" +
+            (help.error || help.status) +
+            ")"
+        );
+        // One path segment so mount gets the full flowerpot route (not slash-split).
+        const mount = await relayHit(
+          "mount/" + encodeURIComponent(MOD_ROUTE)
+        );
+        if (!mount.ok) {
+          throw new Error(
+            "remote mount failed " +
+              mount.status +
+              ": " +
+              (mount.error || mount.text.slice(0, 180))
+          );
+        }
+        const help2 = await relayHit("gmaps_scraper/help");
+        if (!help2.ok) {
+          throw new Error(
+            "mounted but help failed " +
+              help2.status +
+              ": " +
+              (help2.error || help2.text.slice(0, 180))
+          );
+        }
+        return "mounted";
+      }
+
+      async function checkRelay() {
+        setErr("");
+        const alias = peerAlias();
+        if (!alias) throw new Error("enter a relay alias");
+        try {
+          await navi?.storage?.item?.set?.(ALIAS_ITEM, alias);
+          await navi?.storage?.item?.set?.(TOKEN_ITEM, peerToken());
+        } catch {
+          /* ok */
+        }
+        setStatus("pinging navi-" + alias + "…");
+        const ping = await relayHit("");
+        if (!ping.ok) {
+          relayReady = false;
+          throw new Error(
+            "ping failed " +
+              ping.status +
+              ": " +
+              (ping.error || ping.text.slice(0, 160))
+          );
+        }
+        const mountNote = await ensureRemoteMod();
+        setStatus("checking localhost:8080 via navi-" + alias + "…");
+        const jobs = await relayHit("gmaps_scraper/jobs");
+        if (!jobs.ok) {
+          relayReady = false;
+          throw new Error(
+            "jobs failed " +
+              jobs.status +
+              ": " +
+              (jobs.error || jobs.text.slice(0, 200)) +
+              " (is scraper listening on that shell's localhost:8080?)"
+          );
+        }
+        relayReady = true;
+        const okEl = part("relay-ok");
+        if (okEl) {
+          okEl.textContent =
+            "navi-" + alias + " ok · " + mountNote + " · localhost reachable";
+        }
+        setStatus("relay ready");
+        return parseMaybeJson(jobs.text);
+      }
+
+      const api = {
+        async listJobs() {
+          const r = await relayHit("gmaps_scraper/jobs");
+          if (!r.ok) {
+            throw new Error(
+              "HTTP " + r.status + ": " + (r.error || r.text.slice(0, 200))
+            );
+          }
+          return parseMaybeJson(r.text);
+        },
+        async getJob(id) {
+          const r = await relayHit(
+            "gmaps_scraper/job/" + encodeURIComponent(id)
+          );
+          if (!r.ok) {
+            throw new Error(
+              "HTTP " + r.status + ": " + (r.error || r.text.slice(0, 200))
+            );
+          }
+          return parseMaybeJson(r.text);
+        },
+        async createJob(payload) {
+          const r = await relayHit("gmaps_scraper/create", {
+            method: "POST",
+            body: payload,
+          });
+          if (!r.ok) {
+            throw new Error(
+              "HTTP " + r.status + ": " + (r.error || r.text.slice(0, 200))
+            );
+          }
+          return parseMaybeJson(r.text);
+        },
+        async deleteJob(id) {
+          const r = await relayHit(
+            "gmaps_scraper/delete/" + encodeURIComponent(id)
+          );
+          if (!r.ok) {
+            throw new Error(
+              "HTTP " + r.status + ": " + (r.error || r.text.slice(0, 200))
+            );
+          }
+          return r.text;
+        },
+        async downloadCsv(id) {
+          const r = await relayHit(
+            "gmaps_scraper/download/" + encodeURIComponent(id)
+          );
+          if (!r.ok) {
+            throw new Error(
+              "HTTP " + r.status + ": " + (r.error || r.text.slice(0, 200))
+            );
+          }
+          return r.text;
+        },
+      };
+
+      function lines(text) {
+        return String(text || "")
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+
+      /** Parse 10m / 1h30m / 3600 / 3600s → seconds (API max_time). */
+      function parseMaxTimeSeconds(raw) {
+        const s = String(raw || "").trim().toLowerCase();
+        if (!s) throw new Error("max time required");
+        if (/^\d+$/.test(s)) return Math.max(1, parseInt(s, 10));
+        const m = s.match(
+          /^(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?\s*(?:(\d+)\s*s)?$/
+        );
+        if (!m || (!m[1] && !m[2] && !m[3])) {
+          throw new Error('invalid max time (use e.g. "10m", "1h", or seconds)');
+        }
+        const sec =
+          (parseInt(m[1] || "0", 10) || 0) * 3600 +
+          (parseInt(m[2] || "0", 10) || 0) * 60 +
+          (parseInt(m[3] || "0", 10) || 0);
+        if (sec < 180) throw new Error("max time must be more than 3m");
+        return sec;
+      }
+
+      function fmtDate(v) {
+        try {
+          const d = new Date(v);
+          if (Number.isNaN(d.getTime())) return String(v || "");
+          return d.toISOString().replace("T", " ").slice(0, 19);
+        } catch {
+          return String(v || "");
+        }
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cur = "";
+        let inQ = false;
+        const src = String(text || "");
+        for (let i = 0; i < src.length; i++) {
+          const c = src[i];
+          if (inQ) {
+            if (c === '"') {
+              if (src[i + 1] === '"') {
+                cur += '"';
+                i++;
+              } else inQ = false;
+            } else cur += c;
+            continue;
+          }
+          if (c === '"') {
+            inQ = true;
+            continue;
+          }
+          if (c === ",") {
+            row.push(cur);
+            cur = "";
+            continue;
+          }
+          if (c === "\n") {
+            row.push(cur);
+            rows.push(row);
+            row = [];
+            cur = "";
+            continue;
+          }
+          if (c === "\r") continue;
+          cur += c;
+        }
+        if (cur.length || row.length) {
+          row.push(cur);
+          rows.push(row);
+        }
+        if (!rows.length) return [];
+        const headers = rows[0].map((h) => String(h || "").trim());
+        return rows.slice(1).filter((r) => r.some((c) => String(c || "").trim())).map((r) => {
+          const o = {};
+          headers.forEach((h, i) => {
+            o[h] = r[i] != null ? r[i] : "";
+          });
+          return o;
+        });
+      }
+
+      function entryFromCsvRow(r) {
+        let openHours = {};
+        try {
+          const raw = r.open_hours || "{}";
+          openHours = JSON.parse(raw);
+        } catch {
+          openHours = {};
+        }
+        let emails = [];
+        const em = String(r.emails || "").trim();
+        if (em) {
+          try {
+            const parsed = JSON.parse(em);
+            emails = Array.isArray(parsed) ? parsed : [em];
+          } catch {
+            emails = em.split(/\s+/).filter(Boolean);
+          }
+        }
+        return {
+          title: r.title || "",
+          category: r.category || "",
+          address: r.address || "",
+          phone: r.phone || "",
+          openHours,
+          website: r.website || r.web_site || "",
+          review_rating: r.review_rating || "",
+          review_count: r.review_count || "",
+          latitude: r.latitude || "",
+          longitude: r.longitude || r.longtitude || "",
+          status: r.status || "",
+          price_range: r.price_range || "",
+          description: r.descriptions || r.description || "",
+          emails,
+          link: r.link || "",
+          cid: r.cid || "",
+        };
+      }
+
+      /* ── hours helpers (ported from scraper view) ── */
+      const DAY_NAMES = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      function normalizeSpaces(value) {
+        return value.replace(/\u202f/g, " ").replace(/\s+/g, " ").trim();
+      }
+      function normalizeDash(value) {
+        return value.replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D‑–—−]/g, "-");
+      }
+      function toMinutes(hour, minute, period) {
+        let h = parseInt(hour, 10);
+        const m = parseInt(minute || "0", 10);
+        const p = (period || "").toLowerCase();
+        if (p.startsWith("p") && h !== 12) h += 12;
+        else if (p.startsWith("a") && h === 12) h = 0;
+        return h * 60 + m;
+      }
+      function parseTimeToken(token, defaultPeriod) {
+        const normalized = normalizeSpaces(token);
+        const match = normalized.match(
+          /^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?$/i
+        );
+        if (!match) return null;
+        const period = match[3] || defaultPeriod;
+        if (!period) return null;
+        return toMinutes(match[1], match[2], period);
+      }
+      function parseHoursSlot(slot) {
+        const normalized = normalizeSpaces(normalizeDash(slot));
+        if (!normalized) return null;
+        if (/^closed$/i.test(normalized)) return { closed: true };
+        if (/24\s*hours?/i.test(normalized) || /open 24/i.test(normalized)) {
+          return { allDay: true };
+        }
+        const parts = normalized.split("-").map((p) => p.trim()).filter(Boolean);
+        if (parts.length < 2) return null;
+        const openToken = parts[0];
+        const closeToken = parts.slice(1).join("-").trim();
+        const closePeriodMatch = closeToken.match(/(am|pm|a\.m\.|p\.m\.)/i);
+        const openPeriodMatch = openToken.match(/(am|pm|a\.m\.|p\.m\.)/i);
+        const closePeriod = closePeriodMatch ? closePeriodMatch[1] : null;
+        const openPeriod = openPeriodMatch ? openPeriodMatch[1] : null;
+        let openMinutes = openPeriod
+          ? parseTimeToken(openToken, openPeriod)
+          : null;
+        let closeMinutes = closePeriod
+          ? parseTimeToken(closeToken, closePeriod)
+          : null;
+        if (openMinutes === null && closeMinutes !== null) {
+          openMinutes = parseTimeToken(openToken, "am");
+          if (openMinutes !== null && openMinutes >= closeMinutes) {
+            openMinutes = parseTimeToken(openToken, "pm");
+          }
+        }
+        if (openMinutes === null || closeMinutes === null) {
+          openMinutes = parseTimeToken(openToken, "am");
+          closeMinutes = parseTimeToken(closeToken, "pm");
+        }
+        if (openMinutes === null || closeMinutes === null) return null;
+        return { openMinutes, closeMinutes };
+      }
+      function formatShortMinutes(minutes) {
+        let h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        const period = h >= 12 ? "pm" : "am";
+        let displayHour = h % 12;
+        if (displayHour === 0) displayHour = 12;
+        if (m === 0) return `${displayHour}${period}`;
+        return `${displayHour}:${String(m).padStart(2, "0")}${period}`;
+      }
+      function formatShortRange(slots) {
+        const parsed = slots.map(parseHoursSlot).filter(Boolean);
+        if (!parsed.length) return null;
+        if (parsed.some((s) => s.allDay)) return "24h";
+        if (parsed.every((s) => s.closed)) return "Closed";
+        const ranges = parsed
+          .filter((s) => s.openMinutes !== undefined)
+          .map(
+            (s) =>
+              `${formatShortMinutes(s.openMinutes)}-${formatShortMinutes(s.closeMinutes)}`
+          );
+        return ranges.length ? ranges.join(", ") : null;
+      }
+      function getTodaySlots(openHours, date) {
+        const dayName = DAY_NAMES[date.getDay()];
+        if (openHours[dayName] && openHours[dayName].length) return openHours[dayName];
+        return null;
+      }
+      function isOpenNow(slots, date) {
+        const parsed = slots.map(parseHoursSlot).filter(Boolean);
+        if (!parsed.length) return null;
+        if (parsed.some((s) => s.allDay)) return true;
+        if (parsed.every((s) => s.closed)) return false;
+        const nowMinutes = date.getHours() * 60 + date.getMinutes();
+        return parsed.some((slot) => {
+          if (slot.openMinutes === undefined) return false;
+          if (slot.closeMinutes <= slot.openMinutes) {
+            return nowMinutes >= slot.openMinutes || nowMinutes < slot.closeMinutes;
+          }
+          return nowMinutes >= slot.openMinutes && nowMinutes < slot.closeMinutes;
+        });
+      }
+      function renderHoursCell(openHours, date) {
+        if (!openHours || !Object.keys(openHours).length) {
+          return '<span class="hours-unknown">—</span>';
+        }
+        const todaySlots = getTodaySlots(openHours, date);
+        if (!todaySlots) return '<span class="hours-unknown">—</span>';
+        const shortRange = formatShortRange(todaySlots);
+        if (!shortRange) return '<span class="hours-unknown">—</span>';
+        if (shortRange === "Closed") {
+          return '<span class="hours-closed">CLOSED</span>';
+        }
+        if (shortRange === "24h") {
+          return '<span class="hours-open">OPEN</span>(24h)';
+        }
+        const openNow = isOpenNow(todaySlots, date);
+        if (openNow === null) return shortRange;
+        const cls = openNow ? "hours-open" : "hours-closed";
+        const txt = openNow ? "OPEN" : "CLOSED";
+        return `<span class="${cls}">${txt}</span>(${shortRange})`;
+      }
+
+      function getCurrentTime() {
+        if (timeMode === "live") return new Date();
+        const elapsed = Date.now() - overrideStart;
+        return new Date(overrideBase.getTime() + elapsed);
+      }
+
+      function esc(s) {
+        return String(s ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function cellValue(entry, field, date) {
+        switch (field) {
+          case "hours":
+            return renderHoursCell(entry.openHours, date);
+          case "website":
+            return entry.website
+              ? `<a href="${esc(entry.website)}" target="_blank" rel="noopener">${esc(entry.website)}</a>`
+              : "—";
+          case "link":
+            return entry.link
+              ? `<a href="${esc(entry.link)}" target="_blank" rel="noopener">${esc(entry.link)}</a>`
+              : "—";
+          case "emails":
+            return entry.emails?.length ? esc(entry.emails.join(" ")) : "—";
+          case "description":
+            return entry.description ? esc(entry.description) : "—";
+          default: {
+            const v = entry[field];
+            return v !== undefined && v !== null && v !== "" ? esc(v) : "—";
+          }
+        }
+      }
+
+      async function refreshJobs() {
+        setErr("");
+        const jobs = await api.listJobs();
+        const list = Array.isArray(jobs) ? jobs : [];
+        const tbody = part("job-rows");
+        if (!tbody) return;
+        if (!list.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="5" style="color:var(--mute)">no jobs yet</td></tr>';
+          setStatus("0 jobs");
+          return;
+        }
+        tbody.innerHTML = list
+          .map((j) => {
+            const st = String(j.Status || j.status || "").toLowerCase();
+            const id = j.ID || j.id || "";
+            const name = j.Name || j.name || "";
+            const date = j.Date || j.date || "";
+            const viewBtn =
+              st === "ok"
+                ? `<button type="button" data-act="view" data-id="${esc(id)}">view</button>`
+                : "";
+            return `<tr>
+              <td class="id">${esc(id)}</td>
+              <td>${esc(name)}</td>
+              <td>${esc(fmtDate(date))}</td>
+              <td><span class="pill ${esc(st)}">${esc(st || "?")}</span></td>
+              <td class="acts">
+                ${viewBtn}
+                <button type="button" class="danger" data-act="del" data-id="${esc(id)}">del</button>
+              </td>
+            </tr>`;
+          })
+          .join("");
+        setStatus(list.length + " job(s) · polling");
+      }
+
+      function showJobs() {
+        root.setAttribute("data-mode", "jobs");
+        viewJob = null;
+        viewEntries = [];
+        teardownMap();
+        // Keep any live lat/lon/radius/zoom already written to the form.
+        geoSnapshot = null;
+        teardownGeoMap();
+      }
+
+      function haversineMeters(a, b) {
+        const R = 6371000;
+        const toRad = (d) => (d * Math.PI) / 180;
+        const dLat = toRad(b.lat - a.lat);
+        const dLon = toRad(b.lng - a.lng);
+        const lat1 = toRad(a.lat);
+        const lat2 = toRad(b.lat);
+        const h =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+        return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+      }
+
+      function destinationPoint(latlng, distanceM, bearingDeg) {
+        const R = 6371000;
+        const brng = (bearingDeg * Math.PI) / 180;
+        const lat1 = (latlng.lat * Math.PI) / 180;
+        const lon1 = (latlng.lng * Math.PI) / 180;
+        const ang = distanceM / R;
+        const lat2 = Math.asin(
+          Math.sin(lat1) * Math.cos(ang) +
+            Math.cos(lat1) * Math.sin(ang) * Math.cos(brng)
+        );
+        const lon2 =
+          lon1 +
+          Math.atan2(
+            Math.sin(brng) * Math.sin(ang) * Math.cos(lat1),
+            Math.cos(ang) - Math.sin(lat1) * Math.sin(lat2)
+          );
+        return {
+          lat: (lat2 * 180) / Math.PI,
+          lng: (((lon2 * 180) / Math.PI + 540) % 360) - 180,
+        };
+      }
+
+      function readGeoForm() {
+        let lat = parseFloat(part("lat")?.value);
+        let lon = parseFloat(part("lon")?.value);
+        let radius = parseInt(part("radius")?.value || "10000", 10);
+        let zoom = parseInt(part("zoom")?.value || "15", 10);
+        if (!Number.isFinite(lat) || Math.abs(lat) > 90) lat = 32.7;
+        if (!Number.isFinite(lon) || Math.abs(lon) > 180) lon = -96.8;
+        if (!Number.isFinite(radius) || radius < 50) radius = 10000;
+        radius = Math.min(200000, Math.max(50, radius));
+        if (!Number.isFinite(zoom)) zoom = 15;
+        zoom = Math.min(21, Math.max(0, zoom));
+        return { lat, lon, radius, zoom };
+      }
+
+      function formatRadiusLabel(m) {
+        if (m >= 1000) {
+          const km = m / 1000;
+          return (km >= 10 ? km.toFixed(0) : km.toFixed(1)) + " km";
+        }
+        return Math.round(m) + " m";
+      }
+
+      function writeGeoForm(vals, opts = {}) {
+        const { lat, lon, radius, zoom } = vals;
+        geoSyncing = true;
+        try {
+          if (part("lat") && lat != null) {
+            part("lat").value = Number(lat).toFixed(6);
+          }
+          if (part("lon") && lon != null) {
+            part("lon").value = Number(lon).toFixed(6);
+          }
+          if (part("radius") && radius != null) {
+            part("radius").value = String(Math.round(radius));
+          }
+          if (part("zoom") && zoom != null && opts.zoom !== false) {
+            part("zoom").value = String(Math.round(zoom));
+          }
+          const slider = part("geo-radius");
+          if (slider && radius != null) {
+            const max = parseFloat(slider.max) || 80000;
+            if (radius > max) slider.max = String(Math.ceil(radius / 1000) * 1000);
+            slider.value = String(Math.round(radius));
+          }
+          const lab = part("geo-radius-label");
+          if (lab && radius != null) {
+            lab.textContent = formatRadiusLabel(radius);
+          }
+          const live = part("geo-live");
+          if (live) {
+            live.innerHTML =
+              '<span class="mute">lat</span> ' +
+              Number(lat).toFixed(5) +
+              ' · <span class="mute">lon</span> ' +
+              Number(lon).toFixed(5) +
+              ' · <span class="mute">radius</span> ' +
+              formatRadiusLabel(radius) +
+              ' · <span class="mute">zoom</span> ' +
+              Math.round(zoom);
+          }
+        } finally {
+          geoSyncing = false;
+        }
+      }
+
+      function placeGeoEdge() {
+        if (!geoCircle || !geoEdge) return;
+        const c = geoCircle.getLatLng();
+        const r = geoCircle.getRadius();
+        const east = destinationPoint(c, r, 90);
+        geoEdge.setLatLng(east);
+      }
+
+      function pushGeoToForm(opts = {}) {
+        if (!geoCircle || !geoMap) return;
+        const c = geoCircle.getLatLng();
+        writeGeoForm(
+          {
+            lat: c.lat,
+            lon: c.lng,
+            radius: geoCircle.getRadius(),
+            zoom: geoMap.getZoom(),
+          },
+          opts
+        );
+      }
+
+      function applyGeoFromForm() {
+        if (!geoMap || !geoCircle || geoSyncing) return;
+        const v = readGeoForm();
+        geoSyncing = true;
+        try {
+          geoCircle.setLatLng([v.lat, v.lon]);
+          geoCircle.setRadius(v.radius);
+          if (geoCenter) geoCenter.setLatLng([v.lat, v.lon]);
+          placeGeoEdge();
+          if (typeof v.zoom === "number") {
+            geoMap.setView([v.lat, v.lon], v.zoom, { animate: false });
+          }
+          writeGeoForm(v);
+        } finally {
+          geoSyncing = false;
+        }
+      }
+
+      function setGeoRadius(meters, fit) {
+        if (!geoCircle) return;
+        const r = Math.min(200000, Math.max(50, meters));
+        geoCircle.setRadius(r);
+        placeGeoEdge();
+        pushGeoToForm();
+        if (fit && geoMap) {
+          try {
+            geoMap.fitBounds(geoCircle.getBounds().pad(0.12), {
+              animate: false,
+              maxZoom: 18,
+            });
+            pushGeoToForm();
+          } catch {
+            /* ok */
+          }
+        }
+      }
+
+      function teardownGeoMap() {
+        try {
+          if (geoMap) geoMap.remove();
+        } catch {
+          /* ok */
+        }
+        geoMap = null;
+        geoCircle = null;
+        geoCenter = null;
+        geoEdge = null;
+        const wrap = part("geo-wrap");
+        if (wrap) wrap.hidden = true;
+        const host = part("geo-map");
+        if (host) host.innerHTML = "";
+      }
+
+      function closeGeoPicker(apply) {
+        if (apply && geoCircle && geoMap) {
+          pushGeoToForm();
+        } else if (!apply && geoSnapshot) {
+          writeGeoForm(geoSnapshot);
+        }
+        geoSnapshot = null;
+        teardownGeoMap();
+      }
+
+      async function openGeoPicker() {
+        setErr("");
+        const loc = part("loc-details");
+        if (loc) loc.open = true;
+        const L = await ensureLeaflet();
+        const wrap = part("geo-wrap");
+        const host = part("geo-map");
+        if (!wrap || !host) return;
+        geoSnapshot = readGeoForm();
+        wrap.hidden = false;
+        wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        if (geoMap) {
+          try {
+            geoMap.remove();
+          } catch {
+            /* ok */
+          }
+          geoMap = null;
+        }
+        host.innerHTML = "";
+
+        const v = readGeoForm();
+        geoMap = L.map(host, {
+          scrollWheelZoom: true,
+          attributionControl: true,
+        });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        }).addTo(geoMap);
+
+        geoCircle = L.circle([v.lat, v.lon], {
+          radius: v.radius,
+          color: "#06685a",
+          weight: 2,
+          fillColor: "#0f9f8a",
+          fillOpacity: 0.18,
+        }).addTo(geoMap);
+
+        geoCenter = L.marker([v.lat, v.lon], {
+          draggable: true,
+          icon: L.divIcon({
+            className: "gms-geo-center",
+            html: '<div class="gms-geo-center-dot" title="drag center"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [0, 0],
+          }),
+        }).addTo(geoMap);
+
+        const east = destinationPoint({ lat: v.lat, lng: v.lon }, v.radius, 90);
+        geoEdge = L.marker([east.lat, east.lng], {
+          draggable: true,
+          icon: L.divIcon({
+            className: "gms-geo-edge",
+            html: '<div class="gms-geo-edge-dot" title="drag radius"></div>',
+            iconSize: [14, 14],
+            iconAnchor: [0, 0],
+          }),
+        }).addTo(geoMap);
+
+        geoCenter.on("drag", () => {
+          if (!geoCircle || !geoCenter) return;
+          const c = geoCenter.getLatLng();
+          geoCircle.setLatLng(c);
+          placeGeoEdge();
+          pushGeoToForm();
+        });
+        geoEdge.on("drag", () => {
+          if (!geoCircle || !geoEdge) return;
+          const c = geoCircle.getLatLng();
+          const e = geoEdge.getLatLng();
+          const meters = haversineMeters(c, e);
+          setGeoRadius(meters, false);
+        });
+        geoMap.on("click", (ev) => {
+          if (!geoCircle || !geoCenter) return;
+          geoCenter.setLatLng(ev.latlng);
+          geoCircle.setLatLng(ev.latlng);
+          placeGeoEdge();
+          pushGeoToForm();
+        });
+        geoMap.on("zoomend", () => {
+          if (geoSyncing) return;
+          pushGeoToForm();
+        });
+
+        try {
+          geoMap.fitBounds(geoCircle.getBounds().pad(0.15), {
+            animate: false,
+            maxZoom: 18,
+          });
+        } catch {
+          geoMap.setView([v.lat, v.lon], v.zoom);
+        }
+        setTimeout(() => {
+          if (geoMap) geoMap.invalidateSize();
+        }, 50);
+        pushGeoToForm();
+      }
+
+      function loadCssOnce(href) {
+        if (document.querySelector('link[data-gms-leaflet="' + href + '"]')) {
+          return Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = href;
+          link.setAttribute("data-gms-leaflet", href);
+          link.onload = () => resolve();
+          link.onerror = () => reject(new Error("css " + href));
+          document.head.appendChild(link);
+        });
+      }
+
+      function loadScriptOnce(src) {
+        if (globalThis.L) return Promise.resolve();
+        if (document.querySelector('script[data-gms-leaflet="' + src + '"]')) {
+          return leafletReady || Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.async = true;
+          s.setAttribute("data-gms-leaflet", src);
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("script " + src));
+          document.head.appendChild(s);
+        });
+      }
+
+      function ensureLeaflet() {
+        if (globalThis.L) return Promise.resolve(globalThis.L);
+        if (leafletReady) return leafletReady;
+        leafletReady = (async () => {
+          await loadCssOnce(
+            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          );
+          await loadScriptOnce(
+            "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          );
+          if (!globalThis.L) throw new Error("Leaflet failed to load");
+          return globalThis.L;
+        })();
+        return leafletReady;
+      }
+
+      function teardownMap() {
+        try {
+          if (mapInst) mapInst.remove();
+        } catch {
+          /* ok */
+        }
+        mapInst = null;
+        mapLayer = null;
+        const wrap = part("map-wrap");
+        if (wrap) wrap.hidden = true;
+        renderMapPick(null);
+        const st = part("map-status");
+        if (st) st.textContent = "";
+      }
+
+      function entryCoords(entry) {
+        const lat = parseFloat(entry.latitude);
+        const lon = parseFloat(entry.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+        if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+        return [lat, lon];
+      }
+
+      function renderMapPick(entry, listIndex) {
+        const pick = part("map-pick");
+        if (!pick) return;
+        if (!entry) {
+          pick.textContent = "click a point";
+          return;
+        }
+        const n = listIndex + 1;
+        const fields = selectedFields().filter((f) => f !== "title");
+        const rows = fields
+          .map((f) => {
+            let raw = "";
+            if (f === "hours") {
+              raw = renderHoursCell(entry.openHours, getCurrentTime());
+            } else if (f === "emails") {
+              raw = entry.emails?.length
+                ? esc(entry.emails.join(" "))
+                : "—";
+            } else if (f === "website" && entry.website) {
+              raw =
+                '<a href="' +
+                esc(entry.website) +
+                '" target="_blank" rel="noopener">' +
+                esc(entry.website) +
+                "</a>";
+            } else if (f === "link" && entry.link) {
+              raw =
+                '<a href="' +
+                esc(entry.link) +
+                '" target="_blank" rel="noopener">' +
+                esc(entry.link) +
+                "</a>";
+            } else {
+              const v = entry[f];
+              raw =
+                v !== undefined && v !== null && String(v).trim() !== ""
+                  ? esc(v)
+                  : "—";
+            }
+            if (raw === "—") return "";
+            return (
+              '<div class="pick-card"><span class="pick-k">' +
+              esc(f) +
+              '</span><span class="pick-v">' +
+              raw +
+              "</span></div>"
+            );
+          })
+          .filter(Boolean)
+          .join("");
+        pick.innerHTML =
+          '<div class="pick-title"><span class="mute">#' +
+          esc(String(n)) +
+          "</span> " +
+          esc(entry.title || "(untitled)") +
+          "</div>" +
+          (rows ? '<div class="pick-grid">' + rows + "</div>" : "");
+      }
+
+      function categoryKey(entry) {
+        const c = String(entry?.category || "").trim();
+        return c || "(none)";
+      }
+
+      function uniqueCategories() {
+        const set = new Set();
+        for (const e of viewEntries) set.add(categoryKey(e));
+        return [...set].sort((a, b) => a.localeCompare(b));
+      }
+
+      function selectedFields() {
+        return fieldOrder.filter((f) => fieldEnabled.has(f));
+      }
+
+      function jobPrefsIb(jobId) {
+        const id = String(jobId || "").trim();
+        return id ? "gmaps_scraper:prefs:" + id : "";
+      }
+
+      function currentJobId() {
+        return String(viewJob?.ID || viewJob?.id || "").trim();
+      }
+
+      function snapshotDisplayPrefs() {
+        syncFieldEnabledFromDom();
+        readFieldOrderFromDom();
+        syncCategoryIncludeFromDom();
+        return {
+          fieldOrder: fieldOrder.slice(),
+          fieldEnabled: [...fieldEnabled],
+          categoryInclude:
+            categoryInclude instanceof Set ? [...categoryInclude] : null,
+          sortKey: sortKey || null,
+          sortDir: sortDir === "asc" ? "asc" : "desc",
+        };
+      }
+
+      async function saveJobPrefs() {
+        const tipApi = navi?.storage?.tip;
+        const jobId = currentJobId();
+        const ib = jobPrefsIb(jobId);
+        if (!tipApi?.mut8 || !ib) return;
+        const display = snapshotDisplayPrefs();
+        const createdAt = new Date().toISOString();
+        try {
+          await tipApi.mut8(
+            ib,
+            {
+              parts: ["gmaps_scraper_prefs", "ibgib_frame", "manifest", "json"],
+              job_id: jobId,
+              display,
+              updated_at: createdAt,
+            },
+            { create: true, replaceData: true }
+          );
+        } catch (err) {
+          console.warn("[gmaps_scraper] prefs tip failed", err);
+        }
+      }
+
+      async function loadJobPrefs(jobId) {
+        const tipApi = navi?.storage?.tip;
+        const ib = jobPrefsIb(jobId);
+        if (!tipApi?.get || !ib) return null;
+        try {
+          const tip = await tipApi.get(ib);
+          const d = tip?.data;
+          if (!d || typeof d !== "object") return null;
+          return d.display && typeof d.display === "object" ? d.display : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function applyDisplayPrefs(prefs) {
+        if (!prefs || typeof prefs !== "object") return;
+        const known = new Set(FIELDS);
+        if (Array.isArray(prefs.fieldOrder) && prefs.fieldOrder.length) {
+          const order = prefs.fieldOrder
+            .map(String)
+            .filter((f) => known.has(f));
+          for (const f of FIELDS) {
+            if (!order.includes(f)) order.push(f);
+          }
+          fieldOrder = order;
+        }
+        if (Array.isArray(prefs.fieldEnabled)) {
+          fieldEnabled = new Set(
+            prefs.fieldEnabled.map(String).filter((f) => known.has(f))
+          );
+        }
+        if (Array.isArray(prefs.categoryInclude)) {
+          categoryInclude = new Set(prefs.categoryInclude.map(String));
+        } else if (prefs.categoryInclude === null) {
+          categoryInclude = null;
+        }
+        if (
+          prefs.sortKey === "review_rating" ||
+          prefs.sortKey === "review_count"
+        ) {
+          sortKey = prefs.sortKey;
+          sortDir = prefs.sortDir === "asc" ? "asc" : "desc";
+        }
+      }
+
+      function syncFieldEnabledFromDom() {
+        const boxes = [...root.querySelectorAll('input[name="fields"]')];
+        if (!boxes.length) return;
+        fieldEnabled = new Set(
+          boxes.filter((el) => el.checked).map((el) => el.value)
+        );
+      }
+
+      function readFieldOrderFromDom() {
+        const box = part("field-list");
+        if (!box) return;
+        const next = [...box.querySelectorAll("li[data-field]")].map((li) =>
+          li.getAttribute("data-field")
+        );
+        if (next.length) fieldOrder = next;
+      }
+
+      function filteredEntries() {
+        let rows = viewEntries.slice();
+        if (categoryInclude instanceof Set) {
+          rows = rows.filter((e) => categoryInclude.has(categoryKey(e)));
+        }
+        if (sortKey === "review_rating" || sortKey === "review_count") {
+          const dir = sortDir === "asc" ? 1 : -1;
+          rows.sort((a, b) => {
+            const na = parseFloat(a[sortKey]);
+            const nb = parseFloat(b[sortKey]);
+            const va = Number.isFinite(na)
+              ? na
+              : dir > 0
+                ? Number.POSITIVE_INFINITY
+                : Number.NEGATIVE_INFINITY;
+            const vb = Number.isFinite(nb)
+              ? nb
+              : dir > 0
+                ? Number.POSITIVE_INFINITY
+                : Number.NEGATIVE_INFINITY;
+            if (va === vb) return 0;
+            return va < vb ? -dir : dir;
+          });
+        }
+        return rows;
+      }
+
+      function renderFieldList() {
+        const box = part("field-list");
+        if (!box) return;
+        // Keep unknown fields from order, append any new FIELDS not listed.
+        const known = new Set(FIELDS);
+        fieldOrder = fieldOrder.filter((f) => known.has(f));
+        for (const f of FIELDS) {
+          if (!fieldOrder.includes(f)) fieldOrder.push(f);
+        }
+        box.innerHTML = fieldOrder
+          .map((f) => {
+            const on = fieldEnabled.has(f);
+            return (
+              '<li data-field="' +
+              esc(f) +
+              '"' +
+              (on ? "" : ' class="off"') +
+              ">" +
+              '<span class="field-grip" title="drag to reorder" aria-label="drag">☰</span>' +
+              '<label class="field-row">' +
+              '<input type="checkbox" name="fields" value="' +
+              esc(f) +
+              '"' +
+              (on ? " checked" : "") +
+              " />" +
+              '<span class="field-name">' +
+              esc(f) +
+              "</span>" +
+              "</label>" +
+              "</li>"
+            );
+          })
+          .join("");
+      }
+
+      function renderCategoryFilter() {
+        const box = part("cat-filter");
+        if (!box) return;
+        const cats = uniqueCategories();
+        if (!cats.length) {
+          box.innerHTML =
+            '<label style="padding:0.35rem;color:var(--mute)">no categories</label>';
+          categoryInclude = null;
+          return;
+        }
+        if (!(categoryInclude instanceof Set)) {
+          categoryInclude = new Set(cats);
+        } else {
+          const next = new Set();
+          for (const c of cats) {
+            if (categoryInclude.has(c)) next.add(c);
+          }
+          // Preserve "none selected" when user cleared everything.
+          if (categoryInclude.size === 0) {
+            categoryInclude = new Set();
+          } else if (next.size === 0) {
+            categoryInclude = new Set(cats);
+          } else {
+            categoryInclude = next;
+          }
+        }
+        box.innerHTML = cats
+          .map((c) => {
+            const on = categoryInclude.has(c) ? " checked" : "";
+            return (
+              '<label><input type="checkbox" name="cats" value="' +
+              esc(c) +
+              '"' +
+              on +
+              " /> " +
+              esc(c) +
+              "</label>"
+            );
+          })
+          .join("");
+      }
+
+      function syncCategoryIncludeFromDom() {
+        const boxes = [...root.querySelectorAll('input[name="cats"]')];
+        if (!boxes.length) {
+          categoryInclude = null;
+          return;
+        }
+        categoryInclude = new Set(
+          boxes.filter((el) => el.checked).map((el) => el.value)
+        );
+      }
+
+      function buildViewControls() {
+        if (!fieldOrder.length) fieldOrder = FIELDS.slice();
+        if (!(fieldEnabled instanceof Set) || !fieldEnabled.size) {
+          fieldEnabled = new Set(FIELDS);
+        }
+        renderFieldList();
+        renderCategoryFilter();
+      }
+
+      async function drawEntriesMap() {
+        const L = await ensureLeaflet();
+        const wrap = part("map-wrap");
+        const host = part("map");
+        const st = part("map-status");
+        if (!wrap || !host) return;
+        const visible = filteredEntries();
+        const points = visible
+          .map((e, i) => {
+            const c = entryCoords(e);
+            return c ? { entry: e, i, lat: c[0], lon: c[1] } : null;
+          })
+          .filter(Boolean);
+        if (!points.length) {
+          throw new Error("no entries with latitude/longitude");
+        }
+        wrap.hidden = false;
+        if (mapInst) {
+          try {
+            mapInst.remove();
+          } catch {
+            /* ok */
+          }
+          mapInst = null;
+        }
+        host.innerHTML = "";
+        mapInst = L.map(host, {
+          scrollWheelZoom: true,
+          attributionControl: true,
+        });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+        }).addTo(mapInst);
+        mapLayer = L.featureGroup();
+        points.forEach((p) => {
+          const n = p.i + 1;
+          const label = String(n);
+          const m = L.marker([p.lat, p.lon], {
+            icon: L.divIcon({
+              className: "gms-pin",
+              html:
+                '<div class="gms-pin-dot">' +
+                esc(label) +
+                "</div>",
+              iconSize: [26, 26],
+              iconAnchor: [13, 13],
+            }),
+          });
+          m.on("click", () => renderMapPick(p.entry, p.i));
+          m.bindTooltip("#" + label + " · " + String(p.entry.title || ""), {
+            direction: "top",
+            opacity: 0.95,
+          });
+          mapLayer.addLayer(m);
+        });
+        mapLayer.addTo(mapInst);
+        mapInst.fitBounds(mapLayer.getBounds().pad(0.18));
+        setTimeout(() => mapInst.invalidateSize(), 40);
+        renderMapPick(null);
+        if (st) {
+          st.textContent =
+            points.length +
+            " / " +
+            visible.length +
+            " plotted (OpenStreetMap)";
+        }
+      }
+
+      function sortMarkFor(field) {
+        if (sortKey !== field) return "";
+        return (
+          '<span class="sort-mark">' +
+          (sortDir === "asc" ? "↑" : "↓") +
+          "</span>"
+        );
+      }
+
+      function renderResultsTable() {
+        const fields = selectedFields();
+        const head = part("result-head");
+        const body = part("result-rows");
+        if (!head || !body) return;
+        const date = getCurrentTime();
+        const rows = filteredEntries();
+        const sortable = new Set(["review_rating", "review_count"]);
+        head.innerHTML =
+          "<th>#</th>" +
+          fields
+            .map((f) => {
+              if (!sortable.has(f)) {
+                return (
+                  '<th class="col-' +
+                  esc(f) +
+                  '" data-field="' +
+                  esc(f) +
+                  '">' +
+                  esc(f) +
+                  "</th>"
+                );
+              }
+              const active =
+                sortKey === f ? ' data-sort-active="1"' : "";
+              return (
+                '<th class="col-' +
+                esc(f) +
+                " sortable\" data-field=\"" +
+                esc(f) +
+                '" data-sort="' +
+                esc(f) +
+                '"' +
+                active +
+                ">" +
+                esc(f) +
+                sortMarkFor(f) +
+                "</th>"
+              );
+            })
+            .join("");
+        body.innerHTML = rows
+          .map((entry, i) => {
+            return (
+              `<tr><td>${i + 1}</td>` +
+              fields
+                .map(
+                  (f) =>
+                    `<td class="col-${f}">${cellValue(entry, f, date)}</td>`
+                )
+                .join("") +
+              "</tr>"
+            );
+          })
+          .join("");
+        const clock = part("clock");
+        if (clock) {
+          clock.textContent = date.toLocaleString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        }
+        const meta = part("view-meta");
+        if (meta && viewJob) {
+          meta.textContent =
+            fmtDate(viewJob.Date || viewJob.date) +
+            " · " +
+            rows.length +
+            " / " +
+            viewEntries.length +
+            " entries";
+        }
+      }
+
+      async function openView(id) {
+        setErr("");
+        setStatus("loading results…");
+        const job = await api.getJob(id);
+        const csv = await api.downloadCsv(id);
+        viewJob = job;
+        viewEntries = parseCsv(csv).map(entryFromCsvRow);
+        fieldOrder = FIELDS.slice();
+        fieldEnabled = new Set(FIELDS);
+        categoryInclude = null;
+        sortKey = null;
+        sortDir = "desc";
+        const prefs = await loadJobPrefs(job.ID || job.id || id);
+        if (prefs) applyDisplayPrefs(prefs);
+        if (csvBlobUrl) URL.revokeObjectURL(csvBlobUrl);
+        csvBlobUrl = URL.createObjectURL(
+          new Blob([csv], { type: "text/csv;charset=utf-8" })
+        );
+        const title = part("view-title");
+        const meta = part("view-meta");
+        if (title) title.textContent = job.Name || job.name || id;
+        if (meta) {
+          meta.textContent =
+            fmtDate(job.Date || job.date) +
+            " · " +
+            viewEntries.length +
+            " entries";
+        }
+        buildViewControls();
+        root.setAttribute("data-mode", "view");
+        geoSnapshot = null;
+        teardownGeoMap();
+        teardownMap();
+        renderResultsTable();
+        setStatus(viewEntries.length + " entries");
+      }
+
+      async function createJob(ev) {
+        ev.preventDefault();
+        setErr("");
+        try {
+          const keywords = lines(part("keywords")?.value);
+          if (!keywords.length) throw new Error("keywords required");
+          const lang = String(part("lang")?.value || "en").trim();
+          if (lang.length !== 2) throw new Error("lang must be 2 letters");
+          const max_time = parseMaxTimeSeconds(part("maxtime")?.value);
+          const payload = {
+            name: String(part("name")?.value || "").trim() || keywords[0],
+            keywords,
+            lang,
+            zoom: parseInt(part("zoom")?.value || "15", 10),
+            lat: String(part("lat")?.value || "").trim(),
+            lon: String(part("lon")?.value || "").trim(),
+            fast_mode: !!part("fastmode")?.checked,
+            radius: parseInt(part("radius")?.value || "10000", 10),
+            depth: parseInt(part("depth")?.value || "10", 10),
+            email: !!part("email")?.checked,
+            max_time,
+            proxies: lines(part("proxies")?.value),
+          };
+          setStatus("creating job…");
+          const out = await api.createJob(payload);
+          setStatus("created " + (out?.id || out?.ID || ""));
+          await refreshJobs();
+        } catch (e) {
+          setErr(String(e && e.message ? e.message : e));
+        }
+      }
+
+      // wire
+      part("form")?.addEventListener("submit", (ev) => void createJob(ev));
+      part("geo-open")?.addEventListener("click", () => {
+        void openGeoPicker().catch((e) =>
+          setErr(String(e && e.message ? e.message : e))
+        );
+      });
+      part("geo-done")?.addEventListener("click", () => {
+        closeGeoPicker(true);
+        const loc = part("loc-details");
+        if (loc) loc.open = true;
+        setStatus("location set from map");
+      });
+      part("geo-cancel")?.addEventListener("click", () => {
+        closeGeoPicker(false);
+        setStatus("location pick cancelled");
+      });
+      part("geo-radius")?.addEventListener("input", () => {
+        if (geoSyncing || !geoCircle) return;
+        const m = parseFloat(part("geo-radius")?.value || "10000");
+        setGeoRadius(m, false);
+      });
+      ["lat", "lon", "radius", "zoom"].forEach((name) => {
+        part(name)?.addEventListener("change", () => {
+          if (geoSyncing || !geoMap) return;
+          applyGeoFromForm();
+        });
+      });
+      part("refresh")?.addEventListener("click", () => {
+        void (async () => {
+          try {
+            if (!relayReady) await checkRelay();
+            await refreshJobs();
+          } catch (e) {
+            setErr(String(e.message || e));
+          }
+        })();
+      });
+      part("check")?.addEventListener("click", () => {
+        void (async () => {
+          try {
+            await checkRelay();
+            await refreshJobs();
+            if (!pollTimer) {
+              pollTimer = setInterval(() => {
+                if (root.getAttribute("data-mode") === "view") {
+                  renderResultsTable();
+                  return;
+                }
+                if (!relayReady) return;
+                void refreshJobs().catch(() => {});
+              }, 10000);
+            }
+          } catch (e) {
+            setErr(String(e && e.message ? e.message : e));
+          }
+        })();
+      });
+      part("job-rows")?.addEventListener("click", (ev) => {
+        const btn = ev.target.closest("[data-act]");
+        if (!btn) return;
+        const id = btn.getAttribute("data-id");
+        const act = btn.getAttribute("data-act");
+        if (act === "view") {
+          void openView(id).catch((e) => setErr(String(e.message || e)));
+        } else if (act === "del") {
+          if (!confirm("Delete job " + id + "?")) return;
+          void (async () => {
+            try {
+              await api.deleteJob(id);
+              await refreshJobs();
+            } catch (e) {
+              setErr(String(e.message || e));
+            }
+          })();
+        }
+      });
+      part("back")?.addEventListener("click", () => {
+        showJobs();
+        void refreshJobs().catch(() => {});
+      });
+      part("dl")?.addEventListener("click", () => {
+        if (!csvBlobUrl || !viewJob) return;
+        const a = document.createElement("a");
+        a.href = csvBlobUrl;
+        a.download = (viewJob.ID || viewJob.id || "results") + ".csv";
+        a.click();
+      });
+      part("map-toggle")?.addEventListener("click", () => {
+        void (async () => {
+          try {
+            setErr("");
+            const st = part("map-status");
+            if (st) st.textContent = "loading map…";
+            await drawEntriesMap();
+          } catch (e) {
+            setErr(String(e && e.message ? e.message : e));
+            const st = part("map-status");
+            if (st) st.textContent = "";
+          }
+        })();
+      });
+      part("fields-all")?.addEventListener("click", () => {
+        fieldEnabled = new Set(FIELDS);
+        renderFieldList();
+        void saveJobPrefs();
+      });
+      part("fields-none")?.addEventListener("click", () => {
+        fieldEnabled = new Set();
+        renderFieldList();
+        void saveJobPrefs();
+      });
+      part("field-list")?.addEventListener("change", (ev) => {
+        const input = ev.target.closest('input[name="fields"]');
+        if (!input) return;
+        syncFieldEnabledFromDom();
+        const li = input.closest("li[data-field]");
+        if (li) li.classList.toggle("off", !input.checked);
+        void saveJobPrefs();
+      });
+      // Drag-reorder via hamburger grip (pointer events).
+      (() => {
+        const box = part("field-list");
+        if (!box) return;
+        let dragLi = null;
+        let overLi = null;
+        const clearOver = () => {
+          box.querySelectorAll("li.drag-over").forEach((el) => {
+            el.classList.remove("drag-over");
+          });
+          overLi = null;
+        };
+        const onMove = (ev) => {
+          if (!dragLi) return;
+          ev.preventDefault();
+          const el = document.elementFromPoint(ev.clientX, ev.clientY);
+          const li = el && el.closest ? el.closest("li[data-field]") : null;
+          if (!li || li === dragLi || !box.contains(li)) {
+            clearOver();
+            return;
+          }
+          if (overLi !== li) {
+            clearOver();
+            overLi = li;
+            li.classList.add("drag-over");
+          }
+        };
+        const onUp = (ev) => {
+          if (!dragLi) return;
+          const el = document.elementFromPoint(ev.clientX, ev.clientY);
+          const li = el && el.closest ? el.closest("li[data-field]") : null;
+          if (li && li !== dragLi && box.contains(li)) {
+            const kids = [...box.querySelectorAll("li[data-field]")];
+            const from = kids.indexOf(dragLi);
+            const to = kids.indexOf(li);
+            if (from >= 0 && to >= 0 && from !== to) {
+              if (from < to) box.insertBefore(dragLi, li.nextSibling);
+              else box.insertBefore(dragLi, li);
+              readFieldOrderFromDom();
+              void saveJobPrefs();
+            }
+          }
+          dragLi.classList.remove("dragging");
+          dragLi = null;
+          clearOver();
+          document.removeEventListener("pointermove", onMove, true);
+          document.removeEventListener("pointerup", onUp, true);
+          document.removeEventListener("pointercancel", onUp, true);
+        };
+        box.addEventListener("pointerdown", (ev) => {
+          const grip = ev.target.closest(".field-grip");
+          if (!grip) return;
+          const li = grip.closest("li[data-field]");
+          if (!li) return;
+          ev.preventDefault();
+          dragLi = li;
+          li.classList.add("dragging");
+          try {
+            grip.setPointerCapture(ev.pointerId);
+          } catch {
+            /* ok */
+          }
+          document.addEventListener("pointermove", onMove, true);
+          document.addEventListener("pointerup", onUp, true);
+          document.addEventListener("pointercancel", onUp, true);
+        });
+      })();
+      part("cat-all")?.addEventListener("click", () => {
+        categoryInclude = new Set(uniqueCategories());
+        renderCategoryFilter();
+        void saveJobPrefs();
+      });
+      part("cat-none")?.addEventListener("click", () => {
+        categoryInclude = new Set();
+        renderCategoryFilter();
+        void saveJobPrefs();
+      });
+      function applyViewFilters() {
+        syncFieldEnabledFromDom();
+        readFieldOrderFromDom();
+        syncCategoryIncludeFromDom();
+        renderResultsTable();
+        void saveJobPrefs();
+        const wrap = part("map-wrap");
+        if (wrap && !wrap.hidden) {
+          void drawEntriesMap().catch((e) => {
+            const st = part("map-status");
+            if (st) st.textContent = String(e.message || e);
+          });
+        }
+      }
+      root.querySelectorAll('[data-part="view-apply"]').forEach((btn) => {
+        btn.addEventListener("click", () => applyViewFilters());
+      });
+      part("result-head")?.addEventListener("click", (ev) => {
+        const th = ev.target.closest("th[data-sort]");
+        if (!th) return;
+        const key = th.getAttribute("data-sort");
+        if (key !== "review_rating" && key !== "review_count") return;
+        if (sortKey === key) {
+          sortDir = sortDir === "asc" ? "desc" : "asc";
+        } else {
+          sortKey = key;
+          sortDir = "desc";
+        }
+        renderResultsTable();
+        void saveJobPrefs();
+      });
+      part("time-apply")?.addEventListener("click", () => {
+        const v = part("time-override")?.value;
+        if (!v) return;
+        overrideBase = new Date(v);
+        overrideStart = Date.now();
+        timeMode = "override";
+        renderResultsTable();
+      });
+      part("time-reset")?.addEventListener("click", () => {
+        timeMode = "live";
+        overrideBase = null;
+        overrideStart = null;
+        renderResultsTable();
+      });
+
+      // boot
+      showJobs();
+      void (async () => {
+        try {
+          const aliasEl = part("alias");
+          const tokenEl = part("token");
+          if (aliasEl) {
+            let saved = "";
+            try {
+              saved = String(
+                (await navi?.storage?.item?.get?.(ALIAS_ITEM)) || ""
+              ).trim();
+            } catch {
+              /* ok */
+            }
+            if (!saved) {
+              saved = String(root.getAttribute("data-alias") || "").trim();
+            }
+            if (saved) aliasEl.value = saved.replace(/^navi-/i, "");
+          }
+          if (tokenEl) {
+            try {
+              const savedTok = String(
+                (await navi?.storage?.item?.get?.(TOKEN_ITEM)) || ""
+              ).trim();
+              if (savedTok) tokenEl.value = savedTok;
+            } catch {
+              /* ok */
+            }
+          }
+          if (!peerAlias()) {
+            setStatus("enter native shell relay alias, then check");
+            return;
+          }
+          await checkRelay();
+          await refreshJobs();
+          pollTimer = setInterval(() => {
+            if (root.getAttribute("data-mode") === "view") {
+              renderResultsTable();
+              return;
+            }
+            if (!relayReady) return;
+            void refreshJobs().catch(() => {});
+          }, 10000);
+        } catch (e) {
+          setErr(String(e && e.message ? e.message : e));
+        }
+      })();
+    })();
+  </script>
+</div>

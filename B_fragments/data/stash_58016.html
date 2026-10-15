@@ -1,0 +1,53 @@
+<div name="stash_58016" data-path="stash_58016" data-part="htmf">
+<script>
+(async function () {
+  const IB = "stash_58016";
+  const root = document.currentScript && document.currentScript.closest('[data-part="htmf"]');
+  const say = (t) => {
+    if (!root) return;
+    let el = root.querySelector("[data-part='stash-status']");
+    if (!el) {
+      el = document.createElement("p");
+      el.setAttribute("data-part", "stash-status");
+      root.appendChild(el);
+    }
+    el.textContent = t;
+  };
+  const clearBar = () => {
+    try { sessionStorage.removeItem("htmx-current-path-for-history"); } catch (e) { /* ok */ }
+    try {
+      history.replaceState(null, "", location.origin);
+    } catch (e) {
+      try { history.replaceState(null, "", "/"); } catch (e2) { /* ok */ }
+    }
+  };
+  const surfEnter = async () => {
+    clearBar();
+    if (typeof navi === "function") return navi("surf horizon/enter");
+    if (navi && typeof navi.callin === "function") {
+      return navi.callin({ path: "surf/horizon/enter", method: "GET" });
+    }
+    throw new Error("navi is not ready");
+  };
+  try {
+    if (typeof navi === "undefined" || !navi || !navi.tokens || typeof navi.tokens.setReserve !== "function") {
+      throw new Error("reload for a navi shell that can store a token reserve");
+    }
+    const origin = location.origin;
+    const res = await fetch(origin + "/foobarch/tip/" + encodeURIComponent(IB), { cache: "no-store" });
+    const tip = await res.json();
+    const frame = tip && (tip.frame || tip);
+    const ib = String((frame && frame.ib) || tip.ib || IB).trim();
+    const gib = String((frame && frame.gib) || tip.gib || "").trim();
+    const addr = String(
+      res.headers.get("x-foobarch-ib^gib") || (gib ? ib + "^" + gib : ib)
+    ).trim();
+    const already = await navi.tokens.hasReserve(addr, origin);
+    if (!already) await navi.tokens.setReserve(addr, origin);
+    await surfEnter();
+  } catch (e) {
+    say(String(e && e.message ? e.message : e));
+  }
+})();
+</script>
+</div>

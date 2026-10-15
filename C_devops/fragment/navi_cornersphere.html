@@ -1,0 +1,341 @@
+<div
+  name="cornersphere"
+  data-path="torus/testkit/cornersphere"
+  data-part="htmf"
+>
+  <h1>cornersphere</h1>
+  <p>
+    Fibonacci-sphere corners projected to 2D. FPS tracks corner count; rotation
+    re-rolls on each change.
+  </p>
+
+  <p>
+    <button type="button" data-part="dec" title="fewer corners">−</button>
+    <span data-part="count">0</span>
+    <button type="button" data-part="inc" title="more corners">+</button>
+    <span data-part="stats"></span>
+  </p>
+
+  <canvas data-part="view" width="520" height="520" aria-label="rotating polyhedron"></canvas>
+
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="cornersphere"]')) ||
+        document.querySelector('div[name="cornersphere"]');
+      if (!root || root.dataset.cornersphereBound === "1") return;
+      root.dataset.cornersphereBound = "1";
+
+      const MIN = 0;
+      const MAX = 500;
+      const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+
+      const countEl = () => root.querySelector('[data-part="count"]');
+      const statsEl = () => root.querySelector('[data-part="stats"]');
+      const canvas = () => root.querySelector('[data-part="view"]');
+
+      let corners = 0;
+      let verts = [];
+      let edges = [];
+      let faces = [];
+      let rot = { x: 0, y: 0, z: 0 };
+      let rotSpeed = { x: 0, y: 0, z: 0 };
+      let raf = 0;
+      let lastTick = 0;
+      let frameInterval = 250;
+
+      function norm(v) {
+        const l = Math.hypot(v[0], v[1], v[2]) || 1;
+        return [v[0] / l, v[1] / l, v[2] / l];
+      }
+
+      function fibonacciSphere(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+          const y = 1 - (2 * i) / Math.max(1, n - 1);
+          const r = Math.sqrt(Math.max(0, 1 - y * y));
+          const t = GOLDEN * i;
+          pts.push(norm([Math.cos(t) * r, y, Math.sin(t) * r]));
+        }
+        return pts;
+      }
+
+      function verticesFor(n) {
+        if (n <= 0) return [];
+        if (n === 1) return [[0, 0, 1]];
+        if (n === 2) return [[0, 0, 1], [0, 0, -1]];
+        if (n === 3) {
+          const r3 = Math.sqrt(3) / 2;
+          return [
+            [1, 0, 0],
+            [-0.5, 0, r3],
+            [-0.5, 0, -r3],
+          ].map(norm);
+        }
+        if (n === 4) {
+          return [
+            [1, 1, 1],
+            [1, -1, -1],
+            [-1, 1, -1],
+            [-1, -1, 1],
+          ].map(norm);
+        }
+        return fibonacciSphere(n);
+      }
+
+      function edgeKey(a, b) {
+        return a < b ? a + "," + b : b + "," + a;
+      }
+
+      function buildTopology(points) {
+        const n = points.length;
+        const edgeSet = new Set();
+        const faceList = [];
+
+        if (n === 2) {
+          edgeSet.add(edgeKey(0, 1));
+          return { edges: [[0, 1]], faces: [] };
+        }
+        if (n === 3) {
+          edgeSet.add(edgeKey(0, 1));
+          edgeSet.add(edgeKey(1, 2));
+          edgeSet.add(edgeKey(2, 0));
+          return { edges: [[0, 1], [1, 2], [2, 0]], faces: [[0, 1, 2]] };
+        }
+
+        if (n === 4) {
+          const pairs = [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+            [1, 2],
+            [1, 3],
+            [2, 3],
+          ];
+          pairs.forEach(([a, b]) => edgeSet.add(edgeKey(a, b)));
+          return {
+            edges: pairs,
+            faces: [
+              [0, 1, 2],
+              [0, 2, 3],
+              [0, 3, 1],
+              [1, 3, 2],
+            ],
+          };
+        }
+
+        const k = Math.min(6, n - 1);
+        const neighbors = points.map((_, i) => {
+          const list = [];
+          for (let j = 0; j < n; j++) {
+            if (i === j) continue;
+            const dx = points[i][0] - points[j][0];
+            const dy = points[i][1] - points[j][1];
+            const dz = points[i][2] - points[j][2];
+            list.push({ j, d: dx * dx + dy * dy + dz * dz });
+          }
+          list.sort((a, b) => a.d - b.d);
+          return list.slice(0, k).map((x) => x.j);
+        });
+
+        neighbors.forEach((nb, i) => {
+          nb.forEach((j) => edgeSet.add(edgeKey(i, j)));
+        });
+
+        if (n <= 32) {
+          for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+              for (let k2 = j + 1; k2 < n; k2++) {
+                const a = points[i];
+                const b = points[j];
+                const c = points[k2];
+                let nx =
+                  (b[1] - a[1]) * (c[2] - a[2]) -
+                  (b[2] - a[2]) * (c[1] - a[1]);
+                let ny =
+                  (b[2] - a[2]) * (c[0] - a[0]) -
+                  (b[0] - a[0]) * (c[2] - a[2]);
+                let nz =
+                  (b[0] - a[0]) * (c[1] - a[1]) -
+                  (b[1] - a[1]) * (c[0] - a[0]);
+                const len = Math.hypot(nx, ny, nz);
+                if (len < 1e-8) continue;
+                nx /= len;
+                ny /= len;
+                nz /= len;
+                let visible = true;
+                for (let m = 0; m < n; m++) {
+                  if (m === i || m === j || m === k2) continue;
+                  const p = points[m];
+                  const d =
+                    nx * (p[0] - a[0]) +
+                    ny * (p[1] - a[1]) +
+                    nz * (p[2] - a[2]);
+                  if (d > 1e-5) {
+                    visible = false;
+                    break;
+                  }
+                }
+                if (visible) faceList.push([i, j, k2]);
+              }
+            }
+          }
+        }
+
+        const edges = [...edgeSet].map((s) => s.split(",").map(Number));
+        return { edges, faces: faceList };
+      }
+
+      function randomRotationSpeed(n) {
+        const base = 0.004 + Math.random() * 0.028;
+        const sign = () => (Math.random() < 0.5 ? -1 : 1);
+        return {
+          x: sign() * base * (0.6 + Math.random()),
+          y: sign() * base * (0.6 + Math.random()),
+          z: sign() * base * (0.6 + Math.random()),
+        };
+      }
+
+      function rebuild() {
+        verts = verticesFor(corners);
+        const topo = buildTopology(verts);
+        edges = topo.edges;
+        faces = topo.faces;
+        rotSpeed = randomRotationSpeed(corners);
+        frameInterval = 1000 / Math.max(1, corners);
+        countEl().textContent = String(corners);
+        updateStats();
+        draw();
+      }
+
+      function updateStats() {
+        const el = statsEl();
+        if (!el) return;
+        const fps = corners;
+        const rs = rotSpeed;
+        el.textContent =
+          fps +
+          " fps · rot " +
+          rs.x.toFixed(4) +
+          " / " +
+          rs.y.toFixed(4) +
+          " / " +
+          rs.z.toFixed(4) +
+          (faces.length
+            ? " · " + faces.length + " face(s)"
+            : corners > 32
+              ? " · wire only"
+              : "");
+      }
+
+      function rotatePoint(p) {
+        let [x, y, z] = p;
+        let c;
+        let s;
+
+        c = Math.cos(rot.x);
+        s = Math.sin(rot.x);
+        let y1 = y * c - z * s;
+        let z1 = y * s + z * c;
+        y = y1;
+        z = z1;
+
+        c = Math.cos(rot.y);
+        s = Math.sin(rot.y);
+        let x1 = x * c + z * s;
+        z1 = -x * s + z * c;
+        x = x1;
+        z = z1;
+
+        c = Math.cos(rot.z);
+        s = Math.sin(rot.z);
+        x1 = x * c - y * s;
+        y1 = x * s + y * c;
+        return [x1, y1, z];
+      }
+
+      function project(p, w, h) {
+        const cam = 3.2;
+        const z = p[2] + cam;
+        const scale = (w * 0.38) / Math.max(0.15, z);
+        return {
+          x: p[0] * scale + w / 2,
+          y: -p[1] * scale + h / 2,
+          z,
+        };
+      }
+
+      function draw() {
+        const c = canvas();
+        if (!c) return;
+        const ctx = c.getContext("2d");
+        const w = c.width;
+        const h = c.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const projected = verts.map((v) => project(rotatePoint(v), w, h));
+
+        if (edges.length) {
+          ctx.strokeStyle = "rgba(0,0,255,0.3)";
+          ctx.lineWidth = corners <= 12 ? 1.4 : 0.8;
+          edges.forEach(([a, b]) => {
+            const pa = projected[a];
+            const pb = projected[b];
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          });
+        }
+
+        const r = corners === 1 ? 5 : corners <= 4 ? 4 : Math.max(1.2, 3.5 - corners * 0.004);
+        ctx.fillStyle = "rgba(255,0,0,0.6)";
+        projected.forEach((p) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      function tick(now) {
+        raf = requestAnimationFrame(tick);
+        if (!lastTick) lastTick = now;
+        if (now - lastTick < frameInterval) return;
+        lastTick = now;
+        rot.x += rotSpeed.x;
+        rot.y += rotSpeed.y;
+        rot.z += rotSpeed.z;
+        draw();
+      }
+
+      function setCorners(n) {
+        corners = Math.max(MIN, Math.min(MAX, n | 0));
+        rebuild();
+      }
+
+      root.querySelector('[data-part="dec"]')?.addEventListener("click", () => {
+        setCorners(corners - 1);
+      });
+      root.querySelector('[data-part="inc"]')?.addEventListener("click", () => {
+        setCorners(corners + 1);
+      });
+
+      root.addEventListener("keydown", (ev) => {
+        if (ev.target !== document.body && !root.contains(ev.target)) return;
+        if (ev.key === "ArrowLeft" || ev.key === "-") {
+          ev.preventDefault();
+          setCorners(corners - 1);
+        } else if (ev.key === "ArrowRight" || ev.key === "+" || ev.key === "=") {
+          ev.preventDefault();
+          setCorners(corners + 1);
+        }
+      });
+
+      rebuild();
+      cancelAnimationFrame(raf);
+      lastTick = 0;
+      raf = requestAnimationFrame(tick);
+    })();
+  </script>
+</div>

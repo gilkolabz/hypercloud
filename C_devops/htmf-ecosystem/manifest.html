@@ -1,0 +1,378 @@
+<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-manifest"
+  data-path="torus/docs/manifest"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Manifests</h1>
+    <p>A <strong>manifest</strong> is the <strong>contract inside an ibgib frame</strong>: the JSON in <code>data</code></p>
+    <p>that says what this address is for and how to use it (<strong>method</strong> controls,</p>
+    <p>optional <strong>park</strong> claim policy, optional <strong>declare</strong> (license / robots /</p>
+    <p>attribution), about/notes, subject/attestation, domain payload).</p>
+    <pre><code>
+    { ib, gib, data, rel8ns }
+    </code></pre>
+    <ul>
+    <li>A <strong>tip</strong> is only a pointer to the latest <code>ib^gib</code>.</li>
+    <li>Generations live in frame space; lineage walks <code>rel8ns.past</code>.</li>
+    <li><strong>Any tip with an <code>ib</code> is already addressable</strong> (<code>tip.get</code>, reference by ib).</li>
+    </ul>
+    <p>  That is not what <code>park</code> means.</p>
+    <ul>
+    <li><strong><code>method</code></strong> (not <code>http</code>) is the verb map when the tip handles HTTP/callin</li>
+    </ul>
+    <p>  verbs. There is <strong>no</strong> required <code>parts</code> tag that means “has method controls.”</p>
+    <p>This replaces the older lead definition (“tagged vague JSON”). Soft tags may</p>
+    <p>still appear in <code>data.parts</code>, but they are not the definition of a manifest —</p>
+    <p>and whether tip-level <code>parts</code> stay at all is <strong>under consolidation</strong> (see</p>
+    <p>below).</p>
+    <p><code>navi_park_addressing.md</code> (callin / capture),</p>
+    <p><code>stage_part_types.md</code> (stage occupant types — different</p>
+    <p><code>parts</code> problem).</p>
+    <p>---</p>
+    <h2>Frame shape</h2>
+    <pre><code>
+    {
+      "ib": "navi:surf",
+      "gib": "&lt;content-hash-of-data&gt;",
+      "data": {
+        "park": "capture",
+        "default_method": "GET",
+        "method": {
+          "GET": { "kind": "mod", "target": "surf", "command": "surf", "mode": "async" },
+          "POST": { "kind": "mod", "target": "surf", "command": "surf", "mode": "async" }
+        },
+        "about": { "label": "surf", "description": "…" },
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": {
+        "past": [],
+        "bin": [],
+        "tjp": [],
+        "dna": []
+      }
+    }
+    </code></pre>
+    <p><strong><code>data</code> — common blocks</strong></p>
+    <p>| Block | Role |</p>
+    <p>| --- | --- |</p>
+    <p>| <code>park</code> | Optional route-claim policy: <code>"capture"</code> \| <code>"defer"</code> (see below) |</p>
+    <p>| <code>method</code> | Per-verb controls (<code>kind</code>, <code>target</code>, <code>command</code>, <code>commands</code>, <code>mode</code>, …) |</p>
+    <p>| <code>declare</code> | Optional soft strings: license / robots / attribution / copyright / notice / … |</p>
+    <p>| <code>about</code> | Label, description, version, requires, commit-devnote, … |</p>
+    <p>| <code>subject</code> | Points at another tip’s bytes (module card) |</p>
+    <p>| <code>attestation</code> | Crypto proof (usually over <code>subject</code>) |</p>
+    <p>| <code>n</code>, <code>timestamp</code> | Generation hygiene when mut8’d |</p>
+    <p>| domain fields | Still on <code>data</code>: <code>parks[]</code>, stage maps, settings, warez <code>frames[]</code>, events, … |</p>
+    <p><strong><code>rel8ns</code> — links</strong></p>
+    <p>| Rel | Role |</p>
+    <p>| --- | --- |</p>
+    <p>| <code>past</code> | Prior <code>ib^gib</code> |</p>
+    <p>| <code>bin</code> | <code>bin <sha></code> opaque media for this tip |</p>
+    <p>| <code>policy</code> / <code>read_policy</code> / <code>schema</code> | Machine ACL gates (keys / Lua) when used — not the same as <code>declare</code> |</p>
+    <p>| <code>tjp</code> / <code>dna</code> | ibgib bookkeeping |</p>
+    <p>Behavior and meaning live in <strong><code>data</code></strong>. Identity links and blobs live in</p>
+    <p><strong><code>rel8ns</code></strong>.</p>
+    <p>---</p>
+    <h2><code>park</code> — route claim (not addressability)</h2>
+    <p>An <code>ib</code> already means the tip can be referenced. **<code>park</code> only means: take part</p>
+    <p>in path/callin prefix resolve**, and how to win among candidates.</p>
+    <p>| Value | Meaning |</p>
+    <p>| --- | --- |</p>
+    <p>| *(absent)* | Addressable by ib; <strong>not</strong> in the resolve candidate set |</p>
+    <p>| <code>"capture"</code> | In resolve set; win even if deeper parks exist; keep remainder |</p>
+    <p>| <code>"defer"</code> | In resolve set; yield to longer matching prefixes when present |</p>
+    <p>---</p>
+    <h2><code>declare</code> — sovereign soft declarations</h2>
+    <p>Optional, small, <strong>per-frame</strong>. Lets each tip speak for itself about how others</p>
+    <p>may treat / redistribute its content — without site-wide robots.txt and without</p>
+    <p>stuffing essays into <code>about</code>.</p>
+    <p><strong>Prefer strings.</strong> This block is mainly <strong>human-oriented</strong> (and polite</p>
+    <p>clients). Dual licenses, custom terms, notices — describe them in a string; do</p>
+    <p>not invent a multi-license schema. All keys are <strong>optional</strong> and <strong>per case</strong>.</p>
+    <pre><code>
+    "declare": {
+      "license": "MIT",
+      "robots": "noindex, noai",
+      "attribution": "© Example"
+    }
+    </code></pre>
+    <p><code>license</code> may be a short name <strong>or</strong> a URL (pick whichever fits):</p>
+    <pre><code>
+    "declare": { "license": "https://opensource.org/licenses/MIT" }
+    </code></pre>
+    <pre><code>
+    "declare": {
+      "license": "MIT OR Apache-2.0 — see https://example.com/LICENSE"
+    }
+    </code></pre>
+    <h3>Common keys (none required)</h3>
+    <p>| Key | Role |</p>
+    <p>| --- | --- |</p>
+    <p>| <code>license</code> | How redistribution is allowed — id, phrase, or URL |</p>
+    <p>| <code>robots</code> | Crawl / use directives as a normal robots string (same spirit as <code>X-Robots-Tag</code>; do not invent a new robots language) |</p>
+    <p>| <code>attribution</code> | Credit line when useful |</p>
+    <p>| <code>copyright</code> | Copyright line when you want it separate from attribution |</p>
+    <p>| <code>notice</code> | Extra human notice (warranty disclaimer, geographic limit, …) |</p>
+    <p>Other short string keys are fine when a case needs them (e.g. <code>terms</code> URL,</p>
+    <p><code>contact</code>). Keep values strings; omit anything unused.</p>
+    <h3>Case examples</h3>
+    <p><strong>Open module card</strong></p>
+    <pre><code>
+    "declare": {
+      "license": "MIT",
+      "attribution": "hypernetizen"
+    }
+    </code></pre>
+    <p><strong>Bin tip — don’t index, don’t train</strong></p>
+    <pre><code>
+    "declare": {
+      "robots": "noindex, noai",
+      "license": "All rights reserved"
+    }
+    </code></pre>
+    <p><strong>Custom terms by URL</strong></p>
+    <pre><code>
+    "declare": {
+      "license": "https://example.com/terms",
+      "copyright": "© 2026 Example",
+      "notice": "No resale of binary builds"
+    }
+    </code></pre>
+    <p><strong>Images / media — AI image training opt-out</strong></p>
+    <pre><code>
+    "declare": {
+      "robots": "noimageai",
+      "license": "CC-BY-NC-4.0",
+      "attribution": "Photo: …"
+    }
+    </code></pre>
+    <h3><code>robots</code> (reuse the web; don’t rewrite it)</h3>
+    <p>Put the same kind of comma-separated directives you would put in</p>
+    <p><code>X-Robots-Tag</code> / meta robots. Classic ones include <code>noindex</code>, <code>nofollow</code>,</p>
+    <p><code>none</code>, …</p>
+    <p><strong>What <code>noai</code> means:</strong> a community robots directive asking AI systems **not to</p>
+    <p>use this content for model training<strong>. It does </strong>not** by itself block crawl,</p>
+    <p>download, search indexing, or scraping. <strong><code>noimageai</code></strong> is the same idea for</p>
+    <p><strong>images</strong>. These are <strong>voluntary</strong> signals (not an IETF standard); well-behaved</p>
+    <p>AI crawlers may honor them; enforcement is not guaranteed. Hard deny still</p>
+    <p>needs <code>rel8ns.read_policy</code> (or not serving the bytes).</p>
+    <p>Omit <code>declare</code> entirely when you have nothing to say. Do not put key lists or</p>
+    <p>Lua here.</p>
+    <p><strong>Boundary:</strong> <code>declare</code> is <strong>declaration</strong>. <strong>Enforcement</strong> (401/403, signed</p>
+    <p>writes, paid tokens) stays on <code>rel8ns.policy</code> / <code>rel8ns.read_policy</code> (and usage</p>
+    <p>tokens) when attached.</p>
+    <p>---</p>
+    <h2>Ways to use the same frame (with examples)</h2>
+    <p>Same frame shape; different fields filled. Examples are **illustrative target</p>
+    <p>shapes.</p>
+    <h3>1. Park / route tip</h3>
+    <p>In the resolve set (<code>park</code> set) and handles verbs via <code>method</code>.</p>
+    <p><strong>Bin-bearing module parks</strong> (<code>kind: "mod"</code> + <code>rel8ns.bin</code> + <code>content_type: application/navi-module</code>) provision from tip/host via <code>Accept: application/navi-mod</code> multipart (eframe + bin) then peel verbs. Short hostpark ibs may differ from live <code>target</code>. Kernel aliases (<code>mount</code>/<code>browse</code>/<code>unmount</code> → surf) are not bin-bearing module parks.</p>
+    <pre><code>
+    {
+      "ib": "navi:surf",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "park": "capture",
+        "default_method": "GET",
+        "method": {
+          "GET": {
+            "kind": "mod",
+            "target": "surf",
+            "command": "surf",
+            "mode": "async",
+            "commands": ["surf", "surf_settings"]
+          },
+          "POST": {
+            "kind": "mod",
+            "target": "surf",
+            "command": "surf",
+            "mode": "async",
+            "commands": ["surf", "surf_settings"]
+          }
+        },
+        "about": {
+          "label": "surf",
+          "description": "surf mod park — fetch/swap routes"
+        },
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": { "past": [], "bin": [], "tjp": [], "dna": [] }
+    }
+    </code></pre>
+    <h3>2. Module card (subject + attestation)</h3>
+    <p>Catalog / warez entry. Points at module bytes tip; <strong>no <code>park</code></strong> unless you</p>
+    <p>also want it in path resolve.</p>
+    <pre><code>
+    {
+      "ib": "hypercloud/testkit/mods/stagejockey",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "about": {
+          "name": "stagejockey",
+          "version": "0.9.78",
+          "description": "Stage pick…",
+          "requires": [
+            "supermouse"
+          ],
+          "commit-devnote": "…"
+        },
+        "declare": {
+          "license": "https://…/license",
+          "attribution": "hypernetizen warez"
+        },
+        "subject": {
+          "ib": "stagejockey",
+          "addr": "…js^GIB.HASH",
+          "content_sha256": "…",
+          "content_type": "application/navi-module"
+        },
+        "attestation": {
+          "scheme": "hypernetizen-attestation-v1",
+          "identity_ib": "hypernetizen",
+          "public_key": "…",
+          "signature": "…"
+        },
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": { "past": [], "tjp": [], "dna": [] }
+    }
+    </code></pre>
+    <h3>3. Index / ledger</h3>
+    <p>Lists other tip addrs (or park registrations) in <code>data</code>.</p>
+    <pre><code>
+    {
+      "ib": "navi:mod",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "park": "capture",
+        "method": {
+          "GET": { "kind": "frame", "mode": "sync" }
+        },
+        "about": {
+          "description": "registration ledger — parks[] after mounts"
+        },
+        "parks": [],
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": { "past": [], "tjp": [], "dna": [] }
+    }
+    </code></pre>
+    <p>Warez index variant uses something like <code>frames: ["path/to/card^GIB", …]</code> on</p>
+    <p><code>data</code> instead of <code>parks</code>.</p>
+    <h3>4. Bin-backed content tip</h3>
+    <p>GET serves bytes from <code>rel8ns.bin</code>.</p>
+    <pre><code>
+    {
+      "ib": "hypertext/welcome",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "park": "capture",
+        "content_type": "text/html; charset=utf-8",
+        "method": {
+          "GET": { "kind": "bin" }
+        },
+        "about": { "label": "welcome" },
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": {
+        "bin": ["bin &lt;sha256&gt;"],
+        "past": [],
+        "tjp": [],
+        "dna": []
+      }
+    }
+    </code></pre>
+    <h3>5. Event / log tip</h3>
+    <p><strong>No <code>park</code>.</strong> Mut8 appends generations; readers use <code>tip.span</code> / <code>past</code>.</p>
+    <pre><code>
+    {
+      "ib": "navi:relay:log",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "about": {
+          "label": "navi:relay:log",
+          "description": "relay event log — one event per mut8"
+        },
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": { "past": [], "tjp": [], "dna": [] }
+    }
+    </code></pre>
+    <h3>6. Stage / layout tip</h3>
+    <p>Stage map payload on <code>data</code> (slots like <code>CS</code>, …). This is where <strong>stage</strong></p>
+    <p>typing still matters; see <code>stage_part_types.md</code>. Tip-level</p>
+    <p><code>parts: ["stage_dir", …]</code> may remain until stage vocabulary is folded cleanly.</p>
+    <pre><code>
+    {
+      "ib": "navi:stage/…",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "CS": [],
+        "USL": [],
+        "about": { "description": "3×3 stage map" },
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": { "past": [], "tjp": [], "dna": [] }
+    }
+    </code></pre>
+    <h3>7. Identity / discovery tip</h3>
+    <pre><code>
+    {
+      "ib": "hypernetizen",
+      "gib": "&lt;gib&gt;",
+      "data": {
+        "about": {
+          "label": "hypernetizen",
+          "description": "attestation identity"
+        },
+        "public_key": "…",
+        "n": 0,
+        "timestamp": "&lt;stamp&gt;"
+      },
+      "rel8ns": { "past": [], "tjp": [], "dna": [] }
+    }
+    </code></pre>
+    <p>---</p>
+    <h2>Direction</h2>
+    <ol>
+    <li>Write and read <strong>manifests as frames</strong> with clear <code>data</code> / <code>rel8ns</code> roles.</li>
+    <li>Treat <strong><code>method</code></strong> as the verb contract; <strong><code>park</code>: <code>"capture"</code> \| <code>"defer"</code></strong></li>
+    </ol>
+    <p>   as optional route-claim policy (not addressability).</p>
+    <ol>
+    <li>Optional <strong><code>declare</code></strong> for per-tip license / robots / attribution</li>
+    </ol>
+    <p>   (soft); machine ACL stays on <code>rel8ns.policy*</code>.</p>
+    <ol>
+    <li>Drop documenting <code>ibgib_frame</code> / <code>json</code> / <code>network_proposal</code> as required;</li>
+    </ol>
+    <p>   drop <code>park_depth</code> / boolean <code>park</code> / <code>park_precedence</code> from new writing.</p>
+    <ol>
+    <li><strong>Consolidate <code>parts</code>:</strong> decide tip-level labels vs stage types so the word</li>
+    </ol>
+    <p>   does not mean two incompatible systems forever.</p>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

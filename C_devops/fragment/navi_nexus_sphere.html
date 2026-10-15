@@ -1,0 +1,1166 @@
+<div
+  name="nexus_sphere"
+  data-path="torus/testkit/nexus-sphere"
+  data-part="htmf"
+  style="margin:0;padding:0;border:0;display:block;box-sizing:border-box;outline:none;overflow:visible"
+  tabindex="0"
+>
+  <div data-part="wrap" style="position:relative;margin:0;padding:0;display:block;overflow:visible">
+    <div
+      data-part="method-zone"
+      hidden
+      style="position:absolute;left:0;top:50%;transform:translateY(-50%);cursor:default;user-select:none;font:600 11px/1.2 ui-monospace,monospace;letter-spacing:0.06em;white-space:nowrap;text-align:right;box-sizing:border-box"
+    >GET</div>
+    <canvas data-part="view" style="display:block;margin:0 auto"></canvas>
+    <div
+      data-part="ib-zone"
+      hidden
+      style="position:absolute;top:50%;transform:translateY(-50%);cursor:text;text-align:left;white-space:nowrap;overflow:visible;max-width:none;width:max-content;font:11px/1.25 ui-monospace,monospace;z-index:2;pointer-events:auto"
+    ></div>
+  </div>
+  <script>
+    (function () {
+      const root =
+        (document.currentScript &&
+          document.currentScript.closest('div[name="nexus_sphere"]')) ||
+        document.querySelector('div[name="nexus_sphere"]');
+      if (!root || root.dataset.nexusSphereBound === "1") return;
+      root.dataset.nexusSphereBound = "1";
+
+      const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+      const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+      const wrap = () => root.querySelector('[data-part="wrap"]');
+      const canvas = () => root.querySelector('[data-part="view"]');
+      const methodZone = () => root.querySelector('[data-part="method-zone"]');
+      const ibZone = () => root.querySelector('[data-part="ib-zone"]');
+
+      let corners = 0;
+      let verts = [];
+      let edges = [];
+      let rot = { x: 0, y: 0, z: 0 };
+      let rotSpeed = { x: 0, y: 0, z: 0 };
+      let raf = 0;
+      let lastTick = 0;
+      let frameInterval = 1000;
+      let tipHooked = false;
+      let edgeFlashUntil = 0;
+
+      let callinMode = false;
+      let methodIndex = 1;
+      let callinText = "";
+      let allTips = ["navi"];
+      let hoverSegmentIndex = -1;
+      let lastHoverSegmentIndex = -1;
+      let tipCornerIndices = [];
+      let tipCornerBySeg = {};
+      let segmentCycling = false;
+      let lastHoverRenderSeg = -2;
+      const verbsCache = new Map();
+      const COLOR_TIP = "#ff0000";
+      const COLOR_CMD = "#8b0000";
+      const COLOR_CMD_PREVIEW = "rgba(139,0,0,0.42)";
+      const COLOR_PLAIN = "#0000ff";
+      const COLOR_DELIM = "#888888";
+
+      function saveCallinState() {
+        const text = callinText.trim();
+        if (!text) {
+          delete root.dataset.nexusCallinText;
+          delete root.dataset.nexusMethodIndex;
+          return;
+        }
+        root.dataset.nexusCallinText = text;
+        root.dataset.nexusMethodIndex = String(methodIndex);
+      }
+
+      function loadCallinState() {
+        const text = String(root.dataset.nexusCallinText || "").trim();
+        if (!text) return null;
+        const idx = Number(root.dataset.nexusMethodIndex);
+        return {
+          text: text,
+          methodIndex: Number.isFinite(idx) ? idx : 1,
+        };
+      }
+
+      function norm(v) {
+        const l = Math.hypot(v[0], v[1], v[2]) || 1;
+        return [v[0] / l, v[1] / l, v[2] / l];
+      }
+
+      function fibonacciSphere(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+          const y = 1 - (2 * i) / Math.max(1, n - 1);
+          const r = Math.sqrt(Math.max(0, 1 - y * y));
+          const t = GOLDEN * i;
+          pts.push(norm([Math.cos(t) * r, y, Math.sin(t) * r]));
+        }
+        return pts;
+      }
+
+      function verticesFor(n) {
+        if (n <= 0) return [];
+        if (n === 1) return [[0, 0, 1]];
+        if (n === 2) return [[0, 0, 1], [0, 0, -1]];
+        if (n === 3) {
+          const r3 = Math.sqrt(3) / 2;
+          return [
+            [1, 0, 0],
+            [-0.5, 0, r3],
+            [-0.5, 0, -r3],
+          ].map(norm);
+        }
+        if (n === 4) {
+          return [
+            [1, 1, 1],
+            [1, -1, -1],
+            [-1, 1, -1],
+            [-1, -1, 1],
+          ].map(norm);
+        }
+        return fibonacciSphere(n);
+      }
+
+      function edgeKey(a, b) {
+        return a < b ? a + "," + b : b + "," + a;
+      }
+
+      function buildTopology(points) {
+        const n = points.length;
+        const edgeSet = new Set();
+        if (n === 2) return { edges: [[0, 1]] };
+        if (n === 3) return { edges: [[0, 1], [1, 2], [2, 0]] };
+        if (n === 4) {
+          return {
+            edges: [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+              [1, 2],
+              [1, 3],
+              [2, 3],
+            ],
+          };
+        }
+        const k = Math.min(6, n - 1);
+        points.forEach((_, i) => {
+          const list = [];
+          for (let j = 0; j < n; j++) {
+            if (i === j) continue;
+            const dx = points[i][0] - points[j][0];
+            const dy = points[i][1] - points[j][1];
+            const dz = points[i][2] - points[j][2];
+            list.push({ j, d: dx * dx + dy * dy + dz * dz });
+          }
+          list.sort((a, b) => a.d - b.d);
+          list.slice(0, k).forEach(({ j }) => edgeSet.add(edgeKey(i, j)));
+        });
+        return { edges: [...edgeSet].map((s) => s.split(",").map(Number)) };
+      }
+
+      function randomRotationSpeed() {
+        const base = 0.004 + Math.random() * 0.028;
+        const sign = () => (Math.random() < 0.5 ? -1 : 1);
+        return {
+          x: sign() * base * (0.6 + Math.random()),
+          y: sign() * base * (0.6 + Math.random()),
+          z: sign() * base * (0.6 + Math.random()),
+        };
+      }
+
+      function setCorners(n, force) {
+        const next = Math.max(0, n | 0);
+        if (!force && next === corners && (corners === 0 || verts.length)) return;
+        corners = next;
+        verts = verticesFor(corners);
+        edges = buildTopology(verts).edges;
+        rotSpeed = randomRotationSpeed();
+        frameInterval = corners > 0 ? 1000 / corners : 1000;
+        if (tipCornerIndices.some((c) => c >= corners)) assignTipCorners([], -1);
+        draw();
+      }
+
+      function assignTipCorners(types, changedSegIdx) {
+        const tipSegIndices = [];
+        for (let i = 0; i < types.length; i++) {
+          if (types[i] === "tip") tipSegIndices.push(i);
+        }
+        if (!tipSegIndices.length || corners < 1) {
+          tipCornerBySeg = {};
+          tipCornerIndices = [];
+          return;
+        }
+
+        const used = new Set();
+        const next = {};
+
+        for (const segI of tipSegIndices) {
+          let keep = false;
+          if (changedSegIdx === -2) {
+            keep = tipCornerBySeg[segI] !== undefined;
+          } else if (changedSegIdx >= 0) {
+            keep = segI !== changedSegIdx && tipCornerBySeg[segI] !== undefined;
+          }
+          if (keep && tipCornerBySeg[segI] < corners) {
+            next[segI] = tipCornerBySeg[segI];
+            used.add(next[segI]);
+          }
+        }
+
+        for (const segI of tipSegIndices) {
+          if (next[segI] !== undefined) continue;
+          let c = 0;
+          let tries = 0;
+          do {
+            c = (Math.random() * corners) | 0;
+            tries += 1;
+          } while (used.has(c) && tries < corners * 8);
+          next[segI] = c;
+          used.add(c);
+        }
+
+        tipCornerBySeg = next;
+        tipCornerIndices = tipSegIndices.map((i) => tipCornerBySeg[i]);
+      }
+
+      function rotatePoint(p) {
+        let [x, y, z] = p;
+        let c;
+        let s;
+        c = Math.cos(rot.x);
+        s = Math.sin(rot.x);
+        let y1 = y * c - z * s;
+        let z1 = y * s + z * c;
+        y = y1;
+        z = z1;
+        c = Math.cos(rot.y);
+        s = Math.sin(rot.y);
+        let x1 = x * c + z * s;
+        z1 = -x * s + z * c;
+        x = x1;
+        z = z1;
+        c = Math.cos(rot.z);
+        s = Math.sin(rot.z);
+        x1 = x * c - y * s;
+        y1 = x * s + y * c;
+        return [x1, y1, z];
+      }
+
+      function project(p, w, h) {
+        const cam = 2.5;
+        const z = p[2] + cam;
+        const scale = (Math.min(w, h) * 0.52) / Math.max(0.15, z);
+        return { x: p[0] * scale + w / 2, y: -p[1] * scale + h / 2, z };
+      }
+
+      function stageHost() {
+        return document.getElementById("DSC") || root.parentElement;
+      }
+
+      function shell() {
+        return typeof navi !== "undefined" ? navi : null;
+      }
+
+      function pct20ToSpace(s) {
+        return String(s || "").replace(/%20/gi, " ");
+      }
+
+      function normalizeTipIb(ib) {
+        return String(ib || "")
+          .trim()
+          .replace(/^\/+/, "");
+      }
+
+      function tokenizeIb(ib) {
+        const s = normalizeTipIb(pct20ToSpace(ib));
+        const segments = [];
+        const gaps = [];
+        let buf = "";
+        let i = 0;
+        const pushSeg = () => {
+          if (!buf) return;
+          segments.push(buf);
+          buf = "";
+        };
+        while (i < s.length) {
+          if (s.startsWith("//", i)) {
+            pushSeg();
+            if (segments.length) gaps.push("//");
+            i += 2;
+            continue;
+          }
+          const c = s[i];
+          if (c === ":" || c === "/" || /\s/.test(c)) {
+            pushSeg();
+            if (!segments.length) {
+              i += 1;
+              continue;
+            }
+            if (/\s/.test(c)) {
+              while (i < s.length && /\s/.test(s[i]) && !s.startsWith("//", i)) i += 1;
+              gaps.push(" ");
+            } else {
+              gaps.push(c);
+              i += 1;
+            }
+            continue;
+          }
+          buf += c;
+          i += 1;
+        }
+        pushSeg();
+        while (gaps.length >= segments.length) gaps.pop();
+        return { segments, gaps };
+      }
+
+      function joinIb(segments, gaps) {
+        if (!segments.length) return "";
+        let out = segments[0];
+        const n = Math.min(gaps.length, segments.length - 1);
+        for (let i = 0; i < n; i++) out += gaps[i] + segments[i + 1];
+        for (let i = n + 1; i < segments.length; i++) out += " " + segments[i];
+        return out;
+      }
+
+      function delimiterRaceSignature(ib) {
+        const raw = normalizeTipIb(pct20ToSpace(ib));
+        const { segments, gaps } = tokenizeIb(raw);
+        if (!segments.length) return "";
+        const marks = gaps.map((g) => (g === "//" ? "\x01" : "\x00"));
+        return segments.join("\0") + "\n" + marks.join("\x00");
+      }
+
+      function liveDelimiterHits(want, live) {
+        const sig = delimiterRaceSignature(want);
+        if (!sig) return [];
+        const raw = normalizeTipIb(pct20ToSpace(want));
+        const hits = live.filter((ib) => delimiterRaceSignature(ib) === sig);
+        if (raw && hits.includes(raw)) {
+          return [raw, ...hits.filter((h) => h !== raw)];
+        }
+        return hits;
+      }
+
+      function tipIbsMatch(a, b) {
+        const sa = delimiterRaceSignature(a);
+        return !!sa && sa === delimiterRaceSignature(b);
+      }
+
+      function exactTipForPartial(partial) {
+        const hits = liveDelimiterHits(partial, allTips);
+        const pSegs = tokenizeIb(partial).segments;
+        if (!pSegs.length) return null;
+        return (
+          hits.find((h) => {
+            const hSegs = tokenizeIb(h).segments;
+            return (
+              hSegs.length === pSegs.length &&
+              delimiterRaceSignature(h) === delimiterRaceSignature(partial)
+            );
+          }) || null
+        );
+      }
+
+      function prefixMatchesTipPath(prefix, ib) {
+        const pSegs = tokenizeIb(prefix).segments;
+        const iSegs = tokenizeIb(ib).segments;
+        if (!pSegs.length || iSegs.length <= pSegs.length) return false;
+        const { gaps: pGaps } = tokenizeIb(prefix);
+        const pre = joinIb(iSegs.slice(0, pSegs.length), pGaps.slice(0, pSegs.length - 1));
+        return delimiterRaceSignature(pre) === delimiterRaceSignature(prefix);
+      }
+
+      function remainderAfterTip(text) {
+        const { segments, gaps } = tokenizeIb(text);
+        for (let end = segments.length; end >= 1; end--) {
+          const partial = joinIb(segments.slice(0, end), gaps.slice(0, end - 1));
+          if (exactTipForPartial(partial)) {
+            return joinIb(segments.slice(end), gaps.slice(end - 1));
+          }
+        }
+        return text;
+      }
+
+      function activeSegmentIndex(segments, gaps) {
+        if (hoverSegmentIndex >= 0 && hoverSegmentIndex < segments.length) {
+          return hoverSegmentIndex;
+        }
+        if (lastHoverSegmentIndex >= 0 && lastHoverSegmentIndex < segments.length) {
+          return lastHoverSegmentIndex;
+        }
+        for (let end = segments.length; end >= 1; end--) {
+          const partial = joinIb(segments.slice(0, end), gaps.slice(0, end - 1));
+          if (exactTipForPartial(partial)) return end - 1;
+        }
+        for (let end = segments.length; end >= 1; end--) {
+          const partial = joinIb(segments.slice(0, end), gaps.slice(0, end - 1));
+          if (isTipPrefixPath(partial)) return end - 1;
+        }
+        return 0;
+      }
+
+      function normalizePrefixRoot(ib) {
+        const { segments } = tokenizeIb(String(ib || "").trim());
+        if (!segments.length) return "navi";
+        return segments[0] === "navi" ? "navi" : segments[0];
+      }
+
+      function getPrefixRootAlternatives() {
+        const paths = [];
+        const seen = new Set();
+        const addRoot = (ib) => {
+          const t = normalizePrefixRoot(ib);
+          const sig = delimiterRaceSignature(t);
+          if (seen.has(sig)) return;
+          seen.add(sig);
+          paths.push(t);
+        };
+
+        addRoot("navi");
+        for (const ib of allTips) {
+          const { segments: s } = tokenizeIb(ib);
+          if (!s.length || s[0] === "navi") continue;
+          addRoot(ib);
+        }
+        return paths.sort((a, b) => a.localeCompare(b));
+      }
+
+      function currentPrefixRoot(text) {
+        const { segments } = tokenizeIb(String(text || "").trim() || "navi");
+        if (!segments.length) return "navi";
+        return segments[0] === "navi" ? "navi" : segments[0];
+      }
+
+      function isTipPrefixPath(partial) {
+        const pSegs = tokenizeIb(partial).segments;
+        if (!pSegs.length) return false;
+        return allTips.some(
+          (ib) =>
+            tokenizeIb(ib).segments.length > pSegs.length && prefixMatchesTipPath(partial, ib)
+        );
+      }
+
+      async function refreshAllTips() {
+        const s = shell();
+        const tipApi = s && s.storage && s.storage.tip;
+        if (!tipApi || typeof tipApi.list !== "function") return;
+        const listed = ((await tipApi.list()) || []).map(String).filter(Boolean);
+        const seen = new Set();
+        const deduped = [];
+        for (const ib of listed) {
+          const key = ib.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(ib);
+        }
+        if (!deduped.some((ib) => ib === "navi" || ib === "navi:")) {
+          deduped.unshift("navi");
+        }
+        allTips = deduped.sort((a, b) => a.localeCompare(b));
+      }
+
+      function commandTransportsForMod(cmd) {
+        const raw = cmd?.methods ?? cmd?.transport;
+        if (raw == null) return null;
+        const arr = Array.isArray(raw) ? raw : [raw];
+        const out = arr
+          .map((s) => String(s).toUpperCase())
+          .filter((s) => s === "GET" || s === "POST");
+        return out.length ? out : null;
+      }
+
+      async function resolveTipFrame(ib) {
+        const s = shell();
+        const tipApi = s && s.storage && s.storage.tip;
+        if (!tipApi || typeof tipApi.get !== "function") return null;
+        let tip = await tipApi.get(ib);
+        if (tip?.data) return tip;
+        const canon = exactTipForPartial(ib) || liveDelimiterHits(ib, allTips)[0] || null;
+        if (canon && canon !== ib) tip = await tipApi.get(canon);
+        return tip?.data ? tip : null;
+      }
+
+      function verbsFromLiveMod(tip, transport) {
+        const s = shell();
+        if (!s?.mod) return [];
+        const method = tip?.data?.method;
+        const picked =
+          method && typeof method === "object" ? method[transport] : null;
+        const target = String(
+          picked?.target || tip?.data?.module?.name || ""
+        ).trim();
+        const mod = target && s.mod[target] ? s.mod[target] : null;
+        const commands = mod?.commands;
+        if (!commands || typeof commands !== "object") return [];
+        const keys = Object.keys(commands);
+        if (keys.length <= 1) return keys;
+        const anyHint = keys.some((k) => commandTransportsForMod(commands[k]) != null);
+        if (!anyHint) return keys;
+        return keys.filter((k) => {
+          const t = commandTransportsForMod(commands[k]);
+          return t ? t.includes(transport) : false;
+        });
+      }
+
+      function verbsFromLegacyHttp(tip, transport) {
+        const http = tip?.data?.http;
+        if (!http || typeof http !== "object") return [];
+        const picked = http[transport];
+        if (picked && Array.isArray(picked.actions)) return picked.actions.map(String);
+        if (picked && Array.isArray(picked.commands)) return picked.commands.map(String);
+        return [];
+      }
+
+      async function verbsForIb(ib, transportOverride) {
+        const transport = transportOverride || currentMethod();
+        const cacheKey = ib + "|" + transport;
+        if (verbsCache.has(cacheKey)) return verbsCache.get(cacheKey);
+        let verbs = [];
+        try {
+          const tip = await resolveTipFrame(ib);
+          const method = tip?.data?.method;
+          if (method && typeof method === "object") {
+            const picked = method[transport];
+            if (picked && Array.isArray(picked.commands)) {
+              verbs = picked.commands.map(String);
+            }
+          }
+          if (!verbs.length) verbs = verbsFromLegacyHttp(tip, transport);
+          if (!verbs.length) verbs = verbsFromLiveMod(tip, transport);
+        } catch {
+          /* ignore */
+        }
+        verbsCache.set(cacheKey, verbs);
+        return verbs;
+      }
+
+      function lastExactTipEndIndex(segments, gaps) {
+        for (let end = segments.length; end >= 1; end--) {
+          const partial = joinIb(segments.slice(0, end), gaps.slice(0, end - 1));
+          if (exactTipForPartial(partial)) return end - 1;
+        }
+        return -1;
+      }
+
+      async function commandPreviewForHover(segments, gaps) {
+        const segIdx = hoverSegmentIndex;
+        if (segIdx < 0 || segIdx >= segments.length) return [];
+        const tipEnd = lastExactTipEndIndex(segments, gaps);
+        if (tipEnd < 0 || segments.length !== tipEnd + 1 || segIdx > tipEnd) {
+          return [];
+        }
+        const anchor = joinIb(segments.slice(0, segIdx + 1), gaps.slice(0, segIdx));
+        const tipIb = exactTipForPartial(anchor);
+        if (!tipIb) return [];
+        return verbsForIb(tipIb);
+      }
+
+      function pathAltIndex(alts, current) {
+        if (!current) return -1;
+        let idx = alts.indexOf(current);
+        if (idx >= 0) return idx;
+        const sig = delimiterRaceSignature(current);
+        idx = alts.findIndex((a) => delimiterRaceSignature(a) === sig);
+        return idx;
+      }
+
+      async function getPathAlternativesForSegment(segments, gaps, segIdx) {
+        const anchorSegs = segments.slice(0, segIdx + 1);
+        const anchorGaps = gaps.slice(0, segIdx);
+        const anchor = anchorSegs.length ? joinIb(anchorSegs, anchorGaps) : "";
+        const paths = [];
+        const seen = new Set();
+
+        const add = (p) => {
+          const t = String(p || "").trim();
+          if (!t) return;
+          const sig = delimiterRaceSignature(t);
+          if (seen.has(sig)) return;
+          seen.add(sig);
+          paths.push(t);
+        };
+
+        if (!anchor) {
+          return getPrefixRootAlternatives();
+        }
+
+        add(anchor);
+
+        const anchorSegCount = tokenizeIb(anchor).segments.length;
+
+        for (const ib of allTips) {
+          if (!prefixMatchesTipPath(anchor, ib)) continue;
+          const { segments: ibSegs, gaps: ibGaps } = tokenizeIb(ib);
+          if (ibSegs.length <= anchorSegCount) continue;
+          add(joinIb(ibSegs.slice(0, anchorSegCount + 1), ibGaps.slice(0, anchorSegCount)));
+        }
+
+        const parentIb =
+          exactTipForPartial(anchor) || liveDelimiterHits(anchor, allTips)[0] || null;
+        if (parentIb) {
+          const verbs = await verbsForIb(parentIb);
+          for (const v of verbs) add(anchor + " " + v);
+        }
+
+        return paths.sort((a, b) => a.localeCompare(b));
+      }
+
+      async function classifySegments(segments, gaps) {
+        const types = new Array(segments.length).fill("plain");
+        let tipIb = null;
+        let tipSegEnd = -1;
+
+        for (let i = 0; i < segments.length; i++) {
+          const partial = joinIb(segments.slice(0, i + 1), gaps.slice(0, i));
+          const exact = exactTipForPartial(partial);
+          if (exact) {
+            types[i] = "tip";
+            tipIb = exact;
+            tipSegEnd = i;
+            continue;
+          }
+
+          if (isTipPrefixPath(partial)) {
+            types[i] = "tip";
+            continue;
+          }
+
+          if (tipIb && i > tipSegEnd) {
+            const verbs = await verbsForIb(tipIb);
+            if (verbs.includes(segments[i])) {
+              types[i] = "cmd";
+              continue;
+            }
+          }
+        }
+        return types;
+      }
+
+      function firstVerb(args) {
+        const t = String(args || "").trim();
+        if (!t) return "";
+        return tokenizeIb(t).segments[0]?.toLowerCase() || "";
+      }
+
+      function tipIbFromCallinText(text) {
+        const trimmed = String(text || "").trim() || "navi";
+        const { segments, gaps } = tokenizeIb(trimmed);
+        for (let end = segments.length; end >= 1; end--) {
+          const partial = joinIb(segments.slice(0, end), gaps.slice(0, end - 1));
+          const exact = exactTipForPartial(partial);
+          if (exact) return exact;
+        }
+        return null;
+      }
+
+      function formatCallinReturn(data) {
+        if (data === null) return "null";
+        if (typeof data === "string") return data;
+        if (data instanceof Error) return data.message || String(data);
+        try {
+          return JSON.stringify(data);
+        } catch {
+          return String(data);
+        }
+      }
+
+      async function resolveCallinMethod(picked, text) {
+        const m = String(picked || "POST").toUpperCase();
+        if (m === "PUT" || m === "PATCH" || m === "DELETE") return m;
+        if (m !== "GET") return "POST";
+        const trimmed = String(text || "").trim() || "navi";
+        const rest = remainderAfterTip(trimmed);
+        const verb = firstVerb(rest);
+        if (!verb) return "GET";
+        const tokens = tokenizeIb(rest).segments;
+        if (verb === "status" || verb === "help" || verb === "log") return "GET";
+        if (verb === "token" && tokens.length === 1) return "GET";
+        if (verb === "expire" && tokens.length === 1) return "GET";
+        if (
+          verb === "advertise" ||
+          verb === "retire" ||
+          verb === "connect" ||
+          verb === "disconnect"
+        ) {
+          return "POST";
+        }
+        const tipIb = tipIbFromCallinText(trimmed);
+        if (tipIb) {
+          const getVerbs = await verbsForIb(tipIb, "GET");
+          const postVerbs = await verbsForIb(tipIb, "POST");
+          if (getVerbs.includes(verb)) return "GET";
+          if (postVerbs.includes(verb)) return "POST";
+        }
+        return "GET";
+      }
+
+      function currentMethod() {
+        return METHODS[((methodIndex % METHODS.length) + METHODS.length) % METHODS.length];
+      }
+
+      function cycleMethod(delta) {
+        methodIndex = (methodIndex + delta + METHODS.length) % METHODS.length;
+        const mz = methodZone();
+        if (mz) mz.textContent = currentMethod();
+        if (callinMode) updateCallinDisplay().catch(() => {});
+      }
+
+      async function cyclePrefixRoots(delta) {
+        if (segmentCycling) return;
+        segmentCycling = true;
+        try {
+          await refreshAllTips();
+          const alts = getPrefixRootAlternatives();
+          if (alts.length <= 1) return;
+
+          const root = currentPrefixRoot(callinText);
+          const rootSig = delimiterRaceSignature(root);
+          let idx = alts.findIndex((a) => delimiterRaceSignature(a) === rootSig);
+          if (idx < 0) idx = 0;
+          idx = (idx + delta + alts.length) % alts.length;
+          const next = alts[idx];
+          if (delimiterRaceSignature(next) === delimiterRaceSignature(callinText.trim())) return;
+          callinText = next;
+          await updateCallinDisplay(0);
+        } finally {
+          segmentCycling = false;
+        }
+      }
+
+      async function cycleActiveSegment(delta) {
+        if (segmentCycling) return;
+        segmentCycling = true;
+        try {
+          await refreshAllTips();
+          const trimmed = callinText.trim();
+          if (!trimmed) {
+            if (delta > 0) callinText = "navi";
+            await updateCallinDisplay(-1);
+            return;
+          }
+
+          const { segments, gaps } = tokenizeIb(callinText);
+          if (!segments.length) return;
+
+          const segIdx = activeSegmentIndex(segments, gaps);
+          const alts = await getPathAlternativesForSegment(segments, gaps, segIdx);
+          if (!alts.length) return;
+
+          let idx = pathAltIndex(alts, callinText);
+          if (idx < 0) {
+            const anchor = joinIb(segments.slice(0, segIdx + 1), gaps.slice(0, segIdx));
+            idx = pathAltIndex(alts, anchor);
+          }
+          if (idx < 0) idx = 0;
+          idx = (idx + delta + alts.length) % alts.length;
+          const next = alts[idx];
+          if (next === callinText) return;
+          callinText = next;
+          await updateCallinDisplay(segIdx);
+        } finally {
+          segmentCycling = false;
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function gapColor(gap) {
+        if (gap === " ") return COLOR_DELIM;
+        if (gap === ":" || gap === "/") return COLOR_DELIM;
+        return COLOR_DELIM;
+      }
+
+      async function updateCallinDisplay(changedSegIdx) {
+        const zone = ibZone();
+        if (!zone) return;
+        const text = callinText;
+        const cornerAt = typeof changedSegIdx === "number" ? changedSegIdx : -2;
+        if (!text) {
+          zone.innerHTML = "";
+          assignTipCorners([], -1);
+          if (callinMode) draw();
+          return;
+        }
+
+        const { segments, gaps } = tokenizeIb(text);
+        const types = await classifySegments(segments, gaps);
+        let html = "";
+        for (let i = 0; i < segments.length; i++) {
+          if (i > 0) {
+            const gap = gaps[i - 1] || " ";
+            html +=
+              '<span style="color:' +
+              gapColor(gap) +
+              '">' +
+              escapeHtml(gap) +
+              "</span>";
+          }
+          const kind = types[i] || "plain";
+          const color =
+            kind === "tip" ? COLOR_TIP : kind === "cmd" ? COLOR_CMD : COLOR_PLAIN;
+          html +=
+            '<span data-seg="' +
+            i +
+            '" style="color:' +
+            color +
+            '">' +
+            escapeHtml(segments[i]) +
+            "</span>";
+        }
+        const preview = await commandPreviewForHover(segments, gaps);
+        if (preview.length) {
+          html += '<span style="color:' + COLOR_DELIM + '"> </span>';
+          for (let vi = 0; vi < preview.length; vi++) {
+            if (vi) html += '<span style="color:' + COLOR_DELIM + '"> </span>';
+            html +=
+              '<span data-preview-cmd="1" style="color:' +
+              COLOR_CMD_PREVIEW +
+              '">' +
+              escapeHtml(preview[vi]) +
+              "</span>";
+          }
+        }
+        zone.innerHTML = html;
+        assignTipCorners(types, cornerAt);
+        if (callinMode) draw();
+      }
+
+      function showCallinUi(show) {
+        const mz = methodZone();
+        const iz = ibZone();
+        if (mz) {
+          mz.hidden = !show;
+          mz.textContent = currentMethod();
+        }
+        if (iz) iz.hidden = !show;
+      }
+
+      async function activateCallin() {
+        callinMode = true;
+        const saved = loadCallinState();
+        methodIndex =
+          saved && typeof saved.methodIndex === "number" ? saved.methodIndex : 1;
+        callinText = saved && saved.text ? String(saved.text) : "navi";
+        hoverSegmentIndex = -1;
+        lastHoverSegmentIndex = -1;
+        lastHoverRenderSeg = -2;
+        await refreshAllTips();
+        showCallinUi(true);
+        await updateCallinDisplay(-1);
+        root.focus();
+        draw();
+      }
+
+      function deactivateCallin() {
+        saveCallinState();
+        callinMode = false;
+        callinText = "";
+        hoverSegmentIndex = -1;
+        lastHoverSegmentIndex = -1;
+        lastHoverRenderSeg = -2;
+        tipCornerIndices = [];
+        tipCornerBySeg = {};
+        showCallinUi(false);
+        draw();
+      }
+
+      function flashExec() {
+        rotSpeed = randomRotationSpeed();
+        edgeFlashUntil = performance.now() + 500;
+        draw();
+      }
+
+      function isNaviCallinText(text) {
+        const t = String(text || "").trim();
+        return t === "navi" || /^navi[/:\s]/.test(t);
+      }
+
+      async function submitCallin() {
+        const s = shell();
+        if (!s || typeof s.callin !== "function") return;
+        const input = callinText.trim() || "navi";
+        const method = await resolveCallinMethod(currentMethod(), input);
+        try {
+          // Non-navi sphere roots are literal tip ibs — pass path (no navi: presume).
+          const req = isNaviCallinText(input)
+            ? { input: input, method: method }
+            : { path: input, method: method };
+          await s.callin(req);
+        } catch (err) {
+          const msg =
+            err && err.message ? String(err.message) : String(err || "callin failed");
+          if (typeof s.callout === "function") s.callout("Error: " + msg);
+        } finally {
+          flashExec();
+          deactivateCallin();
+        }
+      }
+
+      async function syncCornersFromTips() {
+        const tipApi = shell() && shell().storage && shell().storage.tip;
+        if (!tipApi || typeof tipApi.list !== "function") return;
+        try {
+          const listed = await tipApi.list();
+          setCorners(Array.isArray(listed) ? listed.length : 0);
+        } catch {
+          return;
+        }
+        if (callinMode) {
+          verbsCache.clear();
+          await refreshAllTips();
+          await updateCallinDisplay();
+        }
+      }
+
+      function positionZones() {
+        const c = canvas();
+        const mz = methodZone();
+        const iz = ibZone();
+        if (!c) return;
+        const gap = Math.max(6, Math.round(c.width * 0.025));
+        const sphereCenter = c.width * 0.5;
+        const sphereRadius = c.width * 0.27;
+        const sphereLeft = Math.round(sphereCenter - sphereRadius);
+        const sphereRight = Math.round(sphereCenter + sphereRadius);
+        if (mz) {
+          const bandW = Math.max(0, sphereLeft - gap);
+          mz.style.width = bandW + "px";
+          mz.style.paddingRight = gap + "px";
+        }
+        if (iz) iz.style.left = sphereRight + gap + "px";
+      }
+
+      function fitCanvas() {
+        const c = canvas();
+        const box = wrap();
+        if (!c || !box) return;
+        const slot = stageHost();
+        // Cap from viewport — never DS.clientHeight (status/border would
+        // grow the band → ResizeObserver → infinite expand → crash).
+        let slotW = slot && slot.clientWidth > 0 ? slot.clientWidth : 0;
+        if (slotW < 1) slotW = Math.floor(window.innerWidth / 3);
+        const maxH = Math.max(72, Math.floor(window.innerHeight / 3));
+        const side = Math.max(72, Math.min(slotW, maxH));
+        if (
+          box.style.width === side + "px" &&
+          box.style.height === side + "px" &&
+          c.width === side &&
+          c.height === side
+        ) {
+          positionZones();
+          return;
+        }
+        box.style.width = side + "px";
+        box.style.height = side + "px";
+        if (c.width !== side || c.height !== side) {
+          c.width = side;
+          c.height = side;
+          draw();
+        }
+        positionZones();
+      }
+
+      function draw() {
+        const c = canvas();
+        if (!c) return;
+        const ctx = c.getContext("2d");
+        const w = c.width;
+        const h = c.height;
+        if (w < 1 || h < 1) return;
+        ctx.clearRect(0, 0, w, h);
+        const projected = verts.map((v) => project(rotatePoint(v), w, h));
+        const flash = performance.now() < edgeFlashUntil;
+        if (edges.length) {
+          ctx.strokeStyle = flash ? "rgba(255,0,0,0.55)" : "rgba(0,0,255,0.3)";
+          ctx.lineWidth = corners <= 12 ? 1.4 : 0.8;
+          edges.forEach(([a, b]) => {
+            const pa = projected[a];
+            const pb = projected[b];
+            ctx.beginPath();
+            ctx.moveTo(pa.x, pa.y);
+            ctx.lineTo(pb.x, pb.y);
+            ctx.stroke();
+          });
+        }
+        const r =
+          corners === 1 ? 3 : corners <= 4 ? 2.5 : Math.max(0.8, 2.2 - corners * 0.004);
+        projected.forEach((p, i) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          if (tipCornerIndices.indexOf(i) >= 0) ctx.fillStyle = "rgba(255,0,0,0.85)";
+          else ctx.fillStyle = "rgba(0,0,255,0.6)";
+          ctx.fill();
+        });
+      }
+
+      function tick(now) {
+        raf = requestAnimationFrame(tick);
+        if (!lastTick) lastTick = now;
+        if (now - lastTick < frameInterval) return;
+        lastTick = now;
+        rot.x += rotSpeed.x;
+        rot.y += rotSpeed.y;
+        rot.z += rotSpeed.z;
+        draw();
+      }
+
+      function hookTipCount() {
+        if (tipHooked) return true;
+        const s = shell();
+        if (!s || typeof s.on !== "function") return false;
+        if (!s.storage || !s.storage.tip || typeof s.storage.tip.list !== "function") {
+          return false;
+        }
+        tipHooked = true;
+        const sync = () => {
+          syncCornersFromTips().catch(() => {});
+        };
+        s.on("ready", sync);
+        s.on("mounted", sync);
+        s.on("callin", sync);
+        sync();
+        return true;
+      }
+
+      function bindUi() {
+        const c = canvas();
+        const mz = methodZone();
+        const iz = ibZone();
+
+        if (c) {
+          c.addEventListener("auxclick", (e) => {
+            if (e.button !== 1) return;
+            e.preventDefault();
+            if (!callinMode) {
+              activateCallin();
+              return;
+            }
+            submitCallin().catch(() => {});
+          });
+          c.addEventListener("contextmenu", (e) => e.preventDefault());
+          c.addEventListener(
+            "wheel",
+            (e) => {
+              if (!callinMode) return;
+              e.preventDefault();
+              hoverSegmentIndex = -1;
+              lastHoverSegmentIndex = -1;
+              cyclePrefixRoots(e.deltaY > 0 ? 1 : -1).catch(() => {});
+            },
+            { passive: false }
+          );
+          c.addEventListener("mousedown", (e) => {
+            if (!callinMode) return;
+            root.focus();
+          });
+        }
+
+        if (mz) {
+          mz.addEventListener("wheel", (e) => {
+            if (!callinMode) return;
+            e.preventDefault();
+            cycleMethod(e.deltaY > 0 ? 1 : -1);
+          }, { passive: false });
+        }
+
+        if (iz) {
+          iz.addEventListener("wheel", (e) => {
+            if (!callinMode) return;
+            e.preventDefault();
+            cycleActiveSegment(e.deltaY > 0 ? 1 : -1).catch(() => {});
+          }, { passive: false });
+          iz.addEventListener("mousemove", (e) => {
+            if (!callinMode) return;
+            const t = e.target.closest("[data-seg]");
+            const seg = t ? Number(t.dataset.seg) : -1;
+            hoverSegmentIndex = seg;
+            if (seg >= 0) lastHoverSegmentIndex = seg;
+            if (seg !== lastHoverRenderSeg) {
+              lastHoverRenderSeg = seg;
+              updateCallinDisplay().catch(() => {});
+            }
+          });
+          iz.addEventListener("mouseleave", () => {
+            hoverSegmentIndex = -1;
+            lastHoverRenderSeg = -2;
+            updateCallinDisplay().catch(() => {});
+          });
+          iz.addEventListener("mousedown", (e) => {
+            if (!callinMode) return;
+            e.stopPropagation();
+            root.focus();
+          });
+        }
+
+        root.addEventListener("mousedown", (e) => {
+          if (!callinMode || e.button !== 0) return;
+          const t = e.target;
+          if (
+            t === c ||
+            mz.contains(t) ||
+            iz.contains(t) ||
+            (c && c.contains(t))
+          ) {
+            return;
+          }
+          deactivateCallin();
+        });
+
+        document.addEventListener("auxclick", (e) => {
+          if (!callinMode || e.button !== 1) return;
+          if (root.contains(e.target)) return;
+          deactivateCallin();
+        });
+
+        root.addEventListener("keydown", (e) => {
+          if (!callinMode) return;
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submitCallin().catch(() => {});
+            return;
+          }
+          if (e.key === "Backspace") {
+            e.preventDefault();
+            callinText = callinText.slice(0, -1);
+            updateCallinDisplay().catch(() => {});
+            return;
+          }
+          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault();
+            callinText += e.key;
+            updateCallinDisplay().catch(() => {});
+          }
+        });
+      }
+
+      function boot() {
+        setCorners(0, true);
+        fitCanvas();
+        bindUi();
+        // Observe DSC width + window only — not #DS height (feedback loop).
+        const resizeTargets = [stageHost()].filter(Boolean);
+        if (typeof ResizeObserver !== "undefined") {
+          const ro = new ResizeObserver(() => fitCanvas());
+          resizeTargets.forEach((el) => ro.observe(el));
+        }
+        window.addEventListener("resize", fitCanvas);
+        if (!hookTipCount()) {
+          const wait = setInterval(() => {
+            if (hookTipCount()) clearInterval(wait);
+          }, 50);
+        }
+        cancelAnimationFrame(raf);
+        lastTick = 0;
+        raf = requestAnimationFrame(tick);
+      }
+
+      boot();
+    })();
+  </script>
+</div>

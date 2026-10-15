@@ -1,0 +1,107 @@
+<div
+  name="fsdevopstracker-readme"
+  data-path="torus/testkit/mod/fsdevopstracker/readme"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/testkit/mod/fsdevopstracker/readme" hx-get="/torus/testkit/mod/fsdevopstracker/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">fsdevopstracker</a>
+  </nav>
+  <article>
+    <h1>fsdevopstracker</h1>
+    <p>Native navi module for <strong>flow-model devops</strong> — index a project directory into tip+bin space, track goals/sprints, CRUD artifacts with provenance, mirror logical routes for relay test, and <strong>hostpark-push</strong> shipped bytes. Not a flow-model product itself. Indexes <code>artifact_type</code> including <code>assets</code> (static art under <code>assets/</code> — not <code>ui</code> screen roles).</p>
+    <p><strong>v0.9.0 concurrent projects:</strong> every project-scoped op requires <code>project=&lt;name&gt;</code> (POST JSON or path kv). Shared <code>active_project</code> is not used for ops — safe to relay two projects on one nest. <code>use &lt;name&gt;</code> only sets an in-memory REPL session default. <code>hostpush all</code> means all tips in <em>that</em> project only.</p>
+  <p>Mod park: <code>torus testkit mod fsdevopstracker</code> — <code>mount torus testkit mod fsdevopstracker</code> in navi&gt;. Relay: <code>…/navi-jumbo/fsdevopstracker/…</code></p>
+
+    <h2>Three layers of addressing</h2>
+    <table>
+      <thead>
+        <tr><th>Layer</th><th>Shape</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Devops tips</td>
+          <td><code>{project}:{rel/path}</code></td>
+          <td>Working set — <code>get</code>, <code>put</code>, <code>append</code>, <code>ops</code>, <code>disk-push</code></td>
+        </tr>
+        <tr>
+          <td>Route prefix</td>
+          <td><code>opry/devops/ti_punch</code> (from project <code>config.json</code> <code>flowerpot.root</code>)</td>
+          <td>Logical product path for artifacts</td>
+        </tr>
+        <tr>
+          <td>Mirror (local)</td>
+          <td><code>navi/{route_prefix}/{rel}</code></td>
+          <td>Relay GET test — <code>…/navi-jumbo/{route_prefix}/{rel}</code></td>
+        </tr>
+        <tr>
+          <td>Hostpark (remote)</td>
+          <td><code>{route_prefix}/{rel}</code> on hostpark</td>
+          <td>Deployment — <code>hostpark-push</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Commands</h2>
+    <h3>Index and devops</h3>
+    <ul>
+      <li><code>fsdevopstracker start</code> — <code>fsdevops&gt;</code> REPL</li>
+      <li><code>init</code> / <code>reinit</code> / <code>use</code> / <code>list</code> / <code>get</code> / <code>link</code></li>
+      <li><code>put|append</code> <code>goal=</code> <strong>required</strong> — real why (not “refresh tip from disk”); POST JSON body via relay for large text. Normative: <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a></li>
+      <li><code>goals</code> / <code>sprint</code> / <code>pending</code> — goals ledger (<code>devops/goals.json</code>); distinct from per-op <code>goal=</code> strings on ops</li>
+      <li><code>ops-reset</code> — import bulk <code>devops/ops.json</code> as <code>ops-batch</code> on <code>{project}:devops:ops</code></li>
+      <li><code>ops [n]</code> — recent ops from lineage tip</li>
+      <li><code>disk-push</code> — tips to project root on disk</li>
+    </ul>
+    <h3>Routes and mirror</h3>
+    <ul>
+      <li><code>route</code> — show <code>route_prefix</code></li>
+      <li><code>mirror</code> — rebuild <code>navi/{route_prefix}/…</code> parks from <strong>existing</strong> devops tip bins (does <strong>not</strong> reread disk — <code>put</code> first after edits)</li>
+    </ul>
+    <h3>Hostpark push</h3>
+    <ul>
+      <li><code>push</code> — hostpark config (<code>policy</code>, <code>key</code>, token stash)</li>
+      <li><code>token stash path=…</code> / <code>token feed</code> / <code>token load</code></li>
+      <li><code>keychain</code> — mount signing mod</li>
+      <li><code>hostpark-push &lt;rel&gt; goal=</code> — PUT tip bin to hostpark at <code>{route_prefix}/{rel}</code>; same <code>goal=</code> quality rule as put</li>
+    </ul>
+
+    <h2>Goals standard (short)</h2>
+    <ul>
+      <li>Every content write: <code>goal=&lt;why&gt;</code> — intent / product reason; layer or variant prefix when helpful</li>
+      <li><strong>Goals ledger</strong> (<code>devops/goals.json</code>) = planned work; <strong>ops ledger</strong> (<code>:devops:ops</code>) = what shipped with that why</li>
+      <li>List new hostpark routes on <a href="/torus/host-catalog" hx-get="/torus/host-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus/host-catalog</a>; goals explain generations, they do not replace the catalog</li>
+    </ul>
+
+    <h2>One-time setup (per project)</h2>
+    <pre><code>fsdevopstracker use ti_punch
+push policy=&lt;addr^gib&gt;
+token load &lt;project&gt;/credentials/hostpark_tokens_minted.json
+keychain</code></pre>
+
+    <h2>Relay recipe (jumbo)</h2>
+    <pre><code>node B_native_mods/_setup_bomba_ti_punch_relay.mjs jumbo
+node B_native_mods/_backfill_ti_punch_goals_bomba.mjs
+node B_native_mods/_hostpark_ti_punch_from_bomba.mjs
+
+GET  …/navi-jumbo/fsdevopstracker/pending
+GET  …/navi-jumbo/fsdevopstracker/get/ui/area.html
+POST …/navi-jumbo/fsdevopstracker/append
+     {"path":"devguide.md","goal":"…","body":"…"}
+GET  …/navi-jumbo/opry/devops/ti_punch/ui/area.html   ← after mirror
+GET  …/foobarch/span/ti_punch:devops:ops?dir=all     ← lineage on relay host</code></pre>
+    <p>Smoke: <code>node B_native_mods/_smoke_fsdevopstracker_relay.mjs jumbo</code></p>
+
+    <h2>Related</h2>
+    <ul>
+      <li><a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model index</a></li>
+      <li><a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a> — normative <code>goal=</code> rule</li>
+      <li><a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a></li>
+      <li><a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a></li>
+      <li><a href="/torus/host-catalog" hx-get="/torus/host-catalog" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">torus host catalog</a></li>
+      <li>Legacy park <code>torus/testkit/fsdevopstracker.js</code> — tombstoned</li>
+    </ul>
+  </article>
+</div>

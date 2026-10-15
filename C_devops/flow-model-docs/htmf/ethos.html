@@ -1,0 +1,65 @@
+<div
+  name="flow-model-ethos"
+  data-path="torus/devops/flow-model/ethos"
+  data-part="htmf"
+>
+  <nav aria-label="flow-model">
+    <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a>
+    <a href="/torus/devops/flow-model/runtime" hx-get="/torus/devops/flow-model/runtime" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">runtime</a>
+    <a href="/torus/devops/flow-model/flow-artifacts" hx-get="/torus/devops/flow-model/flow-artifacts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-artifacts</a>
+    <a href="/torus/devops/flow-model/manager" hx-get="/torus/devops/flow-model/manager" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manager</a>
+    <a href="/torus/devops/flow-model/composition" hx-get="/torus/devops/flow-model/composition" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">composition</a>
+    <a href="/torus/devops/flow-model/variants" hx-get="/torus/devops/flow-model/variants" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">variants</a>
+    <a href="/torus/devops/flow-model/reiteration" hx-get="/torus/devops/flow-model/reiteration" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">reiteration</a>
+    <a href="/torus/devops/flow-model/addressing" hx-get="/torus/devops/flow-model/addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">addressing</a>
+    <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">ux-spectrum</a>
+    <a href="/torus/devops/flow-model/authoring" hx-get="/torus/devops/flow-model/authoring" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">authoring</a>
+    <a href="/torus/devops/flow-model/devops-goals" hx-get="/torus/devops/flow-model/devops-goals" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">devops-goals</a>
+    <a href="/torus/devops/flow-model/ethos" hx-get="/torus/devops/flow-model/ethos" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">ethos</a>
+    <a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a>
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">docs</a>
+  </nav>
+  <article>
+    <h1>Ethos and anti-patterns</h1>
+    <h2>Ethos</h2>
+    <ol>
+    <li>Modules do not orchestrate UX. Resting modules provide capability. The Manager, driven by the active flow, decides what happens next.</li>
+    <li>Lower layers keep a voice. Registries speak facts; pages render; neither auto-opens the world because an event fired.</li>
+    <li>No presumptive auto-reaction. Offer choices; navigate on user (or explicit) action.</li>
+    <li>Tools rest. Manager moves. Logic stays dumb about the journey.</li>
+    <li>Variance is data. Alternative journeys and screens are published artifacts, not commented-out branches in one file.</li>
+    <li>Composition over silent forks. Declare why a variant exists; pin revisions; do not hand-drift generated outputs.</li>
+    <li>Mainline is a role. Whatever people bookmark is mainline; no filename is sacred by assistant habit.</li>
+    <li>DRY against the platform. Prefer flowerpot + navi tips/parks + existing proposals over new servers and parallel frameworks. (Hostpark is optional when an origin route is cleaner than a flowerpot path.)</li>
+    <li>Unix spirit in navi. Modules do one job; they compose; park callin + tips are the universal interface.</li>
+    <li>Defer the generic engine. Concrete JSON flows first. Abstract interpreters only when pain is real.</li>
+    <li>Local-first is the dominant pattern; UX guides how. Tips are one layer (session, config, artifacts, modules). Plant/cache host bodies under the ib park will use (<code>flowerpot/…</code> for those URLs). Prefer warm tips; Manager owns fetch/plant/refresh so the journey feels right. Remount via <code>navi:mod</code>.</li>
+    </ol>
+    <h2>Anti-patterns</h2>
+    <p>Prefer the right-hand habit over the left-hand failure:</p>
+    <ul>
+    <li>Fat <code>*_flow.js</code> owning all DOM → Flow JSON + HTML fragments + thin Manager</li>
+    <li>Registry/page auto-surf on emit → Facts up; Manager navigates</li>
+    <li>Query params on flowerpot for variants → Launch sets session tip</li>
+    <li>Overwriting the only HTML to “try an idea” → New path + flow route + launch</li>
+    <li>Editing all N flow files for one shared route → Flow base + patch, or shared keys with builder</li>
+    <li>Hand-editing generated UI without registry update → Promote to declared instance or edit sources</li>
+    <li>Silent slot collisions in a builder → Loud error</li>
+    <li>Project-specific process docs as if they are the paradigm → Keep those in the project; paradigm docs here</li>
+    <li>New Go service for static modules/HTML → flowerpot (or hostpark if that is the chosen publish)</li>
+    <li>Closed enum of all products inside Manager → Resolve from published config/flow/program data + tips</li>
+    <li>Calling flowerpot history a “frame” → Say <strong>pot addr</strong>; reserve <strong>tip frame</strong> for navi</li>
+    <li>Soft global callin verbs → Park tips + <code>commands</code> on <code>navi:<name></code></li>
+    <li>Always network, never plant → Local-first: warm tips at path ib; UX only decides refresh</li>
+    <li>Split “session bag” from tip/park space → One tip layer</li>
+    </ul>
+    <h2>Citations</h2>
+    <ul>
+    <li><code>A_document/_navi_style.md</code></li>
+    <li><code>A_document/_style_refinement.md</code></li>
+    <li><a href="/torus/devops/flow-model/overview" hx-get="/torus/devops/flow-model/overview" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">overview</a></li>
+    <li><a href="/torus/devops/flow-model/glossary" hx-get="/torus/devops/flow-model/glossary" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">glossary</a></li>
+    </ul>
+  </article>
+</div>

@@ -1,0 +1,214 @@
+<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-navi-park-addressing"
+  data-path="torus/docs/navi-park-addressing"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Navi park addressing — callin, URL, relay</h1>
+    <p>Design notes for hyperuri, slashfold, and the park resolver. Related: <code>hyperuri.md</code>, <code>slashfold.md</code>, <code>navi_shell/README.md</code>.</p>
+    <p>---</p>
+    <h2>Addresses are API</h2>
+    <p>From the user’s perspective, an address is the contract. Syntax is arbitrary; meaning is not.</p>
+    <pre><code>
+    navi relay status
+    /navi/relay/status
+    navi:relay/status
+    navi%20relay%20status
+    </code></pre>
+    <p>Slashfold and delimiter racing let representation follow human expression without changing what is invoked. See <code>slashfold.md</code>.</p>
+    <p><strong>Callin is the front door</strong> into navi state. Direct URL, local text callin, and host relay all enter through the same callin multiplex:</p>
+    <ul>
+    <li><strong>path / text segments</strong> — the address (like an HTTP path + optional query)</li>
+    <li><strong>method</strong> — GET (URL / SW) or POST (default local <code>navi('…')</code>); relay forwards either</li>
+    <li><strong>headers / body</strong> — the rest of the request when segments are not enough</li>
+    <li><strong>viaRelay</strong> — true only when the host WS forwarded the request</li>
+    </ul>
+    <p>Default local callin is POST. Direct URL inherits GET. Relay always callins (<code>viaRelay: true</code>).</p>
+    <pre><code>
+    callin → localpark → hostpark (when applicable) → callout
+    </code></pre>
+    <p>---</p>
+    <h2>Capture parks (resolver is dumb)</h2>
+    <p>A tip joins path/callin prefix resolve by setting <strong><code>park</code></strong> on the frame</p>
+    <p>(standard shape — see <code>manifest.md</code>):</p>
+    <pre><code>
+    "park": "capture"
+    </code></pre>
+    <pre><code>
+    "park": "defer"
+    </code></pre>
+    <p>| Value | Meaning |</p>
+    <p>|-------|---------|</p>
+    <p>| *(absent)* | Addressable by ib; not in the resolve candidate set |</p>
+    <p>| <code>"capture"</code> | In resolve set; win even if deeper parks exist; keep remainder |</p>
+    <p>| <code>"defer"</code> | In resolve set; yield to longer matching prefixes |</p>
+    <p>The host uses the same capture and defer rule.</p>
+    <p>The resolver:</p>
+    <ol>
+    <li>Finds matching planted parks whose <code>ib</code> prefixes the path.</li>
+    <li>Prefers a <strong>capture</strong> claimant when present; otherwise the <strong>longest</strong></li>
+    </ol>
+    <p>   (defer) match.</p>
+    <ol>
+    <li>Passes trailing segments as remainder/args.</li>
+    <li>Dispatches <code>method[incomingMethod]</code> on that tip.</li>
+    </ol>
+    <p>It does <strong>not</strong> infer behavior from control shapes or tip</p>
+    <p>names. Route participation is only <code>park: "capture"|"defer"</code>.</p>
+    <p>Execution is only what the frame’s <code>method.GET</code> / <code>method.POST</code> say.</p>
+    <p>Mod parks, kernel tips, and hostpark proxies all use this same capture/defer</p>
+    <p>vocabulary (e.g. <code>navi:surf</code>).</p>
+    <p>---</p>
+    <h2>GET vs POST on the frame</h2>
+    <p>Frames own method behavior:</p>
+    <ul>
+    <li><strong>Mod parks</strong> — usually mirror GET and POST (<code>kind: "mod"</code>, same target/command). Bin-bearing module parks provision via hostpark <code>Accept: application/navi-mod</code> (multipart eframe + addressed bin), localpark, then peel verbs after mount. Tip-only: <code>Accept: application/eframe</code>. Raw bytes: <code>Accept: application/navi-module</code>.</li>
+    <li><strong>Kernel tips</strong> — may differ per method (<code>surface</code>, <code>relay</code>, …) as each frame declares.</li>
+    <li><strong>Hostpark proxies</strong> — often GET-only toward a remote listener.</li>
+    </ul>
+    <p>If callin and URL should feel identical to the user, write both handlers that way. Modules that need a request body (CRUD, large text) should read <code>navi.callinRequest</code> rather than inventing a relay-specific channel.</p>
+    <p>---</p>
+    <h2><code>navi:relay</code></h2>
+    <p>The <code>navi:relay</code> frame:</p>
+    <ul>
+    <li><code>park: "capture"</code></li>
+    <li><code>method.GET</code> and <code>method.POST</code> are both <code>kind: "relay"</code></li>
+    </ul>
+    <p>Local access (GET from park.check → callin GET, POST from text callin, bare or with trailing segments):</p>
+    <ul>
+    <li>Runs relay verbs (<code>status</code>, <code>connect</code>, …). Bare path behaves like <code>relay help</code>.</li>
+    <li><strong><code>connect [token|-] [alias]</code></strong> — open reverse WebSocket to <strong><code>navi.origin</code></strong> (no host URL arg; callin would shred <code>https://…</code>).</li>
+    </ul>
+    <p><strong>Via relay channel</strong> (<code>viaRelay: true</code> — host WS forwarded into callin):</p>
+    <ul>
+    <li>Bare <code>/navi-{alias}/</code> (empty remainder) → inherent <strong>ping</strong> JSON from the live shell.</li>
+    <li>Remainder paths are presumed under <code>navi/</code> (<code>meshyrelay/hello</code> → <code>navi/meshyrelay/hello</code>) unless already <code>navi/…</code> / <code>navi:…</code>.</li>
+    <li><code>navi:relay</code> returns <strong><code>navi:relay is local-only.</code></strong> for GET and POST.</li>
+    <li>Other captured parks (e.g. <code>navi:surf/…</code>, <code>navi:meshyrelay/…</code>) still dispatch normally over relay.</li>
+    </ul>
+    <p><strong>foobarch_host HTTP (async callin):</strong> starter request returns <strong>202</strong> <code>{ job_id, status_path, park_job_path }</code> after WS <code>callin</code> is sent — it does not hang for <code>result</code>. Poll <code>GET /_foobarch/navi_shell/job/{uuid}/{job_id}</code> or <code>GET /navi-{alias}/_job/{job_id}</code>: <code>running</code> JSON while in flight; when done, one delivery of the body then the job record is <strong>dumped</strong>. Unclaimed done jobs expire (<code>FOOBARCH_NAVI_SHELL_JOB_DONE_TTL_MS</code>, default 60s). Header <code>X-Navi-Shell-Wait: 1</code> holds HTTP until <code>result</code> under <code>FOOBARCH_NAVI_SHELL_JOB_MS</code> (default 10m). WS types remain only <code>callin</code> and <code>result</code>.</p>
+    <p>The frame JSON is always available via <code>navi.storage.tip.get('navi:relay')</code> — GET on the park address is for operation, not manifest export.</p>
+    <p>---</p>
+    <h2>Relay origin: <code>viaRelay</code></h2>
+    <p>Callin request shape (also exposed as <code>navi.callinRequest</code> while a command runs):</p>
+    <pre><code>
+    {
+      method: 'GET' | 'POST',
+      headers: Record&lt;string, string&gt;,
+      body: string,
+      viaRelay: boolean,
+      path: string, // normalized navi/…
+    }
+    </code></pre>
+    <ul>
+    <li><strong>Local</strong> — <code>park.check</code> / URL, <code>navi('…')</code>: <code>viaRelay</code> false.</li>
+    <li><strong>Host relay WS</strong> — remainder forwarded from the host: always <code>dispatchCallin({ …, viaRelay: true })</code>.</li>
+    </ul>
+    <p>Frames (or kinds like <code>relay</code>) may branch on <code>viaRelay</code>. The resolver only passes method + origin; it does not interpret policy.</p>
+    <p>---</p>
+    <p>---</p>
+    <h2><code>data.method</code> block</h2>
+    <p>Park tips declare dispatch in <strong><code>data.method</code></strong> (not <code>module.commands</code>).</p>
+    <p>Each transport key (<code>GET</code>, <code>POST</code>, <code>PUT</code>, …) is one <strong>control object</strong>: <code>kind</code>, kind-specific fields, and optional <strong><code>commands</code></strong> — peelable text verbs for *that* transport.</p>
+    <p>| Field on control | Meaning |</p>
+    <p>|----------------|---------|</p>
+    <p>| <code>kind</code> | Handler (<code>mod</code>, <code>relay</code>, <code>bin</code>, <code>commit</code>, …) |</p>
+    <p>| <code>command</code> | Default mod command when the park captures (mod parks) |</p>
+    <p>| <code>commands</code> | Allowed explicit verbs after the park path for this transport (omit when only <code>command</code> is needed) |</p>
+    <p><strong>Single-command mod park</strong> (<code>navi:browse</code>, <code>navi:stagedir</code>) — <code>command</code> only:</p>
+    <pre><code>
+    "method": {
+      "GET":  { "kind": "mod", "target": "surf", "command": "browse", "mode": "async" },
+      "POST": { "kind": "mod", "target": "surf", "command": "browse", "mode": "async" },
+      "PUT":  { "kind": "commit", "mode": "async" }
+    }
+    </code></pre>
+    <p>Callin <code>navi:browse horizon/enter</code> → park captures at <code>navi:browse</code>, default <code>command: browse</code>, args <code>horizon/enter</code>.</p>
+    <p><strong>Multi-verb park</strong> (<code>navi:relay</code>) — <code>commands</code> on each callin transport:</p>
+    <pre><code>
+    "method": {
+      "GET": {
+        "kind": "relay",
+        "mode": "sync",
+        "commands": ["connect", "status", "token", "advertise", "retire", "help"]
+      },
+      "POST": {
+        "kind": "relay",
+        "mode": "async",
+        "commands": ["connect", "status", "token", "advertise", "retire", "help"]
+      }
+    }
+    </code></pre>
+    <p><strong>Multi-command mod</strong> (<code>navi:surf</code>) — default <code>command</code> plus <code>commands</code> on GET/POST:</p>
+    <pre><code>
+    "method": {
+      "GET": {
+        "kind": "mod",
+        "target": "surf",
+        "command": "surf",
+        "mode": "async",
+        "commands": ["surf", "surf_settings"]
+      },
+      "POST": {
+        "kind": "mod",
+        "target": "surf",
+        "command": "surf",
+        "mode": "async",
+        "commands": ["surf", "surf_settings"]
+      }
+    }
+    </code></pre>
+    <p>GET and POST usually mirror each other unless mod commands declare <strong><code>methods: ["GET"]</code> / <code>["POST"]</code></strong> (or both). Mount sync writes per-transport <code>commands</code> and defaults (<code>list</code> when present). Dispatch reads the active transport control (<code>method.POST</code> for callin, <code>method.GET</code> for URL park).</p>
+    <p><strong>Transport-split mod</strong> (<code>navi:keychain</code> proof of concept):</p>
+    <pre><code>
+    "method": {
+      "GET": {
+        "kind": "mod",
+        "target": "keychain",
+        "command": "list",
+        "commands": ["list", "show", "help"],
+        "mode": "async"
+      },
+      "POST": {
+        "kind": "mod",
+        "target": "keychain",
+        "command": "list",
+        "commands": ["list", "create", "import", "del", "sign", "help"],
+        "mode": "async"
+      }
+    }
+    </code></pre>
+    <p>Bare <code>navi:keychain</code> on POST still lists keys (same default as GET). <code>navi:keychain create torus</code> peels <code>create</code> and passes <code>torus</code>.</p>
+    <p>---</p>
+    <h2>Module authors</h2>
+    <ol>
+    <li>Flat parks: <code>navi:<name></code>, listed on <code>navi:mod</code>.</li>
+    <li>Set <code>park: "capture"</code> when the park should take trailing segments.</li>
+    <li>Declare <code>method.GET</code> and <code>method.POST</code> explicitly.</li>
+    <li>Trailing segments become args (percent-decoded).</li>
+    <li>Optional: read <code>navi.callinRequest.body</code> / <code>.headers</code> for the HTTP multiplex (do not teach modules about “relay” — relay is just callin with <code>viaRelay: true</code>).</li>
+    </ol>
+    <p>---</p>
+    <h2>Pipe (short)</h2>
+    <pre><code>
+    callin(method, headers, body, viaRelay, path)
+      → deepest capture park? → args + method[method] → frame handler
+      → else delimiter race → exact tip → method[method]
+    </code></pre>
+    <p>Syntax varies; the address does not. Frames explain; callin gates; the pipe routes.</p>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

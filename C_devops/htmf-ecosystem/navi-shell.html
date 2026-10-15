@@ -1,0 +1,370 @@
+<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-navi-shell"
+  data-path="torus/docs/navi-shell"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>navi_shell</h1>
+    <p>navi_shell is a local-first JavaScript runtime. It can be loaded natively or in a web browser. It acts as a programmable layer for application state between network hypermedia and product logic, allowing for the dynamic use of restful modules with a text-stream command interface.</p>
+    <p>Canonical source for the working runtime: <a href="/torus/devops/flow-model/index.ts" hx-get="/torus/devops/flow-model/index.ts" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index.ts</a></p>
+    <p>Module authoring conventions: <a href="/torus/devops/flow-model/navi_modules_guide" hx-get="/torus/devops/flow-model/navi_modules_guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi_modules_guide</a></p>
+    <p>Devops style around navi + foobarch: <a href="/torus/devops/flow-model/navi_style" hx-get="/torus/devops/flow-model/navi_style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi_style</a>, <a href="/torus/devops/flow-model/style_refinement" hx-get="/torus/devops/flow-model/style_refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style_refinement</a></p>
+    <h2>Purpose</h2>
+    <p>Navi exists so products can:</p>
+    <ul>
+    <li>Keep logic and session state in the client (IndexedDB / local files), not only on a remote server</li>
+    <li>Load capability modules at runtime (from storage or from the network) without rebuilding the shell</li>
+    <li>Drive those capabilities programmatically via <strong>callin</strong> — path/text plus optional method, headers, and body (UI is optional presentation over that surface)</li>
+    <li>Survive body content swaps (HTMX first paint, then <code>surf</code> for in-app steps) while <code>navi</code>, storage, and mounted modules stay in the same window</li>
+    </ul>
+    <p>Foobarch is the origin. Hostpark routes hold the versioned artifacts. Navi is the client runtime that mounts modules, holds live data, and moves the user through hypermedia.</p>
+    <h2>Affordances (what you get)</h2>
+    <p>Global <code>navi</code> Singleton runtime. <code>navi()</code> returns the instance; <code>navi("command args")</code> is POST callin. <code>navi.callin({ path, method, headers, body, viaRelay })</code> is the full front door. <code>navi.callinRequest</code> is the in-flight multiplex while a command runs.</p>
+    <p>callin / callout Front door into the park pipe. String callin defaults to POST; object form may set method / headers / body / viaRelay. URL park inherits GET. Relay always callins. Callout is the local POST text stream (<code>navi.callout(...)</code>, <code>'callout'</code> events). In-flight multiplex: <code>navi.callinRequest</code>.</p>
+    <p><code>navi.storage</code> Tip + bin manifest space. <code>item</code> / <code>file</code> are tip+bin sugar for modules that want a simple key/value or media API. Browser: IndexedDB (<code>navi_shell</code>). Node: under <code>~/.navi_shell</code>.</p>
+    <p><code>navi.park</code> Park-check-before-network: <code>navi.park.check(path, opts?)</code> resolves a local tip (delimiter race + optional <code>data.gate</code>) before the network is consulted. <code>%20</code> becomes space, then exact spelling, then space, <code>:</code>, <code>/</code>. The service worker calls this on same-origin GETs.</p>
+    <p><code>navi.fetch</code> Formal path GET (optional; global <code>fetch</code> still works). <code>navi.fetch(path)</code> park-checks, then hostparks on miss unless the path is under <code>navi/</code> (local only). Passes the original path through — <code>/</code> optional, space / <code>:</code> / <code>/</code> / <code>%20</code> as today. Same stages as the SW, in-process so native has no SW. Returns a <code>Response</code>.</p>
+    <p><code>navi.stamp</code> <code>navi.stamp()</code> → <code>{ timestamp, uuid }</code>; <code>navi.stamp.time()</code> → offset-local ISO-8601; <code>navi.stamp.uuid()</code> → v4 UUID. Every locally stamped frame carries <code>data.timestamp</code> in the writer's own wall time and offset.</p>
+    <p><code>navi.mount</code> / <code>navi.unmount</code> / <code>navi.remount</code> / <code>navi.mod</code> Load JS as modules; <code>register(navi)</code> modules land on <code>navi.mod.<name></code> with auto-wired commands. <code>navi.remount()</code> restores modules listed on the <code>navi:mod</code> index from each park tip's bin.</p>
+    <p><code>navi.script</code> / <code>init_script</code> Run JS now (<code>navi.script</code>), or append a line that runs on every boot (<code>navi.addToInitScript</code>). See <strong>How to use <code>navi.script</code></strong>.</p>
+    <p><code>surf</code> module (default) Three separate verbs: <code>surf</code> renders a route's HTML into the page; <code>browse</code> fetches a route and returns its <strong>text only</strong> (a module reveals its source, nothing is mounted); <code>mount</code> is the <strong>install</strong> verb that fetches + mounts a module from a route, or remounts a saved <code>navi:</code> key.</p>
+    <p><code>navi.pwa</code> Runtime PWA identity: same-origin <code>/manifest.json</code> overlay via SW, managed meta/icons. Foobarch defaults on <code>/</code>. <code>navi.pwa.shell.*</code> caches start_url document + <code>/navi_shell.js</code> for offline boot.</p>
+    <p>Events EventEmitter3: <code>'callin'</code>, <code>'callout'</code>, <code>'ready'</code>, <code>'error'</code>, <code>'pwa'</code>, plus custom inter-module events.</p>
+    <p>Service worker bridge SW may message <code>navi:call</code> for a small allowlist (<code>storage.file.load</code>, <code>park.check</code>, <code>callout</code>), plus named page-side handlers under <code>['handler', name]</code>. Used with foobarch’s <code>/navi/*</code> local-first pattern.</p>
+    <p><code>navi.sw</code> Module-facing service-worker controls: register page-side handlers the SW can invoke (<code>on</code>/<code>off</code>/<code>list</code>), send executable plugin source directly from a Navi module (<code>registerPluginSource</code>), or manage/message worker plugins (<code>registerPlugin</code>/<code>unregisterPlugin</code>/<code>listPlugins</code>/<code>send</code>). See <a href="/torus/devops/flow-model/navi_modules_guide" hx-get="/torus/devops/flow-model/navi_modules_guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi_modules_guide</a>.</p>
+    <p><code>navi.plug</code> / <code>navi.unit</code> Entry-plug bind (<code>navi.plug.ping</code> / <code>navi('plug ping')</code> confirms before reveal) vs unit-system state on tip <code>navi:unit</code> (<code>navi.unit.get()</code>). Gated ops (<code>storage kill</code>, <code>factoryreset</code>, <code>prune</code>, …) prompt: <code>[navi] allow <op> via entry-plug of <unitIb>?</code>. Kill also asks: <code>HARD ERASE tip "<ib>" from local tip space via entry-plug of <unitIb>?</code> (or type-the-ib <code>prompt</code> when available). Plug reveal: <code>[navi:plug] reveal entry-plug of <unitIb>?</code>.</p>
+    <h2>Park frames: GET vs POST (callin contract)</h2>
+    <p><strong>Callin is the front door</strong> of the park pipe:</p>
+    <pre><code class="text">
+    callin → localpark (capture / tip) → hostpark (when applicable) → callout
+    </code></pre>
+    <p>Every entry — local REPL, direct URL / SW <code>park.check</code>, and host relay — goes through <code>dispatchCallin</code> / <code>navi.callin</code>. Path (or space-delimited text) is the address; <strong>method, headers, body, viaRelay</strong> are the HTTP multiplex on that address.</p>
+    <table>
+    <thead><tr><th>Path</th><th>Method</th><th>Origin</th><th>Typical effect</th></tr></thead>
+    <tbody>
+    <tr><td><code>/navi/…</code> (park.check / SW)</td><td><strong>GET</strong></td><td>local callin</td><td>Run <code>http.GET</code></td></tr>
+    <tr><td><code>navi('…')</code> / string callin</td><td><strong>POST</strong></td><td>local callin</td><td>Run <code>http.POST</code></td></tr>
+    <tr><td>Host relay WS remainder</td><td><strong>GET</strong> or <strong>POST</strong></td><td>callin <code>viaRelay: true</code></td><td>Same pipe; <code>navi:relay</code> is local-only</td></tr>
+    </tbody></table>
+    <pre><code class="javascript">
+    navi('surf horizon/enter')                    // POST, path from text
+    navi.callin({
+      path: 'notes/save',
+      method: 'POST',
+      body: JSON.stringify({ text: 'hello' }),
+    })
+    // URL / SW → internally callin({ path: 'navi/…', method: 'GET' })
+    // Relay → always callin({ path: remainder, method, headers, body, viaRelay: true })
+    </code></pre>
+    <p>Modules may read the in-flight multiplex as <code>navi.callinRequest</code> (<code>method</code>, <code>headers</code>, <code>body</code>, <code>viaRelay</code>, <code>path</code>) while their command runs. Outside a callin it is <code>null</code>.</p>
+    <p><strong>Capture</strong> uses <code>park: "capture"</code> on the frame (same as hostpark). The resolver passes trailing segments as args and dispatches <code>method[incomingMethod]</code>. See <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi park addressing</a>.</p>
+    <p>Conceptually, <code>navi relay status</code> and <code>/navi/relay/status</code> are the same address to the user. Frames declare GET vs POST behavior.</p>
+    <p><strong>Frame rule for module parks</strong> (<code>kind: "mod"</code>): declare <strong>both</strong> GET and POST. For most mods they are identical (same <code>target</code> + <code>command</code>). Capture + remainder args work the same either way.</p>
+    <p><strong>Module parks = provision + verbology.</strong> Bin-bearing tips ensure-mount from <code>rel8ns.bin</code> (local or hostpark <code>Accept: application/navi-mod</code> multipart eframe+bin), then peel live verbs. Callin may pin a hostpark tip on local miss, then run the same navi dispatch. Short names (e.g. <code>/potter_gibbert</code>) use underscore <code>about.name</code> as tip ib. Tip-only borrow: <code>Accept: application/eframe</code> alone.</p>
+    <pre><code class="json">
+    "method": {
+      "GET":  { "kind": "mod", "target": "my_mod", "command": "my_mod", "mode": "async" },
+      "POST": { "kind": "mod", "target": "my_mod", "command": "my_mod", "mode": "async" }
+    }
+    </code></pre>
+    <p><strong>Surfaces / kernel tips</strong> often differ on purpose:</p>
+    <ul>
+    <li><strong>GET</strong> → describe / snapshot / presence (safe to park-fetch)</li>
+    <li><strong>POST</strong> → execute (<code>navi('reseed force')</code>, <code>navi('storage kill …')</code>, <code>navi('plug ping')</code>, …)</li>
+    </ul>
+    <p>Example: <code>navi:relay</code> — capture park; GET and POST both <code>kind: "relay"</code> locally (<code>relay status</code>, bare GET, callin). <strong><code>viaRelay</code></strong> (host WS) → <code>navi:relay is local-only.</code> Frame JSON via <code>navi.storage.tip</code>. <code>navi:plug</code> — GET = bound presence; POST verbs <code>ping|touch|ensure</code>.</p>
+    <p>Planted tip ibs stay flat: <code>navi:<name></code> (e.g. <code>navi:surf</code>). <code>navi:mod</code> is the registration ledger only.</p>
+    <p>Whitespace / <code>:</code> / <code>/</code> / <code>%20</code> are interchangeable segment delimiters until delimiter race. Callin text is folded into a <code>navi/…</code> path before the same capture logic as the URL. Headers and body are the other half of the multiplex when path segments are not enough (same idea as HTTP query vs headers/body).</p>
+    <p>Design background: <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi park addressing</a>.</p>
+    <ul>
+    <li>navi_shell is meant to feel like a shell: REPL-like callin, scripts on boot, pluggable “programs” (modules), local filesystem metaphors in storage.</li>
+    <li>Modules do one thing well; text streams are the universal interface; UI embellishes robust programmatic capability.</li>
+    <li>On foobarch.net, navi is the hypermedia dispatcher and the product API proxy</li>
+    </ul>
+    <h2>Foobarch hosting at https://foobarch.net</h2>
+    <ol>
+    <li>Browser hits any foobarch path → SSR shell HTML loads <code>navi_shell.js</code> (+ HTMX).</li>
+    <li>Navi auto-initializes: storage, service worker registration (unless disabled), <code>init_script</code>.</li>
+    </ol>
+    <h2>Technical overview</h2>
+    <h3>Bootstrap sequence</h3>
+    <ol>
+    <li>First <code>navi()</code> / property access creates the singleton <code>Navi</code> instance.</li>
+    <li>Constructor: storage backend, worker pool stub, default callout→<code>console.log</code>, SW message bridge, Foobarch PWA defaults if path is <code>/</code>.</li>
+    <li><code>initialize()</code>: register SW (<code>/sw.js</code> by default; pass <code>serviceWorkerScript: false</code> to skip), load <code>navi:init_script</code>, <code>navi.script()</code> those lines, emit <code>'ready'</code>.</li>
+    </ol>
+    <p>Surf module source lives in the bin attached to tip <code>navi:surf</code> (<code>rel8ns.bin</code>). Seeds are plant-if-missing: an existing tip is left alone.</p>
+    <p><strong>Entry points differ by runtime.</strong> The browser bundle auto-initializes lazily on first <code>navi()</code> access. The native <code>navi_shell.exe</code> instead has <code>main()</code> explicitly <code>await shell.initialize()</code> and then drop into an interactive <code>navi></code> REPL (<code>startNativeRepl</code>).</p>
+    <h3>How to use <code>navi.script</code></h3>
+    <p>Two jobs:</p>
+    <table>
+    <thead><tr><th>I want…</th><th>Do this</th></tr></thead>
+    <tbody>
+    <tr><td>Run JS <strong>once</strong>, now</td><td><code>await navi.script([ "…js…", "…js…" ])</code></td></tr>
+    <tr><td>Run JS <strong>every boot</strong> (after reload)</td><td><code>await navi.addToInitScript("…js…")</code></td></tr>
+    </tbody></table>
+    <p>Each array entry / added string is <strong>source text of JavaScript</strong>, not a callin line. Write the same JS you would type in the console, as a string. <code>navi</code> is already in scope.</p>
+    <p><strong>Where:</strong> browser DevTools console on a navi page, or the native <code>navi></code> REPL (those are JS surfaces). Callin (<code>navi("surf …")</code>) is a different channel — it cannot take <code>navi.script([...])</code>.</p>
+    <h4>Run something once</h4>
+    <pre><code class="javascript">
+    await navi.script([
+      'navi.callout("hello")',
+    ])
+    </code></pre>
+    <p>Several steps, in order (wait for each):</p>
+    <pre><code class="javascript">
+    await navi.script([
+      'await navi("mount notemaker")',
+      'await navi("notemaker demo")',
+    ])
+    </code></pre>
+    <p>One entry can be a small program (<code>if</code>, <code>await</code>, more than one statement):</p>
+    <pre><code class="javascript">
+    await navi.script([
+      'if (!navi.mod.notemaker) { await navi("mount notemaker") }',
+    ])
+    </code></pre>
+    <p>If a line throws, you get a <code>[SCRIPT:HHMMSS]</code> callout and <strong>the next line still runs</strong>.</p>
+    <p>From a text file, after mounting <code>scripter</code>:</p>
+    <pre><code class="text">
+    scripter run torus/testkit/myscript
+    </code></pre>
+    <p><code>run</code> fetches that path and turns the body into snippets (blank line separates them; <code>#</code> comments dropped), then <code>navi.script</code>.</p>
+    <h4>Persist something for every boot</h4>
+    <p>Boot already runs whatever is on tip <code>navi:init_script</code> → <code>data.script</code> (see default seed below). <strong>Append</strong> a line; do not <code>clearInitScript</code> unless you are replacing the whole list yourself.</p>
+    <pre><code class="javascript">
+    await navi.getInitScript()
+    // → the current array; copy it if you need to edit
+    
+    await navi.addToInitScript(
+      'await navi("mount notemaker")'
+    )
+    </code></pre>
+    <p>Next <code>initialize()</code> (page reload / native restart) runs the old lines, then yours.</p>
+    <p>Put <strong>remount-sensitive</strong> work after the seed’s <code>await navi.remount()</code> by appending — <code>addToInitScript</code> always pushes at the end.</p>
+    <p>To drop a line: copy <code>getInitScript()</code>, splice, then rewrite. There is no “remove one line” helper; <code>clearInitScript()</code> writes <code>[]</code> and <strong>the next boot fails</strong> until you put lines back:</p>
+    <pre><code class="javascript">
+    const lines = await navi.getInitScript()
+    lines.push('navi.callout("boot extra")')
+    await navi.clearInitScript()
+    for (const line of lines) await navi.addToInitScript(line)
+    </code></pre>
+    <p>Or skip the clear and only <code>addToInitScript</code> when you are appending.</p>
+    <h4>Quotes</h4>
+    <p>The argument is a JS string that *contains* JS. Inner strings need escaping:</p>
+    <pre><code class="javascript">
+    await navi.addToInitScript('navi.callout("mounted extras")')
+    await navi.addToInitScript("await navi('surf hypertext/skellyrelay')")
+    </code></pre>
+    <h4>What not to put in a script line</h4>
+    <ul>
+    <li>A bare callin like <code>surf horizon/enter</code> — that is not JS. Wrap it: <code>await navi("surf horizon/enter")</code>.</li>
+    <li>Module source / <code>export const register</code> — that is <code>navi.mount</code> / <code>mount <route></code>, not <code>script</code>.</li>
+    <li>Anything that must run only in the browser if you also boot native: lines that mention <code>window</code>, <code>document</code>, or <code>htmx</code> are <strong>skipped in Node</strong>. The seeded empty-body surf line is written that way on purpose.</li>
+    </ul>
+    <h4>Default boot list (already planted)</h4>
+    <ol>
+    <li><code>navi.callout("[script] Welcome to navi_shell — …")</code></li>
+    <li><code>await navi.mount(await navi.storage.bin.mediaFromTip("navi:surf"))</code></li>
+    <li><code>if (window.self == window.top && !document.body.innerHTML.trim()) { await navi("surf horizon/enter") }</code></li>
+    <li><code>await navi.remount()</code></li>
+    </ol>
+    <p><code>initialize()</code> loads that array, filters (3) out under Node, then <code>navi.script(lines)</code>. The list is local IndexedDB / <code>.navi_shell</code>, not the host HTML. GET on park <code>init_script</code> returns the tip frame (including <code>data.script</code>); it does not execute the list.</p>
+    <h3>Callin / callout</h3>
+    <p>navi_shell recognizes commands as verbs first (word segment)</p>
+    <pre><code class="text">
+    User / code / URL / relay → callin({ path, method, headers?, body?, viaRelay? })
+                → emit 'callin' (request object)
+                → localpark capture / tip → method[method]
+                → result → callout stream only for local POST
+                → URL returns via park.check; relay returns via WS
+    
+    Modules → navi.callout("status…") → emit 'callout'
+    Modules → navi.callinRequest → in-flight method/headers/body/viaRelay/path
+    </code></pre>
+    <p>Callin is the uniform front door (hard). First path segment under <code>navi:</code> is the park; remainder is passthrough args. The park tip must be planted and listed on <code>navi:mod</code> (mount mut8). Sibling module commands that are not parks are reached via <code>navi.mod.<name>.commands.…</code>, not as top-level callins.</p>
+    <p><code>navi.unmount(mod)</code> drops the module and mut8s <code>navi:mod</code>. <code>onUnmount</code> is for DOM, timers, listeners the runtime does not track.</p>
+    <h3>Park check</h3>
+    <pre><code class="javascript">
+    await navi.park.check('hypertext/welcome')  // { hit, ib, kind, body, mime, reason }
+    navi.park.ib('hypertext/welcome')           // path → canonical tip ib
+    </code></pre>
+    <p><code>park.check</code> enters through <strong>callin GET</strong> (same pipe as POST callin and relay). A hit is a local tip that the pipe can serve: capture/<code>kind: "mod"</code>/<code>surface</code> dispatch, <code>kind: "frame"</code> (tip JSON), or <code>kind: "bin"</code> / <code>rel8ns.bin</code> (bin media). The root <code>navi</code> tip is excluded. The service worker calls this before the network on same-origin GETs, which is what makes local tips win over host routes.</p>
+    <p><code>navi.fetch(path)</code> is the same pipe without the SW: <code>park.check</code>, then host <code>fetch(resolveUrl(original path))</code> on miss, except <code>navi/…</code> never hostparks. Modules that already <code>fetch()</code> keep working.</p>
+    <h3>Storage API</h3>
+    <p>The core store is tip + bin manifest space. A <strong>tip</strong> is only a pointer to the latest <code>ib^gib</code>; the frames themselves live in a shared frame space, so every generation of a lineage stays addressable. <code>item</code> and <code>file</code> are sugar APIs that write tips and bins underneath.</p>
+    <pre><code class="javascript">
+    await navi.storage.tip.get(ib)              // resolve pointer → latest frame
+    await navi.storage.tip.set(frame)           // stamp (if needed) + point tip at it
+    await navi.storage.tip.del(ib)              // drop pointer + that ib's frames
+    await navi.storage.tip.list()               // ibs that have a tip pointer
+    await navi.storage.tip.mut8(ib, dataPatch, opts?)  // new generation, past ← prior addr
+    await navi.storage.tip.presume(key)         // bare/navi path → canonical tip ib
+    
+    await navi.storage.tip.frame.get(addr)      // one generation by ib^gib
+    await navi.storage.tip.frame.put(frame)     // store a generation (tip pointer unmoved)
+    await navi.storage.tip.frame.del(addr)
+    await navi.storage.tip.frame.list(ib?)      // addrs, optionally for one ib
+
+    // Lineage span — delta/event tips (relay:log, devops ops, navi:mod, …)
+    await navi.storage.tip.span(ib, { dir: 'reverse', limit: 6 })   // newest 6
+    await navi.storage.tip.span(ib, { dir: 'forward', limit: 6 })   // earliest 6
+    await navi.storage.tip.span(ib, { dir: 'all' })                 // full chain (oldest→newest)
+    await navi.storage.tip.span(ib, { addrsOnly: true })            // ib^gib addrs for comb/hostpark
+    await navi.storage.tip.lineage(ib)                              // full chain, newest first
+    await navi.storage.tip.spanDiff(ib, { dir: 'all', fold: true }) // event/op/park deltas
+    
+    await navi.storage.bin.putMedia({ media, mime })   // → sha
+    await navi.storage.bin.ref(sha)             // "bin &lt;sha&gt;" for rel8ns.bin
+    await navi.storage.bin.get(sha)
+    await navi.storage.bin.mediaFromTip(ib)     // media string from tip.rel8ns.bin[0]
+    </code></pre>
+    <p><code>mut8</code> stamps a new <code>gib</code>, writes the frame into frame space, moves the tip pointer, and links <code>rel8ns.past</code> to the prior address. Frame identity (<code>gib</code>) is a content hash of <code>data</code>, which includes the offset-local <code>timestamp</code>, so each generation is distinct even for byte-identical responses.</p>
+    <p>Frames imported whole from another space arrive pre-gibbed: Navi stores them as-is rather than restamping, since restamping would produce a different frame than the one that was authored.</p>
+    <p>item/file sugar (tip + bin under the hood)</p>
+    <pre><code class="javascript">
+    await navi.storage.item.set(key, value)
+    await navi.storage.item.get(key)
+    await navi.storage.item.del(key)
+    await navi.storage.item.getPath(key, ['user', 'theme'])
+    await navi.storage.item.setPath(key, ['user', 'theme'], 'dark')
+    
+    await navi.storage.file.save(path, { media, mime })  // must be an object with media (+ mime)
+    await navi.storage.file.load(path)          // media string (or null)
+    await navi.storage.file.get(path)           // full stored object { media, mime }
+    await navi.storage.file.list(prefix?)
+    await navi.storage.file.del(path)
+    </code></pre>
+    <p>These are convenience wrappers, not separate stores: <code>item</code> keeps a tip with <code>data.value</code>; <code>file</code> keeps a tip plus <code>rel8ns.bin</code>. Every file key is stored under <code>navi:…</code> (idempotent if the caller already passed <code>navi:</code>). So <code>save("notes/x", …)</code> and <code>save("navi:notes/x", …)</code> both address <code>navi:notes/x</code>.</p>
+    <p>Browser IndexedDB name: <code>navi_shell</code> (schema v5) — object stores <code>tips</code>, <code>tip_frames</code>, <code>bins</code> only. <code>tips</code> holds pointers keyed by ib (<code>navi:surf</code>); <code>tip_frames</code> holds every generation keyed by <code>ib^gib</code>; bins are keyed by sha (<code>rel8ns.bin</code> → <code>bin <sha></code>). Older <code>items</code>/<code>files</code> stores are deleted on upgrade.</p>
+    <h3>Usage tokens (<code>navi.tokens</code>)</h3>
+    <p>One shared stash of foobarch usage tokens (local tip <code>tokens</code>, keyed by host origin). Mods take from it instead of keeping their own lists.</p>
+    <pre><code class="text">
+    await navi.tokens.count(host?, path?)
+    await navi.tokens.look(host?, path?)
+    await navi.tokens.take(host?, path?)            // throws err.code "NO_TOKENS" when empty
+    await navi.tokens.giveBack(host, token, path?)
+    await navi.tokens.add(host, tokens, path?)      // → { added, count }
+    </code></pre>
+    <p><code>host</code> defaults to the relay host, else <code>navi.origin</code>. Callins: <code>relay tokens</code> (count), <code>relay tokens add &lt;token…&gt;</code>, <code>relay tokens file &lt;path&gt;</code>. Users fill it via <code>hypertext/intro</code>. <code>relay connect</code> pays one token per connection. Spend/refund rules: <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>.</p>
+    <h3>Stamps</h3>
+    <pre><code class="javascript">
+    navi.stamp()        // { timestamp: "2026-08-14T18:05:03.417-05:00", uuid: "…" }
+    navi.stamp.time()   // offset-local ISO-8601 for now
+    navi.stamp.time(ms) // …for a Date, epoch ms, or parseable string
+    navi.stamp.uuid()   // RFC 4122 v4
+    </code></pre>
+    <p>Timestamps are the value reads as the wall clock of whoever wrote it, and the explicit offset keeps it unambiguous across DST. The root <code>navi</code> tip additionally carries a <code>uuid</code> identifying that install.</p>
+    <h3>Modules</h3>
+    <p>Preferred shape: export <code>register(navi)</code> returning <code>{ name, commands?, onMount?, onUnmount?, ... }</code>.</p>
+    <pre><code class="javascript">
+    export const register = (navi) =&gt; ({
+      name: 'example',
+      commands: {
+        example: {
+          name: 'example',
+          description: 'example &lt;args&gt;',
+          execute: async (...args) =&gt; { /* ... */ },
+        },
+      },
+      onMount: async () =&gt; {},
+      onUnmount: () =&gt; {},
+    });
+    </code></pre>
+    <p><code>navi.mount(code)</code>:</p>
+    <ul>
+    <li>Detects ES module syntax vs bare script</li>
+    <li>Browser: dynamic <code>import</code> of a data-URL module</li>
+    <li>If <code>register</code> exists → register on <code>navi.mod</code>, wire commands, run <code>onMount</code></li>
+    </ul>
+    <p>Access: <code>navi.mod.example</code>, <code>navi.listModules()</code>, <code>navi.unmount(navi.mod.example)</code>.</p>
+    <h3>Surf (default module)</h3>
+    <p>Three verbs with distinct, non-overlapping roles:</p>
+    <p>The surf module provides three main verbs, each with a distinct role:</p>
+    <ul>
+    <li><code>surf <route></code>  </li>
+    <p>Performs browser navigation. Fetches the HTML at the provided route, parses it into a <code><template></code>, parks any persisted body nodes into a surf-owned off-body shelter, replaces the page body with the new content using <code>document.body.replaceChildren(...)</code>, re-injects <code><script></code> tags, and finally restores the persisted nodes to the <code>body</code>.</p>
+    </ul>
+    <ul>
+    <li><code>surfrefresh</code>  </li>
+    <p>Full document load of origin <code>/</code>. If already there, <code>location.reload()</code>; otherwise <code>location.replace('/')</code>. PWA stand-in for a hard browser navigate/reload of the shell.</p>
+    </ul>
+    <ul>
+    <li><code>browse <route></code>  </li>
+    <p>Fetches the provided route and returns only its text content.</p>
+    </ul>
+    <ul>
+    <li><code>mount <target></code>  </li>
+    <p>Installs a module. See the routing section below for further detail.</p>
+    </ul>
+    <p><strong>Persist / immunity</strong> (programmatic on <code>navi.mod.surf</code> — references stay inside surf):</p>
+    <pre><code class="javascript">
+    navi.mod.surf.persist(el)       // mark Element immune across surf()
+    navi.mod.surf.unpersist(el)     // drop immunity (bool)
+    navi.mod.surf.isPersisted(el)   // bool
+    navi.mod.surf.listPersisted()   // Element[] in registration order
+    </code></pre>
+    <p>Marked nodes are the same live elements (no clone). Surf parks them off <code>body</code> for the swap, then restores them onto <code>body</code>. Call <code>unpersist</code> when finished so surf can stop retaining them.</p>
+    <p><code>mount</code> picks its mode from the first token:</p>
+    <ul>
+    <li><strong>Route (default):</strong> any target is joined into a route, fetched, verified to be a Navi module, saved as <code>mod:<route></code> (→ store key <code>navi:mod:<route></code>), then mounted. Non-modules are rejected (browse them to read the text).</li>
+    <li><strong>Storage key:</strong> a target starting with <code>navi:</code> or <code>mod:</code> is remounted from <code>storage.file</code> — no network. (<code>mod:</code> is surf’s module kind; other <code>navi:…</code> keys remount too.)</li>
+    </ul>
+    <p>Separators are interchangeable typing conveniences (callin splits your line on spaces, then the verb re-joins):</p>
+    <ul>
+    <li>routes join spaces with <code>/</code> → <code>surf manifest temp_storage index</code> ≡ <code>surf manifest/temp_storage/index</code></li>
+    <li>storage keys join spaces with <code>:</code> → <code>mount mod foo</code> ≡ <code>mount mod:foo</code> ≡ <code>mount navi:mod:foo</code></li>
+    </ul>
+    <p>Under the hood the Node file store also maps <code>:</code> ⇄ <code>__</code> for on-disk filenames (Windows can't use <code>:</code> in names); this is invisible to callers.</p>
+    <p>Programmatic:</p>
+    <pre><code class="javascript">
+    await navi.mod.surf.surf('/torus/docs/readme')  // render HTML
+    await navi.mod.surf.browse('manifest')                           // returns text, never mounts
+    await navi.mod.surf.mount('some/module/route')                   // fetch + install + mount
+    await navi.mod.surf.mount('mod:mymod')                           // remount from storage
+    await navi.mod.surf.mount('navi:mod:mymod')                      // same key, full form
+    navi.mod.surf.persist(myWindowEl)                                // survive the next surf()
+    </code></pre>
+    <p>Callin: <code>surf …</code>, <code>surfrefresh</code>, <code>browse …</code>, <code>mount …</code>, <code>surf_settings …</code>.</p>
+    <p>A Navi module is recognized by <code>application/navi-module</code> MIME, or JS source that passes the <code>register</code>/<code>moduleInfo</code> checks.</p>
+    <h3>PWA</h3>
+    <pre><code class="javascript">
+    navi.pwa.set({
+      name: 'Product Demo',
+      short_name: 'Product',
+      theme_color: '#00897b',
+      start_url: '/',
+      icons: [{ src: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' }],
+      replace_url: true, // or a path string
+    })
+    navi.pwa.get()
+    navi.pwa.clear()
+    </code></pre>
+    <p>Publishes the manifest to the service worker, which serves it as a same-origin <code>/manifest.json</code> overlay (Chromium refuses to install from <code>blob:</code>), and manages head tags marked <code>data-navi-pwa-managed</code>. Icon <code>src</code> must be a same-origin http(s) path for the same reason.</p>
+    <h4>App shell cache (offline boot)</h4>
+    <p>SW caches <code>/navi_shell.js</code> in <code>foobarch-shell-v2</code> (network-first; offline fallback). SSR documents for offline boot are warmed separately in <code>foobarch-offline-docs-v1</code> (navigate fetch only — online documents are not intercepted). On boot, <code>ensureShellCache()</code> refreshes the runtime bundle and warms entry + <code>/</code>.</p>
+    <pre><code class="javascript">
+    await navi.pwa.shell.status()
+    await navi.pwa.shell.refresh()   // /navi_shell.js only
+    await navi.pwa.shell.warm(urls)  // offline doc warm (navigate headers)
+    await navi.pwa.shell.delete(url)
+    await navi.pwa.shell.put({ url, body, contentType })
+    await navi.pwa.shell.clear()
+    </code></pre>
+    <p>This is perhaps the 4th redesign of navi_shell.</p>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>

@@ -1,0 +1,50 @@
+﻿<div
+  style="box-sizing:border-box;max-height:min(100vh,100dvh);overflow:auto;"
+  name="docs-navi-style"
+  data-path="torus/docs/navi-style"
+  data-part="htmf"
+>
+  <nav aria-label="docs">
+    <a href="/torus/docs/readme" hx-get="/torus/docs/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">index</a>
+    <a href="/torus/docs/hostparking" hx-get="/torus/docs/hostparking" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">hostparking</a>
+    <a href="/torus/docs/foobarch-usage-budgets" hx-get="/torus/docs/foobarch-usage-budgets" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">foobarch-usage-budgets</a>
+    <a href="/torus/docs/navi-style" hx-get="/torus/docs/navi-style" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true" aria-current="page">navi-style</a>
+    <a href="/torus/docs/style-refinement" hx-get="/torus/docs/style-refinement" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">style-refinement</a>
+    <a href="/torus/docs/navi-shell" hx-get="/torus/docs/navi-shell" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-shell</a>
+    <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-modules-guide</a>
+    <a href="/torus/docs/navi-units" hx-get="/torus/docs/navi-units" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-units</a>
+    <a href="/torus/docs/manifest" hx-get="/torus/docs/manifest" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">manifest</a>
+    <a href="/torus/docs/navi-park-addressing" hx-get="/torus/docs/navi-park-addressing" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi-park-addressing</a>
+  </nav>
+  <article>
+    <h1>Navi devops style</h1>
+    <p>Devops style for the foobarch/navi framework. Products can hide the build pattern entirely from end users.</p>
+
+    <h2>Production solutions</h2>
+    <p>Expose API via foobarch proposals and/or ship a PWA in a non-root browser shell. JS depth (MPA vs heavy client) is a per-product choice; navi runtime and the foobarch shell pattern are always available.</p>
+    <ul>
+      <li><code>foobarch.net</code> is the dispatch origin. Named routes on that host are hostpark tips.</li>
+    </ul>
+    <p>See <a href="/torus/docs/navi-modules-guide" hx-get="/torus/docs/navi-modules-guide" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">navi modules guide</a> for the module contract.</p>
+
+    <h2>A project</h2>
+    <p>A product is a set of hostpark routes plus the tips a session keeps. Write down three things where people can read them:</p>
+    <ul>
+      <li>scope: what the product is for</li>
+      <li>a decisions log: why a shape was chosen</li>
+      <li>the route prefix the product lives under</li>
+    </ul>
+    <h2>Principles</h2>
+    <ul>
+      <li>DRY â€” no redundant servers or duplicate catalogs</li>
+      <li>Modular â€” navi modules + callin; UI is presentation over logic</li>
+      <li>UNIX spirit â€” small tools, text streams (<code>callin</code>), compose via Manager</li>
+      <li>Standardize as the docs evolve</li>
+      <li>The decisions log records <em>why</em> a shape was chosen</li>
+    </ul>
+
+    <h2>UX spectrum</h2>
+    <p>Presentation richness extends from programmatic soundness. Keep layers modular so devops can swap presentation without rewriting core logic. See <a href="/torus/devops/flow-model/ux-spectrum" hx-get="/torus/devops/flow-model/ux-spectrum" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model ux-spectrum</a>.</p>
+    <p>Related: <a href="/torus/devops/flow-model/readme" hx-get="/torus/devops/flow-model/readme" hx-swap="outerHTML" hx-target="closest div[data-part='htmf']" hx-push-url="true">flow-model</a>.</p>
+  </article>
+</div>
