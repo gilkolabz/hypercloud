@@ -109,6 +109,43 @@ export async function walkTipLineage(
 }
 
 /**
+ * Unit-system prune: keep origin (oldest) and live tip (newest);
+ * drop only the interior of that past chain.
+ * `nMax` default 20; require at least nMax-2 interior addrs or skip.
+ */
+export function unitSystemInteriorDrop(
+    newestFirst: string[],
+    liveAddr: string,
+    nMax = 20
+): { drop: string[]; skip: string | null } {
+    const max = Number.isFinite(Number(nMax)) && Number(nMax) >= 3 ? Math.floor(Number(nMax)) : 20;
+    const minInterior = max - 2;
+    const live = String(liveAddr || "").trim();
+    if (!live.includes("^")) return { drop: [], skip: "no live addr" };
+    if (!Array.isArray(newestFirst) || !newestFirst.length) {
+        return { drop: [], skip: "empty lineage" };
+    }
+    if (String(newestFirst[0] || "").trim() !== live) {
+        return { drop: [], skip: "lineage head is not the live pointer" };
+    }
+    const oldestFirst = newestFirst.map((a) => String(a || "").trim()).filter((a) => a.includes("^"));
+    oldestFirst.reverse();
+    if (oldestFirst.length < max) {
+        return { drop: [], skip: `need ${max} lineage frames, got ${oldestFirst.length}` };
+    }
+    const origin = oldestFirst[0];
+    const tip = oldestFirst[oldestFirst.length - 1];
+    const interior = oldestFirst.slice(1, -1);
+    if (interior.length < minInterior) {
+        return { drop: [], skip: `need ${minInterior} interior frames, got ${interior.length}` };
+    }
+    return {
+        drop: interior.filter((a) => a !== origin && a !== tip && a !== live),
+        skip: null,
+    };
+}
+
+/**
  * Hits needed from the tip to satisfy opts. Only a bounded reverse span can
  * stop early; forward/all start at the oldest end, which needs the full walk.
  */

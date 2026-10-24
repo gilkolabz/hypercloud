@@ -39,6 +39,7 @@ import {
     walkTipLineage as walkTipLineageImpl,
     tipSpan as tipSpanImpl,
     tipSpanDiff as tipSpanDiffImpl,
+    unitSystemInteriorDrop,
     type TipSpanDir,
     type TipSpanOpts,
     type TipSpanHit,
@@ -7493,7 +7494,8 @@ class Navi extends EventEmitter {
         }
         sys = await this.mut8Tip(sys, { units: normalized });
         const hb = this.normalizeHeartbeat(normalized.heartbeat);
-        // n_max = frame-index size cap (default 20); rollover compacts back to 2 frames.
+        // n_max = frame-index size cap (default 20). Prune is a separate
+        // getTip + past walk: keep origin and live tip, drop interior.
         if (hb.n_max >= 1) {
             const count = (await this.listTipFrames(NAVI_UNIT_SYSTEM_IB)).length;
             if (count >= hb.n_max) await this.rolloverUnitSystem();
@@ -7501,100 +7503,37 @@ class Navi extends EventEmitter {
     }
 
     /**
-     * navi:unit frame index reached n_max — compact mutation lineage.
-     * System tip always stays; unit instances are untouched (use prune for that).
+     * navi:unit frame index reached n_max — prune interior of the past chain.
+     * Own getTip; keep origin + live pointer; skip if the span is short.
      */
     private async rolloverUnitSystem(): Promise<void> {
         const sys = await this.getTip(NAVI_UNIT_SYSTEM_IB);
         const hb = this.normalizeHeartbeat(
             sys?.data?.units?.heartbeat || (await this.loadUnitsState()).heartbeat
         );
-        const count = (await this.listTipFrames(NAVI_UNIT_SYSTEM_IB)).length;
-        if (count < hb.n_max) return;
-
-        const units =
-            sys?.data?.units && typeof sys.data.units === 'object'
-                ? this.normalizeUnitsState(sys.data.units)
-                : await this.loadUnitsState();
-        await this.rolloverUnitSystemTip(units);
+        await this.pruneUnitSystemInterior(hb.n_max);
     }
 
     /**
-     * Compact navi:unit lineage in place: setTip rollover frame first (tip never
-     * disappears), then drop older ib^gib frames from tip.frame index.
+     * Keep generation 0 and the live tip; delete the interior of that chain.
+     * Does not write a new generation. Aborts if lineage is shorter than n_max
+     * or interior is shorter than n_max-2 (18 when n_max is 20).
      */
-    private async rolloverUnitSystemTip(units: Record<string, any>): Promise<void> {
-        const tip = await this.getTip(NAVI_UNIT_SYSTEM_IB);
-        if (!tip?.data) {
-            throw new Error(`${NAVI_UNIT_SYSTEM_IB} tip missing`);
-        }
+    private async pruneUnitSystemInterior(nMax: number): Promise<void> {
         const tipIb = NAVI_UNIT_SYSTEM_IB;
-        const priorGib = String(tip.gib || '').trim();
-        const priorAddr = priorGib ? `${tipIb}^${priorGib}` : null;
-        if (priorGib) {
-            await this.putTipFrame({ ...tip, ib: tipIb, gib: priorGib });
-            await this.liftNestedFramesIntoSpace(tip);
-        }
-        const prunedFrames = (await this.listTipFrames(tipIb)).length;
-        const now = naviStamp.time();
-        const nextUnits = this.normalizeUnitsState(units);
-        const rollover = {
-            of: priorAddr,
-            pruned_frames: prunedFrames,
-            at: now,
-        };
-        const baseData: Record<string, any> =
-            tip.data && typeof tip.data === 'object' ? { ...tip.data } : {};
-        delete baseData.n;
-        const frame: NaviTipFrame = {
-            ...tip,
-            ib: tipIb,
-            gib: '<seed-gib>',
-            data: {
-                ...baseData,
-                units: nextUnits,
-                timestamp: now,
-                rollover,
-            },
-            rel8ns: {
-                ...(tip.rel8ns || {}),
-                past: priorAddr ? [priorAddr] : [],
-            },
-        };
-        const stamped = await this.stampTipFrame(frame, now);
-        // Pointer must move before any frame GC — concurrent readers need a live tip.
-        await this.setTip(stamped);
-        const liveAddr = `${tipIb}^${String(stamped.gib || '').trim()}`;
-        await this.pruneUnitSystemFrameIndex(tip, {
-            keep: [priorAddr, liveAddr].filter(Boolean) as string[],
-        });
-    }
-
-    /** Drop rolled-off navi:unit ib^gib frames (never the live tip pointer / rollover anchor). */
-    private async pruneUnitSystemFrameIndex(
-        tip: NaviTipFrame,
-        opts: { keep: string[] }
-    ): Promise<void> {
-        const tipIb = NAVI_UNIT_SYSTEM_IB;
-        const keep = new Set(
-            (opts.keep || [])
-                .map((a) => String(a || '').trim())
-                .filter((a) => a.includes('^'))
+        const tip = await this.getTip(tipIb);
+        const gib = String(tip?.gib || "").trim();
+        if (!tip?.data || !gib) return;
+        const liveAddr = `${tipIb}^${gib}`;
+        const hits = await this.walkTipLineage(tipIb);
+        const { drop, skip } = unitSystemInteriorDrop(
+            hits.map((h) => h.addr),
+            liveAddr,
+            nMax
         );
-        const seen = new Set<string>();
-        const drop = async (addr: string) => {
-            const a = String(addr || '').trim();
-            if (!a || !a.includes('^') || seen.has(a) || keep.has(a)) return;
-            seen.add(a);
-            await this.deleteTipFrame(a);
-        };
-        const addrs = await this.listTipFrames(tipIb);
-        for (const addr of addrs) {
-            await drop(addr);
-        }
-        const past = Array.isArray(tip.rel8ns?.past) ? tip.rel8ns.past : [];
-        for (const addr of past) {
-            await drop(String(addr || ''));
+        if (skip || !drop.length) return;
+        for (const addr of drop) {
+            await this.deleteTipFrame(addr);
         }
     }
 
@@ -8565,72 +8504,6 @@ class Navi extends EventEmitter {
                     return null;
                 }
 
-                /** First hypertext htmf path in a fetched page, as a URL (/hypertext/enter). */
-                function hypertextUrlFromHtml(html) {
-                    const m = String(html || "").match(/data-path="(hypertext\/[^"]+)"/);
-                    if (!m) return "";
-                    const at = m.index || 0;
-                    const around = String(html).slice(Math.max(0, at - 120), at + m[0].length + 80);
-                    if (!around.includes('data-part="htmf"') && !around.includes("data-part='htmf'")) return "";
-                    return "/" + m[1].replace(/^\/+/, "");
-                }
-
-                function currentHistoryPath() {
-                    try {
-                        const stored = sessionStorage.getItem("htmx-current-path-for-history");
-                        if (stored) return stored;
-                    } catch { /* ignore */ }
-                    return (location.pathname || "/") + (location.search || "");
-                }
-
-                /** Same snapshot HTMX writes before hx-push-url: body HTML, title, scroll. */
-                function snapshotHtmxHistory() {
-                    if (typeof sessionStorage === "undefined" || typeof document === "undefined") return;
-                    if (document.querySelector('[hx-history="false" i],[data-hx-history="false" i]')) return;
-                    const historyElt = document.querySelector("[hx-history-elt],[data-hx-history-elt]") || document.body;
-                    if (!historyElt) return;
-                    const path = currentHistoryPath();
-                    const clone = historyElt.cloneNode(true);
-                    const requestClass = "htmx-request";
-                    clone.querySelectorAll("." + requestClass).forEach((el) => el.classList.remove(requestClass));
-                    clone.querySelectorAll("[data-disabled-by-htmx]").forEach((el) => el.removeAttribute("disabled"));
-                    const item = { url: path, content: clone.innerHTML, title: document.title, scroll: window.scrollY };
-                    let cache = [];
-                    try {
-                        cache = JSON.parse(sessionStorage.getItem("htmx-history-cache") || "[]") || [];
-                    } catch { cache = []; }
-                    if (!Array.isArray(cache)) cache = [];
-                    for (let i = 0; i < cache.length; i++) {
-                        if (cache[i] && cache[i].url === path) {
-                            cache.splice(i, 1);
-                            break;
-                        }
-                    }
-                    cache.push(item);
-                    const cap = (globalThis.htmx && globalThis.htmx.config && globalThis.htmx.config.historyCacheSize) || 10;
-                    while (cache.length > cap) cache.shift();
-                    try { sessionStorage.setItem("htmx-history-cache", JSON.stringify(cache)); } catch { /* quota */ }
-                    try { history.replaceState({ htmx: true }, document.title, location.href); } catch { /* ignore */ }
-                }
-
-                function planHypertextHistory(url) {
-                    if (!url || typeof location === "undefined" || typeof history === "undefined") return null;
-                    const here = (location.pathname || "/") + (location.search || "");
-                    if (here === url || location.pathname === url) return null;
-                    const atRoot = location.pathname === "/" || location.pathname === "";
-                    if (!atRoot) snapshotHtmxHistory();
-                    return { url: url, replace: atRoot };
-                }
-
-                function commitHypertextHistory(plan) {
-                    if (!plan) return;
-                    try {
-                        if (plan.replace) history.replaceState({ htmx: true }, document.title, plan.url);
-                        else history.pushState({ htmx: true }, "", plan.url);
-                        sessionStorage.setItem("htmx-current-path-for-history", plan.url);
-                    } catch { /* ignore */ }
-                }
-
                 async function surf(path, opts = {}) {
                     if (typeof document === "undefined" || !document.body) {
                         navi.callout("[surf] surf requires a browser document");
@@ -8670,7 +8543,6 @@ class Navi extends EventEmitter {
                         html = await response.text();
                     }
                     const contentHash = hashContentSync(html);
-                    const hypertextPlan = planHypertextHistory(hypertextUrlFromHtml(html));
                     parkPersisted();
                     const template = document.createElement("template");
                     template.innerHTML = html;
@@ -8738,7 +8610,6 @@ class Navi extends EventEmitter {
                         }
                     }
                     restorePersisted();
-                    commitHypertextHistory(hypertextPlan);
                     // Page landed. Settings and other surf commands never reach here.
                     try { navi.emit?.("surf", String(path || "").replace(/^\\/+/, "")); } catch { /* ignore */ }
                     return "[surf] Surfing " + (parkIb || url);

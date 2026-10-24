@@ -114,6 +114,29 @@ ok(
   'no admin seed'
 );
 
+console.log('3) unit-system interior prune (keep origin + live tip)');
+const spanOut = path.join(root, 'dist', 'smoke_tip_span.mjs');
+execSync(
+  `npx esbuild src/tip_span.ts --bundle --platform=node --format=esm --outfile=${spanOut}`,
+  { cwd: root, stdio: 'pipe' }
+);
+const span = await import(pathToFileUrl(spanOut) + `?t=${Date.now()}`);
+const { unitSystemInteriorDrop } = span;
+const chain = [];
+for (let i = 19; i >= 0; i--) chain.push(`unit^${String(i).padStart(2, '0')}`);
+const live = chain[0];
+const d20 = unitSystemInteriorDrop(chain, live, 20);
+ok(!d20.skip && d20.drop.length === 18, 'n_max 20 drops 18 interior');
+ok(!d20.drop.includes('unit^00') && !d20.drop.includes(live), 'keeps origin and tip');
+ok(d20.drop[0] === 'unit^01' && d20.drop[17] === 'unit^18', 'interior is 1..18');
+const short = unitSystemInteriorDrop(chain.slice(0, 10), chain[0], 20);
+ok(!!short.skip && short.drop.length === 0, 'skips when lineage < 20');
+const stale = unitSystemInteriorDrop(chain, 'unit^99', 20);
+ok(!!stale.skip && stale.drop.length === 0, 'skips when head is not live pointer');
+const extra = [`unit^20`, ...chain];
+const d21 = unitSystemInteriorDrop(extra, extra[0], 20);
+ok(!d21.skip && d21.drop.length === 19 && !d21.drop.includes('unit^20') && !d21.drop.includes('unit^00'), 'longer chain still keeps origin+tip');
+
 console.log(failed ? `\n${failed} FAIL` : '\nall ok');
 process.exit(failed ? 1 : 0);
 
